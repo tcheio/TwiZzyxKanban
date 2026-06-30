@@ -6,6 +6,7 @@ import { Board } from './board';
 import { ColumnsService } from '../../services/columns.service';
 import { CardsService } from '../../services/cards.service';
 import { UsersService } from '../../services/users.service';
+import { TagsService } from '../../services/tags.service';
 import { Card } from '../../models/card.model';
 import { Column } from '../../models/column.model';
 
@@ -20,7 +21,6 @@ describe('Board', () => {
   };
   let cardsService: {
     list: ReturnType<typeof vi.fn>;
-    remove: ReturnType<typeof vi.fn>;
     move: ReturnType<typeof vi.fn>;
   };
   let usersService: { lite: ReturnType<typeof vi.fn> };
@@ -36,6 +36,7 @@ describe('Board', () => {
       title: 'A',
       channel: null,
       description: null,
+      tag_id: 1,
       assigned_user_id: null,
       priority: 'medium',
       column_id: 1,
@@ -46,6 +47,7 @@ describe('Board', () => {
       title: 'B',
       channel: null,
       description: null,
+      tag_id: null,
       assigned_user_id: null,
       priority: 'medium',
       column_id: 1,
@@ -56,6 +58,7 @@ describe('Board', () => {
       title: 'C',
       channel: null,
       description: null,
+      tag_id: null,
       assigned_user_id: 1,
       priority: 'medium',
       column_id: 2,
@@ -63,6 +66,7 @@ describe('Board', () => {
     },
   ];
   const users = [{ id: 1, username: 'alice' }];
+  const tags = [{ id: 1, name: 'Minecraft' }];
 
   beforeEach(() => {
     columnsService = {
@@ -74,7 +78,6 @@ describe('Board', () => {
     };
     cardsService = {
       list: vi.fn().mockResolvedValue([...baseCards]),
-      remove: vi.fn().mockResolvedValue(undefined),
       move: vi.fn().mockResolvedValue({}),
     };
     usersService = { lite: vi.fn().mockResolvedValue(users) };
@@ -86,6 +89,7 @@ describe('Board', () => {
         { provide: ColumnsService, useValue: columnsService },
         { provide: CardsService, useValue: cardsService },
         { provide: UsersService, useValue: usersService },
+        { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
         { provide: Router, useValue: { navigate } },
       ],
     });
@@ -109,6 +113,14 @@ describe('Board', () => {
     expect(component.userName(1)).toBe('alice');
     expect(component.userName(null)).toBe('—');
     expect(component.userName(999)).toBe('—');
+  });
+
+  it('tagName() retourne le nom du tag ou null', async () => {
+    await component.reload();
+
+    expect(component.tagName(1)).toBe('Minecraft');
+    expect(component.tagName(null)).toBeNull();
+    expect(component.tagName(999)).toBeNull();
   });
 
   it('openTicket() navigue vers la page dédiée du ticket', async () => {
@@ -148,24 +160,6 @@ describe('Board', () => {
     await component.drop(event);
 
     expect(cardsService.move).toHaveBeenCalledWith(10, 2, 1);
-  });
-
-  it('deleteCard() supprime après confirmation', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-    await component.reload();
-
-    await component.deleteCard(baseCards[0]);
-
-    expect(cardsService.remove).toHaveBeenCalledWith(baseCards[0].id);
-  });
-
-  it("deleteCard() n'appelle pas remove() si l'utilisateur annule", async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
-    await component.reload();
-
-    await component.deleteCard(baseCards[0]);
-
-    expect(cardsService.remove).not.toHaveBeenCalled();
   });
 
   it('addColumn() crée une colonne et réinitialise le champ', async () => {

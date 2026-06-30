@@ -100,13 +100,22 @@
 .card-title {
   font-size: 0.9rem;
   font-weight: 600;
-  padding-right: 1rem;
 }
 
 .card-channel {
   font-size: 0.78rem;
   color: var(--text-muted);
   margin-top: 0.15rem;
+}
+
+.tag-badge {
+  display: inline-block;
+  margin-top: 0.3rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 0.68rem;
 }
 
 .card-footer {
@@ -138,26 +147,6 @@
 
 .assignee {
   color: var(--text-muted);
-}
-
-.card-delete {
-  position: absolute;
-  top: 0.3rem;
-  right: 0.3rem;
-  width: 18px;
-  height: 18px;
-  line-height: 1;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 0.65rem;
-}
-
-.card-delete:hover {
-  background: #fee2e2;
-  color: var(--danger);
 }
 
 .add-column {

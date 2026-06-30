@@ -17,7 +17,7 @@ function getOne(req, res) {
 }
 
 function create(req, res) {
-  const { title, channel, assigned_user_id, priority, column_id } = req.body || {};
+  const { title, channel, assigned_user_id, priority, column_id, tag_id } = req.body || {};
 
   if (!title || !column_id) {
     return res.status(400).json({ error: 'title et column_id requis' });
@@ -30,6 +30,12 @@ function create(req, res) {
   if (!column) {
     return res.status(400).json({ error: 'column_id invalide' });
   }
+  if (tag_id) {
+    const tag = db.prepare('SELECT id FROM tags WHERE id = ?').get(tag_id);
+    if (!tag) {
+      return res.status(400).json({ error: 'tag_id invalide' });
+    }
+  }
 
   const maxPosition = db
     .prepare('SELECT COALESCE(MAX(position), -1) AS maxPos FROM cards WHERE column_id = ?')
@@ -37,10 +43,18 @@ function create(req, res) {
 
   const result = db
     .prepare(
-      `INSERT INTO cards (title, channel, assigned_user_id, priority, column_id, position)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO cards (title, channel, assigned_user_id, priority, column_id, tag_id, position)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
-    .run(title, channel || null, assigned_user_id || null, priority || 'medium', column_id, maxPosition + 1);
+    .run(
+      title,
+      channel || null,
+      assigned_user_id || null,
+      priority || 'medium',
+      column_id,
+      tag_id || null,
+      maxPosition + 1
+    );
 
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(card);
@@ -48,7 +62,7 @@ function create(req, res) {
 
 function update(req, res) {
   const id = Number(req.params.id);
-  const { title, channel, description, assigned_user_id, priority } = req.body || {};
+  const { title, channel, description, assigned_user_id, priority, tag_id } = req.body || {};
 
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
   if (!card) {
@@ -57,9 +71,15 @@ function update(req, res) {
   if (priority && !VALID_PRIORITIES.includes(priority)) {
     return res.status(400).json({ error: `priority doit être l'un de: ${VALID_PRIORITIES.join(', ')}` });
   }
+  if (tag_id) {
+    const tag = db.prepare('SELECT id FROM tags WHERE id = ?').get(tag_id);
+    if (!tag) {
+      return res.status(400).json({ error: 'tag_id invalide' });
+    }
+  }
 
   db.prepare(
-    `UPDATE cards SET title = ?, channel = ?, description = ?, assigned_user_id = ?, priority = ?, updated_at = datetime('now')
+    `UPDATE cards SET title = ?, channel = ?, description = ?, assigned_user_id = ?, priority = ?, tag_id = ?, updated_at = datetime('now')
      WHERE id = ?`
   ).run(
     title ?? card.title,
@@ -67,6 +87,7 @@ function update(req, res) {
     description !== undefined ? description : card.description,
     assigned_user_id !== undefined ? assigned_user_id : card.assigned_user_id,
     priority || card.priority,
+    tag_id !== undefined ? tag_id : card.tag_id,
     id
   );
 

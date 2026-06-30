@@ -6,12 +6,14 @@ import { CardsService } from '../../../services/cards.service';
 import { ColumnsService } from '../../../services/columns.service';
 import { UsersService } from '../../../services/users.service';
 import { CommentsService } from '../../../services/comments.service';
+import { TagsService } from '../../../services/tags.service';
 import { AuthService } from '../../../core/auth.service';
 import { Card } from '../../../models/card.model';
 import { Comment } from '../../../models/comment.model';
 
 describe('TicketDetail', () => {
   let component: TicketDetail;
+  let fixture: ReturnType<typeof TestBed.createComponent<TicketDetail>>;
   let cardsService: {
     get: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
@@ -25,17 +27,23 @@ describe('TicketDetail', () => {
   };
   let navigate: ReturnType<typeof vi.fn>;
   let currentUser: ReturnType<typeof vi.fn>;
+  let isAdmin: ReturnType<typeof vi.fn>;
 
   const columns = [
     { id: 1, name: 'Idée', position: 0 },
     { id: 2, name: 'Script', position: 1 },
   ];
   const users = [{ id: 1, username: 'alice' }];
+  const tags = [
+    { id: 1, name: 'Minecraft' },
+    { id: 2, name: 'Pokémon' },
+  ];
   const ticket: Card = {
     id: 5,
     title: 'Mon ticket',
     channel: 'MaChaine',
     description: 'Notes existantes',
+    tag_id: 1,
     assigned_user_id: 1,
     priority: 'medium',
     column_id: 1,
@@ -49,6 +57,7 @@ describe('TicketDetail', () => {
   beforeEach(() => {
     navigate = vi.fn();
     currentUser = vi.fn().mockReturnValue({ id: 1, username: 'alice', role: 'user' });
+    isAdmin = vi.fn().mockReturnValue(false);
     cardsService = {
       get: vi.fn().mockResolvedValue({ ...ticket }),
       update: vi.fn().mockImplementation((id, partial) => Promise.resolve({ ...ticket, ...partial })),
@@ -66,13 +75,15 @@ describe('TicketDetail', () => {
         { provide: CardsService, useValue: cardsService },
         { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
         { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
+        { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
         { provide: CommentsService, useValue: commentsService },
-        { provide: AuthService, useValue: { currentUser } },
+        { provide: AuthService, useValue: { currentUser, isAdmin } },
         { provide: Router, useValue: { navigate } },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '5' } } } },
       ],
     });
-    component = TestBed.createComponent(TicketDetail).componentInstance;
+    fixture = TestBed.createComponent(TicketDetail);
+    component = fixture.componentInstance;
   });
 
   it('reload() charge le ticket, les colonnes, les utilisateurs et les commentaires', async () => {
@@ -81,6 +92,7 @@ describe('TicketDetail', () => {
     expect(cardsService.get).toHaveBeenCalledWith(5);
     expect(component.ticket()?.title).toBe('Mon ticket');
     expect(component.columns()).toEqual(columns);
+    expect(component.tags()).toEqual(tags);
     expect(component.comments()).toEqual(comments);
     expect(component.descriptionDraft()).toBe('Notes existantes');
   });
@@ -114,6 +126,20 @@ describe('TicketDetail', () => {
     expect(cardsService.update).toHaveBeenCalledWith(5, { channel: 'AutreChaine' });
     expect(cardsService.update).toHaveBeenCalledWith(5, { priority: 'high' });
     expect(cardsService.update).toHaveBeenCalledWith(5, { assigned_user_id: null });
+  });
+
+  it('updateTag() persiste le nouveau tag', async () => {
+    await component.reload();
+    component.updateTag(2);
+    await Promise.resolve();
+    expect(cardsService.update).toHaveBeenCalledWith(5, { tag_id: 2 });
+  });
+
+  it('updateTag() accepte null (retrait du tag)', async () => {
+    await component.reload();
+    component.updateTag(null);
+    await Promise.resolve();
+    expect(cardsService.update).toHaveBeenCalledWith(5, { tag_id: null });
   });
 
   it('updateStatus() ne fait rien si la colonne est inchangée', async () => {
@@ -195,5 +221,22 @@ describe('TicketDetail', () => {
     await component.reload();
     await component.deleteTicket();
     expect(cardsService.remove).not.toHaveBeenCalled();
+  });
+
+  it('masque le bouton "Supprimer le ticket" pour un non-admin', async () => {
+    await component.reload();
+    fixture.detectChanges();
+
+    const button = (fixture.nativeElement as HTMLElement).querySelector('button.danger');
+    expect(button).toBeFalsy();
+  });
+
+  it('affiche le bouton "Supprimer le ticket" pour un admin', async () => {
+    isAdmin.mockReturnValue(true);
+    await component.reload();
+    fixture.detectChanges();
+
+    const button = (fixture.nativeElement as HTMLElement).querySelector('button.danger');
+    expect(button).toBeTruthy();
   });
 });

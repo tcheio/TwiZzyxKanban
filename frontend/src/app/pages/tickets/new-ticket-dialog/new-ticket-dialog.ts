@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CardInput, Priority } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
 import { UserLite } from '../../../models/user.model';
+import { Tag } from '../../../models/tag.model';
 
 @Component({
   selector: 'app-new-ticket-dialog',
@@ -15,6 +16,7 @@ export class NewTicketDialog {
 
   @Input({ required: true }) columns: Column[] = [];
   @Input({ required: true }) users: UserLite[] = [];
+  @Input({ required: true }) tags: Tag[] = [];
   @Output() save = new EventEmitter<CardInput>();
   @Output() cancel = new EventEmitter<void>();
 
@@ -22,6 +24,7 @@ export class NewTicketDialog {
     title: ['', Validators.required],
     channel: [''],
     column_id: [null as number | null, Validators.required],
+    tag_id: [null as number | null],
     assigned_user_id: [null as number | null],
     priority: ['medium' as Priority, Validators.required],
   });
@@ -33,6 +36,7 @@ export class NewTicketDialog {
       title: raw.title!,
       channel: raw.channel || null,
       column_id: raw.column_id!,
+      tag_id: raw.tag_id ?? null,
       assigned_user_id: raw.assigned_user_id ?? null,
       priority: raw.priority!,
     });

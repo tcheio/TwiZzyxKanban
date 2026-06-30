@@ -12,6 +12,10 @@ describe('NewTicketDialog', () => {
     { id: 2, name: 'Script', position: 1 },
   ];
   const users = [{ id: 1, username: 'alice' }];
+  const tags = [
+    { id: 1, name: 'Minecraft' },
+    { id: 2, name: 'Pokémon' },
+  ];
 
   beforeEach(() => {
     TestBed.configureTestingModule({ imports: [NewTicketDialog] });
@@ -19,6 +23,7 @@ describe('NewTicketDialog', () => {
     component = fixture.componentInstance;
     component.columns = columns;
     component.users = users;
+    component.tags = tags;
     fixture.detectChanges();
   });
 
@@ -44,6 +49,7 @@ describe('NewTicketDialog', () => {
       title: 'Nouvelle vidéo',
       channel: 'MaChaine',
       column_id: 2,
+      tag_id: 1,
       assigned_user_id: 1,
       priority: 'high',
     });
@@ -53,12 +59,13 @@ describe('NewTicketDialog', () => {
       title: 'Nouvelle vidéo',
       channel: 'MaChaine',
       column_id: 2,
+      tag_id: 1,
       assigned_user_id: 1,
       priority: 'high',
     });
   });
 
-  it("submit() convertit une chaîne vide en null pour channel/assigned_user_id", () => {
+  it("submit() convertit une chaîne vide en null pour channel/assigned_user_id, et accepte tag_id=null", () => {
     let emitted: CardInput | null = null;
     component.save.subscribe((value) => (emitted = value));
 
@@ -66,6 +73,7 @@ describe('NewTicketDialog', () => {
       title: 'X',
       channel: '',
       column_id: 1,
+      tag_id: null,
       assigned_user_id: null,
       priority: 'medium',
     });
@@ -73,5 +81,6 @@ describe('NewTicketDialog', () => {
 
     expect(emitted!.channel).toBeNull();
     expect(emitted!.assigned_user_id).toBeNull();
+    expect(emitted!.tag_id).toBeNull();
   });
 });

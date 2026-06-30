@@ -11,7 +11,9 @@
 
     <div class="ticket-header">
       <input class="title-input" [value]="t.title" (change)="updateTitle($any($event.target).value)" />
-      <button type="button" class="danger" (click)="deleteTicket()">Supprimer le ticket</button>
+      @if (authService.isAdmin()) {
+        <button type="button" class="danger" (click)="deleteTicket()">Supprimer le ticket</button>
+      }
     </div>
 
     <div class="ticket-fields">
@@ -25,6 +27,16 @@
         <select [ngModel]="t.column_id" (ngModelChange)="updateStatus($event)">
           @for (column of columns(); track column.id) {
             <option [ngValue]="column.id">{{ column.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Tag
+        <select [ngModel]="t.tag_id" (ngModelChange)="updateTag($event)">
+          <option [ngValue]="null">— Aucun tag —</option>
+          @for (tag of tags(); track tag.id) {
+            <option [ngValue]="tag.id">{{ tag.name }}</option>
           }
         </select>
       </label>

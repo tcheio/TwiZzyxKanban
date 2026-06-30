@@ -11,9 +11,11 @@ import {
 import { ColumnsService } from '../../services/columns.service';
 import { CardsService } from '../../services/cards.service';
 import { UsersService } from '../../services/users.service';
+import { TagsService } from '../../services/tags.service';
 import { Column } from '../../models/column.model';
 import { Card } from '../../models/card.model';
 import { UserLite } from '../../models/user.model';
+import { Tag } from '../../models/tag.model';
 
 interface ColumnGroup {
   column: Column;
@@ -31,6 +33,7 @@ export class Board implements OnInit {
 
   readonly groups = signal<ColumnGroup[]>([]);
   readonly users = signal<UserLite[]>([]);
+  readonly tags = signal<Tag[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
@@ -40,7 +43,8 @@ export class Board implements OnInit {
   constructor(
     private columnsService: ColumnsService,
     private cardsService: CardsService,
-    private usersService: UsersService
+    private usersService: UsersService,
+    private tagsService: TagsService
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -51,12 +55,14 @@ export class Board implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [columns, cards, users] = await Promise.all([
+      const [columns, cards, users, tags] = await Promise.all([
         this.columnsService.list(),
         this.cardsService.list(),
         this.usersService.lite(),
+        this.tagsService.list(),
       ]);
       this.users.set(users);
+      this.tags.set(tags);
       this.groups.set(
         columns.map((column) => ({
           column,
@@ -75,6 +81,11 @@ export class Board implements OnInit {
   userName(id: number | null): string {
     if (!id) return '—';
     return this.users().find((u) => u.id === id)?.username ?? '—';
+  }
+
+  tagName(tagId: number | null): string | null {
+    if (!tagId) return null;
+    return this.tags().find((t) => t.id === tagId)?.name ?? null;
   }
 
   async drop(event: CdkDragDrop<Card[]>): Promise<void> {
@@ -103,16 +114,6 @@ export class Board implements OnInit {
 
   openTicket(card: Card): void {
     this.router.navigate(['/tickets', card.id]);
-  }
-
-  async deleteCard(card: Card): Promise<void> {
-    if (!confirm(`Supprimer la carte "${card.title}" ?`)) return;
-    try {
-      await this.cardsService.remove(card.id);
-      await this.reload();
-    } catch {
-      this.error.set('Échec de la suppression de la carte.');
-    }
   }
 
   async addColumn(): Promise<void> {

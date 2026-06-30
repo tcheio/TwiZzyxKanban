@@ -23,6 +23,16 @@
     </label>
 
     <label>
+      Tag
+      <select formControlName="tag_id">
+        <option [ngValue]="null">— Aucun tag —</option>
+        @for (tag of tags; track tag.id) {
+          <option [ngValue]="tag.id">{{ tag.name }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
       Assigné à
       <select formControlName="assigned_user_id">
         <option [ngValue]="null">— Non assigné —</option>
