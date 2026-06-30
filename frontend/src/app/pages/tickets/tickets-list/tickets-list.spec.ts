@@ -13,12 +13,7 @@ describe('TicketsList', () => {
   let component: TicketsList;
   let fixture: ReturnType<typeof TestBed.createComponent<TicketsList>>;
   let cardsService: { list: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
-  let tagsService: {
-    list: ReturnType<typeof vi.fn>;
-    create: ReturnType<typeof vi.fn>;
-    rename: ReturnType<typeof vi.fn>;
-    remove: ReturnType<typeof vi.fn>;
-  };
+  let tagsService: { list: ReturnType<typeof vi.fn> };
   let navigate: ReturnType<typeof vi.fn>;
   let isAdmin: ReturnType<typeof vi.fn>;
 
@@ -80,9 +75,6 @@ describe('TicketsList', () => {
     };
     tagsService = {
       list: vi.fn().mockResolvedValue(tags),
-      create: vi.fn().mockResolvedValue({}),
-      rename: vi.fn().mockResolvedValue({}),
-      remove: vi.fn().mockResolvedValue(undefined),
     };
 
     TestBed.configureTestingModule({
@@ -211,52 +203,5 @@ describe('TicketsList', () => {
     expect(component.filterAssigneeId()).toBeNull();
     expect(component.filterColumnId()).toBeNull();
     expect(component.hasActiveFilters()).toBe(false);
-  });
-
-  it('createTag() crée un tag et réinitialise le champ', async () => {
-    component.newTagName.set('One Piece');
-    component.addingTag.set(true);
-
-    await component.createTag();
-
-    expect(tagsService.create).toHaveBeenCalledWith('One Piece');
-    expect(component.newTagName()).toBe('');
-    expect(component.addingTag()).toBe(false);
-  });
-
-  it("createTag() ne fait rien si le nom est vide", async () => {
-    component.newTagName.set('   ');
-
-    await component.createTag();
-
-    expect(tagsService.create).not.toHaveBeenCalled();
-  });
-
-  it('renameTag() ne fait rien si le nom est inchangé', async () => {
-    await component.renameTag(tags[0], 'Minecraft');
-
-    expect(tagsService.rename).not.toHaveBeenCalled();
-  });
-
-  it('renameTag() appelle le service si le nom change', async () => {
-    await component.renameTag(tags[0], 'Minecraft Vanilla');
-
-    expect(tagsService.rename).toHaveBeenCalledWith(1, 'Minecraft Vanilla');
-  });
-
-  it('deleteTag() supprime après confirmation', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-
-    await component.deleteTag(tags[0]);
-
-    expect(tagsService.remove).toHaveBeenCalledWith(1);
-  });
-
-  it("deleteTag() n'appelle pas remove() si l'utilisateur annule", async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
-
-    await component.deleteTag(tags[0]);
-
-    expect(tagsService.remove).not.toHaveBeenCalled();
   });
 });

@@ -25,6 +25,16 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'tags',
+    loadComponent: () => import('./pages/tags/tags-list/tags-list').then((m) => m.TagsList),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'tags/:id',
+    loadComponent: () => import('./pages/tags/tag-detail/tag-detail').then((m) => m.TagDetail),
+    canActivate: [authGuard],
+  },
+  {
     path: 'admin/users',
     loadComponent: () =>
       import('./pages/admin-users/admin-users').then((m) => m.AdminUsers),

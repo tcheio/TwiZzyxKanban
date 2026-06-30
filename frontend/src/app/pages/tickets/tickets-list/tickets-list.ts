@@ -34,9 +34,6 @@ export class TicketsList implements OnInit {
   readonly error = signal<string | null>(null);
   readonly dialogOpen = signal(false);
 
-  readonly newTagName = signal('');
-  readonly addingTag = signal(false);
-
   readonly filterTagId = signal<number | null>(null);
   readonly filterAssigneeId = signal<number | null>(null);
   readonly filterColumnId = signal<number | null>(null);
@@ -122,37 +119,4 @@ export class TicketsList implements OnInit {
     }
   }
 
-  async createTag(): Promise<void> {
-    const name = this.newTagName().trim();
-    if (!name) return;
-    try {
-      await this.tagsService.create(name);
-      this.newTagName.set('');
-      this.addingTag.set(false);
-      await this.reload();
-    } catch {
-      this.error.set('Échec de la création du tag.');
-    }
-  }
-
-  async renameTag(tag: Tag, name: string): Promise<void> {
-    const trimmed = name.trim();
-    if (!trimmed || trimmed === tag.name) return;
-    try {
-      await this.tagsService.rename(tag.id, trimmed);
-      await this.reload();
-    } catch {
-      this.error.set('Échec du renommage du tag.');
-    }
-  }
-
-  async deleteTag(tag: Tag): Promise<void> {
-    if (!confirm(`Supprimer le tag "${tag.name}" ?`)) return;
-    try {
-      await this.tagsService.remove(tag.id);
-      await this.reload();
-    } catch {
-      this.error.set('Échec de la suppression du tag.');
-    }
-  }
 }
