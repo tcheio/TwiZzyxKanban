@@ -69,6 +69,62 @@ test('DELETE /api/tags/:id sur un tag inexistant retourne 404', async () => {
   assert.equal(res.status, 404);
 });
 
+test('GET /api/tags reste autorisé pour un non-admin', async () => {
+  await request(app)
+    .post('/api/users')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ username: 'alice', password: 'alice123', role: 'user' });
+  const userToken = await loginAs('alice', 'alice123');
+
+  const res = await request(app).get('/api/tags').set('Authorization', `Bearer ${userToken}`);
+  assert.equal(res.status, 200);
+});
+
+test('POST /api/tags par un non-admin retourne 403', async () => {
+  await request(app)
+    .post('/api/users')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ username: 'alice', password: 'alice123', role: 'user' });
+  const userToken = await loginAs('alice', 'alice123');
+
+  const res = await request(app)
+    .post('/api/tags')
+    .set('Authorization', `Bearer ${userToken}`)
+    .send({ name: 'One Piece' });
+  assert.equal(res.status, 403);
+});
+
+test('PATCH /api/tags/:id par un non-admin retourne 403', async () => {
+  await request(app)
+    .post('/api/users')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ username: 'alice', password: 'alice123', role: 'user' });
+  const userToken = await loginAs('alice', 'alice123');
+
+  const list = await request(app).get('/api/tags').set('Authorization', `Bearer ${adminToken}`);
+  const id = list.body[0].id;
+
+  const res = await request(app)
+    .patch(`/api/tags/${id}`)
+    .set('Authorization', `Bearer ${userToken}`)
+    .send({ name: 'Renommé' });
+  assert.equal(res.status, 403);
+});
+
+test('DELETE /api/tags/:id par un non-admin retourne 403', async () => {
+  await request(app)
+    .post('/api/users')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ username: 'alice', password: 'alice123', role: 'user' });
+  const userToken = await loginAs('alice', 'alice123');
+
+  const list = await request(app).get('/api/tags').set('Authorization', `Bearer ${adminToken}`);
+  const id = list.body[0].id;
+
+  const res = await request(app).delete(`/api/tags/${id}`).set('Authorization', `Bearer ${userToken}`);
+  assert.equal(res.status, 403);
+});
+
 test('DELETE /api/tags/:id utilisé par une carte retire simplement le tag de la carte (pas de blocage)', async () => {
   const tags = await request(app).get('/api/tags').set('Authorization', `Bearer ${adminToken}`);
   const tagId = tags.body[0].id;

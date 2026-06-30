@@ -1,0 +1,61 @@
+<div class="tags-page">
+  <h1>Tags</h1>
+
+  @if (loading()) {
+    <p class="status">Chargement...</p>
+  }
+  @if (error()) {
+    <p class="status error">{{ error() }}</p>
+  }
+
+  @if (!loading() && tags().length === 0) {
+    <p class="status">Aucun tag pour le moment.</p>
+  }
+
+  <div class="tag-list">
+    @for (tag of tags(); track tag.id) {
+      <div class="tag-row" (click)="openTag(tag)">
+        @if (editingId() === tag.id) {
+          <form class="edit-form" (ngSubmit)="saveEdit(tag)" (click)="$event.stopPropagation()">
+            <input
+              type="text"
+              [ngModel]="editName()"
+              (ngModelChange)="editName.set($event)"
+              name="editName"
+              autofocus
+            />
+            <button type="submit">Enregistrer</button>
+            <button type="button" (click)="cancelEdit()">Annuler</button>
+          </form>
+        } @else {
+          <span class="tag-name">{{ tag.name }}</span>
+          <span class="ticket-count">{{ ticketCount(tag.id) }} ticket(s)</span>
+          @if (authService.isAdmin()) {
+            <div class="actions" (click)="$event.stopPropagation()">
+              <button type="button" (click)="startEdit(tag)">Renommer</button>
+              <button type="button" class="danger" (click)="deleteTag(tag)">Supprimer</button>
+            </div>
+          }
+        }
+      </div>
+    }
+  </div>
+
+  @if (authService.isAdmin()) {
+    @if (creating()) {
+      <form class="create-form" (ngSubmit)="createTag()">
+        <input
+          type="text"
+          [ngModel]="newTagName()"
+          (ngModelChange)="newTagName.set($event)"
+          name="newTagName"
+          placeholder="Nom du tag"
+        />
+        <button type="submit">Créer</button>
+        <button type="button" (click)="creating.set(false)">Annuler</button>
+      </form>
+    } @else {
+      <button type="button" class="new-tag-btn" (click)="creating.set(true)">+ Nouveau tag</button>
+    }
+  }
+</div>

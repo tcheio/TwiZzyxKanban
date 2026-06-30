@@ -13,35 +13,6 @@
     <p class="status error">{{ error() }}</p>
   }
 
-  <div class="tags-panel">
-    <h2>Tags</h2>
-    <div class="tag-chips">
-      @for (tag of tags(); track tag.id) {
-        <div class="tag-chip">
-          <input
-            class="tag-name-input"
-            [value]="tag.name"
-            (change)="renameTag(tag, $any($event.target).value)"
-          />
-          <button type="button" (click)="deleteTag(tag)" title="Supprimer le tag">✕</button>
-        </div>
-      }
-      @if (addingTag()) {
-        <input
-          class="tag-name-input"
-          [value]="newTagName()"
-          (input)="newTagName.set($any($event.target).value)"
-          (keyup.enter)="createTag()"
-          placeholder="Nom du tag"
-        />
-        <button type="button" (click)="createTag()">Ajouter</button>
-        <button type="button" (click)="addingTag.set(false)">Annuler</button>
-      } @else {
-        <button type="button" class="add-tag-btn" (click)="addingTag.set(true)">+ Nouveau tag</button>
-      }
-    </div>
-  </div>
-
   <div class="filters">
     <label>
       Tag
