@@ -10,6 +10,11 @@ function migrate() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
   db.exec(schema);
 
+  const cardColumns = db.prepare('PRAGMA table_info(cards)').all();
+  if (!cardColumns.some((col) => col.name === 'description')) {
+    db.exec('ALTER TABLE cards ADD COLUMN description TEXT');
+  }
+
   const userCount = db.prepare('SELECT COUNT(*) AS count FROM users').get().count;
   if (userCount === 0) {
     const username = process.env.DEFAULT_ADMIN_USERNAME || 'admin';

@@ -1,0 +1,92 @@
+<div class="ticket-page">
+  @if (loading()) {
+    <p class="status">Chargement...</p>
+  }
+  @if (error()) {
+    <p class="status error">{{ error() }}</p>
+  }
+
+  @if (ticket(); as t) {
+    <a routerLink="/tickets" class="back-link">← Retour aux tickets</a>
+
+    <div class="ticket-header">
+      <input class="title-input" [value]="t.title" (change)="updateTitle($any($event.target).value)" />
+      <button type="button" class="danger" (click)="deleteTicket()">Supprimer le ticket</button>
+    </div>
+
+    <div class="ticket-fields">
+      <label>
+        Chaîne YTB
+        <input type="text" [value]="t.channel ?? ''" (change)="updateChannel($any($event.target).value)" />
+      </label>
+
+      <label>
+        Statut
+        <select [ngModel]="t.column_id" (ngModelChange)="updateStatus($event)">
+          @for (column of columns(); track column.id) {
+            <option [ngValue]="column.id">{{ column.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Assigné à
+        <select [ngModel]="t.assigned_user_id" (ngModelChange)="updateAssignee($event)">
+          <option [ngValue]="null">— Non assigné —</option>
+          @for (user of users(); track user.id) {
+            <option [ngValue]="user.id">{{ user.username }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Priorité
+        <select [ngModel]="t.priority" (ngModelChange)="updatePriority($event)">
+          <option value="low">Basse</option>
+          <option value="medium">Moyenne</option>
+          <option value="high">Haute</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="description-section">
+      <h2>Description</h2>
+      <textarea
+        rows="6"
+        [value]="descriptionDraft()"
+        (input)="descriptionDraft.set($any($event.target).value)"
+      ></textarea>
+      <button type="button" (click)="saveDescription()">Enregistrer</button>
+    </div>
+
+    <div class="comments-section">
+      <h2>Commentaires</h2>
+
+      @for (comment of comments(); track comment.id) {
+        <div class="comment">
+          <div class="comment-header">
+            <span class="comment-author">{{ comment.username || 'Utilisateur supprimé' }}</span>
+            <span class="comment-date">{{ comment.created_at }}</span>
+            @if (canDeleteComment(comment)) {
+              <button type="button" class="comment-delete" (click)="deleteComment(comment)">✕</button>
+            }
+          </div>
+          <p class="comment-body">{{ comment.body }}</p>
+        </div>
+      }
+      @if (comments().length === 0) {
+        <p class="status">Aucun commentaire pour le moment.</p>
+      }
+
+      <div class="add-comment">
+        <textarea
+          rows="3"
+          placeholder="Ajouter un commentaire..."
+          [value]="newComment()"
+          (input)="newComment.set($any($event.target).value)"
+        ></textarea>
+        <button type="button" [disabled]="!newComment().trim()" (click)="addComment()">Commenter</button>
+      </div>
+    </div>
+  }
+</div>

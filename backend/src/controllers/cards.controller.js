@@ -7,6 +7,15 @@ function list(req, res) {
   res.json(cards);
 }
 
+function getOne(req, res) {
+  const id = Number(req.params.id);
+  const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
+  if (!card) {
+    return res.status(404).json({ error: 'Carte introuvable' });
+  }
+  res.json(card);
+}
+
 function create(req, res) {
   const { title, channel, assigned_user_id, priority, column_id } = req.body || {};
 
@@ -39,7 +48,7 @@ function create(req, res) {
 
 function update(req, res) {
   const id = Number(req.params.id);
-  const { title, channel, assigned_user_id, priority } = req.body || {};
+  const { title, channel, description, assigned_user_id, priority } = req.body || {};
 
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
   if (!card) {
@@ -50,11 +59,12 @@ function update(req, res) {
   }
 
   db.prepare(
-    `UPDATE cards SET title = ?, channel = ?, assigned_user_id = ?, priority = ?, updated_at = datetime('now')
+    `UPDATE cards SET title = ?, channel = ?, description = ?, assigned_user_id = ?, priority = ?, updated_at = datetime('now')
      WHERE id = ?`
   ).run(
     title ?? card.title,
     channel !== undefined ? channel : card.channel,
+    description !== undefined ? description : card.description,
     assigned_user_id !== undefined ? assigned_user_id : card.assigned_user_id,
     priority || card.priority,
     id
@@ -78,19 +88,28 @@ function remove(req, res) {
 
 function move(req, res) {
   const id = Number(req.params.id);
-  const { columnId, position } = req.body || {};
+  const { columnId } = req.body || {};
+  let { position } = req.body || {};
 
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
-  if (columnId === undefined || position === undefined) {
-    return res.status(400).json({ error: 'columnId et position requis' });
+  if (columnId === undefined) {
+    return res.status(400).json({ error: 'columnId requis' });
   }
 
   const targetColumn = db.prepare('SELECT id FROM columns WHERE id = ?').get(columnId);
   if (!targetColumn) {
     return res.status(400).json({ error: 'columnId invalide' });
+  }
+
+  if (position === undefined) {
+    // Pas de position explicite (ex: changement de statut hors drag&drop) : on ajoute en fin de colonne cible
+    const countInTarget = db
+      .prepare('SELECT COUNT(*) AS count FROM cards WHERE column_id = ?')
+      .get(columnId).count;
+    position = columnId === card.column_id ? Math.max(countInTarget - 1, 0) : countInTarget;
   }
 
   const moveTx = db.transaction(() => {
@@ -127,4 +146,4 @@ function move(req, res) {
   res.json(moved);
 }
 
-module.exports = { list, create, update, remove, move };
+module.exports = { list, getOne, create, update, remove, move };

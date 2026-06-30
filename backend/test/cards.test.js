@@ -152,3 +152,65 @@ test('PATCH /api/cards/:id/move sur une carte inexistante retourne 404', async (
     .send({ columnId: columns[0].id, position: 0 });
   assert.equal(res.status, 404);
 });
+
+test('GET /api/cards/:id retourne la carte', async () => {
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  const res = await request(app).get(`/api/cards/${created.body.id}`).set('Authorization', `Bearer ${adminToken}`);
+  assert.equal(res.status, 200);
+  assert.equal(res.body.title, 'X');
+});
+
+test('GET /api/cards/:id sur une carte inexistante retourne 404', async () => {
+  const res = await request(app).get('/api/cards/9999').set('Authorization', `Bearer ${adminToken}`);
+  assert.equal(res.status, 404);
+});
+
+test('PATCH /api/cards/:id persiste la description', async () => {
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  const res = await request(app)
+    .patch(`/api/cards/${created.body.id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ description: 'Quelques notes de script.' });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.description, 'Quelques notes de script.');
+});
+
+test('PATCH /api/cards/:id/move sans position ajoute la carte en fin de colonne cible', async () => {
+  const a = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'A', column_id: columns[1].id });
+  const b = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'B', column_id: columns[1].id });
+  const moving = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'Moving', column_id: columns[0].id });
+
+  const res = await request(app)
+    .patch(`/api/cards/${moving.body.id}/move`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ columnId: columns[1].id });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.column_id, columns[1].id);
+  assert.equal(res.body.position, 2);
+
+  const list = await request(app).get('/api/cards').set('Authorization', `Bearer ${adminToken}`);
+  const ordered = list.body
+    .filter((card) => card.column_id === columns[1].id)
+    .sort((x, y) => x.position - y.position);
+  assert.deepEqual(
+    ordered.map((card) => card.title),
+    ['A', 'B', 'Moving']
+  );
+});

@@ -1,0 +1,199 @@
+import { TestBed } from '@angular/core/testing';
+import { ActivatedRoute, Router } from '@angular/router';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { TicketDetail } from './ticket-detail';
+import { CardsService } from '../../../services/cards.service';
+import { ColumnsService } from '../../../services/columns.service';
+import { UsersService } from '../../../services/users.service';
+import { CommentsService } from '../../../services/comments.service';
+import { AuthService } from '../../../core/auth.service';
+import { Card } from '../../../models/card.model';
+import { Comment } from '../../../models/comment.model';
+
+describe('TicketDetail', () => {
+  let component: TicketDetail;
+  let cardsService: {
+    get: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    move: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
+  };
+  let commentsService: {
+    list: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
+  };
+  let navigate: ReturnType<typeof vi.fn>;
+  let currentUser: ReturnType<typeof vi.fn>;
+
+  const columns = [
+    { id: 1, name: 'Idée', position: 0 },
+    { id: 2, name: 'Script', position: 1 },
+  ];
+  const users = [{ id: 1, username: 'alice' }];
+  const ticket: Card = {
+    id: 5,
+    title: 'Mon ticket',
+    channel: 'MaChaine',
+    description: 'Notes existantes',
+    assigned_user_id: 1,
+    priority: 'medium',
+    column_id: 1,
+    position: 0,
+  };
+  const comments: Comment[] = [
+    { id: 1, card_id: 5, user_id: 1, username: 'alice', body: 'Salut', created_at: '2026-01-01' },
+    { id: 2, card_id: 5, user_id: 2, username: 'bob', body: 'Re', created_at: '2026-01-02' },
+  ];
+
+  beforeEach(() => {
+    navigate = vi.fn();
+    currentUser = vi.fn().mockReturnValue({ id: 1, username: 'alice', role: 'user' });
+    cardsService = {
+      get: vi.fn().mockResolvedValue({ ...ticket }),
+      update: vi.fn().mockImplementation((id, partial) => Promise.resolve({ ...ticket, ...partial })),
+      move: vi.fn().mockResolvedValue({ ...ticket, column_id: 2 }),
+      remove: vi.fn().mockResolvedValue(undefined),
+    };
+    commentsService = {
+      list: vi.fn().mockResolvedValue(comments),
+      create: vi.fn().mockResolvedValue({}),
+      remove: vi.fn().mockResolvedValue(undefined),
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: CardsService, useValue: cardsService },
+        { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
+        { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
+        { provide: CommentsService, useValue: commentsService },
+        { provide: AuthService, useValue: { currentUser } },
+        { provide: Router, useValue: { navigate } },
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '5' } } } },
+      ],
+    });
+    component = TestBed.createComponent(TicketDetail).componentInstance;
+  });
+
+  it('reload() charge le ticket, les colonnes, les utilisateurs et les commentaires', async () => {
+    await component.reload();
+
+    expect(cardsService.get).toHaveBeenCalledWith(5);
+    expect(component.ticket()?.title).toBe('Mon ticket');
+    expect(component.columns()).toEqual(columns);
+    expect(component.comments()).toEqual(comments);
+    expect(component.descriptionDraft()).toBe('Notes existantes');
+  });
+
+  it('userName() résout le username ou un tiret', async () => {
+    await component.reload();
+    expect(component.userName(1)).toBe('alice');
+    expect(component.userName(null)).toBe('—');
+  });
+
+  it('updateTitle() ignore une valeur vide', async () => {
+    await component.reload();
+    component.updateTitle('   ');
+    expect(cardsService.update).not.toHaveBeenCalled();
+  });
+
+  it('updateTitle() persiste le nouveau titre', async () => {
+    await component.reload();
+    component.updateTitle('Nouveau titre');
+    await Promise.resolve();
+    expect(cardsService.update).toHaveBeenCalledWith(5, { title: 'Nouveau titre' });
+  });
+
+  it('updateChannel()/updatePriority()/updateAssignee() persistent le bon champ', async () => {
+    await component.reload();
+    component.updateChannel('AutreChaine');
+    component.updatePriority('high');
+    component.updateAssignee(null);
+    await Promise.resolve();
+
+    expect(cardsService.update).toHaveBeenCalledWith(5, { channel: 'AutreChaine' });
+    expect(cardsService.update).toHaveBeenCalledWith(5, { priority: 'high' });
+    expect(cardsService.update).toHaveBeenCalledWith(5, { assigned_user_id: null });
+  });
+
+  it('updateStatus() ne fait rien si la colonne est inchangée', async () => {
+    await component.reload();
+    await component.updateStatus(1);
+    expect(cardsService.move).not.toHaveBeenCalled();
+  });
+
+  it('updateStatus() appelle move() quand la colonne change', async () => {
+    await component.reload();
+    await component.updateStatus(2);
+    expect(cardsService.move).toHaveBeenCalledWith(5, 2);
+    expect(component.ticket()?.column_id).toBe(2);
+  });
+
+  it('saveDescription() persiste le brouillon courant', async () => {
+    await component.reload();
+    component.descriptionDraft.set('Nouvelle description');
+    component.saveDescription();
+    await Promise.resolve();
+    expect(cardsService.update).toHaveBeenCalledWith(5, { description: 'Nouvelle description' });
+  });
+
+  it("addComment() ignore un commentaire vide", async () => {
+    await component.reload();
+    component.newComment.set('   ');
+    await component.addComment();
+    expect(commentsService.create).not.toHaveBeenCalled();
+  });
+
+  it('addComment() crée le commentaire, vide le champ et recharge la liste', async () => {
+    await component.reload();
+    component.newComment.set('Un avis');
+    await component.addComment();
+    expect(commentsService.create).toHaveBeenCalledWith(5, 'Un avis');
+    expect(component.newComment()).toBe('');
+  });
+
+  it("canDeleteComment() autorise l'auteur", async () => {
+    await component.reload();
+    expect(component.canDeleteComment(comments[0])).toBe(true);
+  });
+
+  it("canDeleteComment() refuse un autre utilisateur non-admin", async () => {
+    await component.reload();
+    expect(component.canDeleteComment(comments[1])).toBe(false);
+  });
+
+  it('canDeleteComment() autorise un admin sur tous les commentaires', async () => {
+    currentUser.mockReturnValue({ id: 99, username: 'admin', role: 'admin' });
+    await component.reload();
+    expect(component.canDeleteComment(comments[1])).toBe(true);
+  });
+
+  it("deleteComment() ne supprime pas si l'utilisateur annule", async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await component.reload();
+    await component.deleteComment(comments[0]);
+    expect(commentsService.remove).not.toHaveBeenCalled();
+  });
+
+  it('deleteComment() supprime après confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await component.reload();
+    await component.deleteComment(comments[0]);
+    expect(commentsService.remove).toHaveBeenCalledWith(5, comments[0].id);
+  });
+
+  it('deleteTicket() supprime puis navigue vers /tickets', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await component.reload();
+    await component.deleteTicket();
+    expect(cardsService.remove).toHaveBeenCalledWith(5);
+    expect(navigate).toHaveBeenCalledWith(['/tickets']);
+  });
+
+  it("deleteTicket() n'agit pas si l'utilisateur annule", async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await component.reload();
+    await component.deleteTicket();
+    expect(cardsService.remove).not.toHaveBeenCalled();
+  });
+});

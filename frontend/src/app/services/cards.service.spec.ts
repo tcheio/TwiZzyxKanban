@@ -26,6 +26,14 @@ describe('CardsService', () => {
     await promise;
   });
 
+  it('get() effectue un GET /api/cards/:id', async () => {
+    const promise = service.get(7);
+    const req = httpMock.expectOne('/api/cards/7');
+    expect(req.request.method).toBe('GET');
+    req.flush({});
+    await promise;
+  });
+
   it('create() effectue un POST /api/cards avec les bons champs', async () => {
     const input = {
       title: 'Vidéo',
@@ -64,6 +72,14 @@ describe('CardsService', () => {
     const req = httpMock.expectOne('/api/cards/7/move');
     expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toEqual({ columnId: 2, position: 3 });
+    req.flush({});
+    await promise;
+  });
+
+  it('move() omet position quand non fournie', async () => {
+    const promise = service.move(7, 2);
+    const req = httpMock.expectOne('/api/cards/7/move');
+    expect(req.request.body).toEqual({ columnId: 2 });
     req.flush({});
     await promise;
   });

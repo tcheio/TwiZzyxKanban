@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Board } from './board';
@@ -19,21 +20,47 @@ describe('Board', () => {
   };
   let cardsService: {
     list: ReturnType<typeof vi.fn>;
-    create: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
     move: ReturnType<typeof vi.fn>;
   };
   let usersService: { lite: ReturnType<typeof vi.fn> };
+  let navigate: ReturnType<typeof vi.fn>;
 
   const columns: Column[] = [
     { id: 1, name: 'Idée', position: 0 },
     { id: 2, name: 'Script', position: 1 },
   ];
   const baseCards: Card[] = [
-    { id: 10, title: 'A', channel: null, assigned_user_id: null, priority: 'medium', column_id: 1, position: 0 },
-    { id: 11, title: 'B', channel: null, assigned_user_id: null, priority: 'medium', column_id: 1, position: 1 },
-    { id: 12, title: 'C', channel: null, assigned_user_id: 1, priority: 'medium', column_id: 2, position: 0 },
+    {
+      id: 10,
+      title: 'A',
+      channel: null,
+      description: null,
+      assigned_user_id: null,
+      priority: 'medium',
+      column_id: 1,
+      position: 0,
+    },
+    {
+      id: 11,
+      title: 'B',
+      channel: null,
+      description: null,
+      assigned_user_id: null,
+      priority: 'medium',
+      column_id: 1,
+      position: 1,
+    },
+    {
+      id: 12,
+      title: 'C',
+      channel: null,
+      description: null,
+      assigned_user_id: 1,
+      priority: 'medium',
+      column_id: 2,
+      position: 0,
+    },
   ];
   const users = [{ id: 1, username: 'alice' }];
 
@@ -47,12 +74,11 @@ describe('Board', () => {
     };
     cardsService = {
       list: vi.fn().mockResolvedValue([...baseCards]),
-      create: vi.fn().mockResolvedValue({}),
-      update: vi.fn().mockResolvedValue({}),
       remove: vi.fn().mockResolvedValue(undefined),
       move: vi.fn().mockResolvedValue({}),
     };
     usersService = { lite: vi.fn().mockResolvedValue(users) };
+    navigate = vi.fn();
 
     TestBed.configureTestingModule({
       imports: [Board],
@@ -60,6 +86,7 @@ describe('Board', () => {
         { provide: ColumnsService, useValue: columnsService },
         { provide: CardsService, useValue: cardsService },
         { provide: UsersService, useValue: usersService },
+        { provide: Router, useValue: { navigate } },
       ],
     });
     component = TestBed.createComponent(Board).componentInstance;
@@ -82,6 +109,14 @@ describe('Board', () => {
     expect(component.userName(1)).toBe('alice');
     expect(component.userName(null)).toBe('—');
     expect(component.userName(999)).toBe('—');
+  });
+
+  it('openTicket() navigue vers la page dédiée du ticket', async () => {
+    await component.reload();
+
+    component.openTicket(baseCards[0]);
+
+    expect(navigate).toHaveBeenCalledWith(['/tickets', baseCards[0].id]);
   });
 
   it('drop() réordonne dans la même colonne et appelle move() avec le bon index', async () => {
@@ -113,59 +148,6 @@ describe('Board', () => {
     await component.drop(event);
 
     expect(cardsService.move).toHaveBeenCalledWith(10, 2, 1);
-  });
-
-  it("openCreate()/openEdit()/closeDialog() pilotent l'état du dialogue", async () => {
-    await component.reload();
-
-    component.openCreate(1);
-    expect(component.dialogOpen()).toBe(true);
-    expect(component.editingCard()).toBeNull();
-    expect(component.dialogColumnId()).toBe(1);
-
-    component.closeDialog();
-    expect(component.dialogOpen()).toBe(false);
-
-    const card = baseCards[0];
-    component.openEdit(card);
-    expect(component.editingCard()).toBe(card);
-    expect(component.dialogColumnId()).toBe(card.column_id);
-  });
-
-  it("saveCard() crée une carte quand aucune n'est en édition", async () => {
-    await component.reload();
-    component.openCreate(1);
-    const input = {
-      title: 'Nouvelle',
-      channel: null,
-      assigned_user_id: null,
-      priority: 'medium' as const,
-      column_id: 1,
-    };
-
-    await component.saveCard(input);
-
-    expect(cardsService.create).toHaveBeenCalledWith(input);
-    expect(cardsService.update).not.toHaveBeenCalled();
-    expect(component.dialogOpen()).toBe(false);
-  });
-
-  it('saveCard() met à jour la carte en cours d\'édition', async () => {
-    await component.reload();
-    const card = baseCards[0];
-    component.openEdit(card);
-    const input = {
-      title: 'Modifiée',
-      channel: null,
-      assigned_user_id: null,
-      priority: 'high' as const,
-      column_id: 1,
-    };
-
-    await component.saveCard(input);
-
-    expect(cardsService.update).toHaveBeenCalledWith(card.id, input);
-    expect(cardsService.create).not.toHaveBeenCalled();
   });
 
   it('deleteCard() supprime après confirmation', async () => {

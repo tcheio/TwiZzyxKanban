@@ -1,4 +1,5 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   CdkDropList,
   CdkDropListGroup,
@@ -11,9 +12,8 @@ import { ColumnsService } from '../../services/columns.service';
 import { CardsService } from '../../services/cards.service';
 import { UsersService } from '../../services/users.service';
 import { Column } from '../../models/column.model';
-import { Card, CardInput } from '../../models/card.model';
+import { Card } from '../../models/card.model';
 import { UserLite } from '../../models/user.model';
-import { CardDialog } from './card-dialog/card-dialog';
 
 interface ColumnGroup {
   column: Column;
@@ -22,19 +22,17 @@ interface ColumnGroup {
 
 @Component({
   selector: 'app-board',
-  imports: [CdkDropListGroup, CdkDropList, CdkDrag, CardDialog],
+  imports: [CdkDropListGroup, CdkDropList, CdkDrag],
   templateUrl: './board.html',
   styleUrl: './board.css',
 })
 export class Board implements OnInit {
+  private router = inject(Router);
+
   readonly groups = signal<ColumnGroup[]>([]);
   readonly users = signal<UserLite[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-
-  readonly dialogOpen = signal(false);
-  readonly editingCard = signal<Card | null>(null);
-  readonly dialogColumnId = signal<number | null>(null);
 
   readonly newColumnName = signal('');
   readonly addingColumn = signal(false);
@@ -103,35 +101,8 @@ export class Board implements OnInit {
     }
   }
 
-  openCreate(columnId: number): void {
-    this.editingCard.set(null);
-    this.dialogColumnId.set(columnId);
-    this.dialogOpen.set(true);
-  }
-
-  openEdit(card: Card): void {
-    this.editingCard.set(card);
-    this.dialogColumnId.set(card.column_id);
-    this.dialogOpen.set(true);
-  }
-
-  closeDialog(): void {
-    this.dialogOpen.set(false);
-  }
-
-  async saveCard(input: CardInput): Promise<void> {
-    const editing = this.editingCard();
-    try {
-      if (editing) {
-        await this.cardsService.update(editing.id, input);
-      } else {
-        await this.cardsService.create(input);
-      }
-      this.dialogOpen.set(false);
-      await this.reload();
-    } catch {
-      this.error.set("Échec de l'enregistrement de la carte.");
-    }
+  openTicket(card: Card): void {
+    this.router.navigate(['/tickets', card.id]);
   }
 
   async deleteCard(card: Card): Promise<void> {

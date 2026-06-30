@@ -1,40 +1,30 @@
-import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Card, CardInput, Priority } from '../../../models/card.model';
+import { CardInput, Priority } from '../../../models/card.model';
+import { Column } from '../../../models/column.model';
 import { UserLite } from '../../../models/user.model';
 
 @Component({
-  selector: 'app-card-dialog',
+  selector: 'app-new-ticket-dialog',
   imports: [ReactiveFormsModule],
-  templateUrl: './card-dialog.html',
-  styleUrl: './card-dialog.css',
+  templateUrl: './new-ticket-dialog.html',
+  styleUrl: './new-ticket-dialog.css',
 })
-export class CardDialog implements OnInit {
+export class NewTicketDialog {
   private fb = inject(FormBuilder);
 
-  @Input() card: Card | null = null;
+  @Input({ required: true }) columns: Column[] = [];
   @Input({ required: true }) users: UserLite[] = [];
-  @Input({ required: true }) defaultColumnId!: number;
   @Output() save = new EventEmitter<CardInput>();
   @Output() cancel = new EventEmitter<void>();
 
   readonly form = this.fb.group({
     title: ['', Validators.required],
     channel: [''],
+    column_id: [null as number | null, Validators.required],
     assigned_user_id: [null as number | null],
     priority: ['medium' as Priority, Validators.required],
   });
-
-  ngOnInit(): void {
-    if (this.card) {
-      this.form.patchValue({
-        title: this.card.title,
-        channel: this.card.channel ?? '',
-        assigned_user_id: this.card.assigned_user_id,
-        priority: this.card.priority,
-      });
-    }
-  }
 
   submit(): void {
     if (this.form.invalid) return;
@@ -42,9 +32,9 @@ export class CardDialog implements OnInit {
     this.save.emit({
       title: raw.title!,
       channel: raw.channel || null,
+      column_id: raw.column_id!,
       assigned_user_id: raw.assigned_user_id ?? null,
       priority: raw.priority!,
-      column_id: this.card?.column_id ?? this.defaultColumnId,
     });
   }
 }

@@ -30,7 +30,7 @@
           (cdkDropListDropped)="drop($event)"
         >
           @for (card of group.cards; track card.id) {
-            <div class="card" cdkDrag (click)="openEdit(card)">
+            <div class="card" cdkDrag (click)="openTicket(card)">
               <button type="button" class="card-delete" (click)="deleteCard(card); $event.stopPropagation()">✕</button>
               <div class="card-title">{{ card.title }}</div>
               @if (card.channel) {
@@ -43,8 +43,6 @@
             </div>
           }
         </div>
-
-        <button type="button" class="add-card" (click)="openCreate(group.column.id)">+ Ajouter une carte</button>
       </div>
     }
 
@@ -67,13 +65,3 @@
     </div>
   </div>
 </div>
-
-@if (dialogOpen()) {
-  <app-card-dialog
-    [card]="editingCard()"
-    [users]="users()"
-    [defaultColumnId]="dialogColumnId()!"
-    (save)="saveCard($event)"
-    (cancel)="closeDialog()"
-  />
-}

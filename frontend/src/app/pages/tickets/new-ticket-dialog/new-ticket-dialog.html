@@ -1,6 +1,6 @@
 <div class="overlay" (click)="cancel.emit()">
   <form class="dialog" [formGroup]="form" (click)="$event.stopPropagation()" (ngSubmit)="submit()">
-    <h2>{{ card ? 'Modifier la carte' : 'Nouvelle carte' }}</h2>
+    <h2>Nouveau ticket</h2>
 
     <label>
       Titre
@@ -10,6 +10,16 @@
     <label>
       Chaîne YTB
       <input type="text" formControlName="channel" />
+    </label>
+
+    <label>
+      Colonne
+      <select formControlName="column_id">
+        <option [ngValue]="null" disabled>— Choisir une colonne —</option>
+        @for (column of columns; track column.id) {
+          <option [ngValue]="column.id">{{ column.name }}</option>
+        }
+      </select>
     </label>
 
     <label>
@@ -33,7 +43,7 @@
 
     <div class="dialog-actions">
       <button type="button" (click)="cancel.emit()">Annuler</button>
-      <button type="submit" [disabled]="form.invalid">Enregistrer</button>
+      <button type="submit" [disabled]="form.invalid">Créer</button>
     </div>
   </form>
 </div>
