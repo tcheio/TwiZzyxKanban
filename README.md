@@ -80,3 +80,27 @@ frontend/  Application Angular
 ```
 
 Voir le code source pour le détail des routes API (`backend/src/routes/`) et des pages (`frontend/src/app/pages/`).
+
+## Tests
+
+```bash
+cd backend
+npm test    # node:test + supertest, toutes les routes de l'API
+
+cd frontend
+npm test    # Vitest, composants/guards/services
+```
+
+## CI/CD
+
+Chaque pull request vers `main` déclenche `.github/workflows/ci.yml` :
+
+| Job | Vérifie |
+|---|---|
+| Backend - Tests | `npm test` (backend) |
+| Backend - Démarrage réel | le serveur démarre avec une vraie config (`.env`, SQLite) et répond sur `GET /api/health` |
+| Frontend - Tests | `npm test` (frontend) |
+| Frontend - Build | `npm run build` (frontend) |
+| CI Status | agrège les 4 jobs précédents — c'est le check requis par GitHub |
+
+La branche `main` est protégée : si un de ces jobs échoue, le bouton de merge reste bloqué sur la PR.
