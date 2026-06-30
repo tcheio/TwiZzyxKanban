@@ -15,12 +15,12 @@ test('GET /api/columns sans token retourne 401', async () => {
   assert.equal(res.status, 401);
 });
 
-test('GET /api/columns retourne les 5 colonnes par défaut triées par position', async () => {
+test('GET /api/columns retourne les 6 colonnes par défaut triées par position', async () => {
   const res = await request(app).get('/api/columns').set('Authorization', `Bearer ${adminToken}`);
   assert.equal(res.status, 200);
   assert.deepEqual(
     res.body.map((c) => c.name),
-    ['Idée', 'Script', 'Tournage', 'Montage', 'Publié']
+    ['Idée', 'Préparation/Écriture', 'Tournage', 'Montage', 'Miniature', 'Publié']
   );
 });
 
@@ -31,7 +31,7 @@ test('POST /api/columns crée une colonne en fin de liste', async () => {
     .send({ name: 'Archivé' });
   assert.equal(res.status, 201);
   assert.equal(res.body.name, 'Archivé');
-  assert.equal(res.body.position, 5);
+  assert.equal(res.body.position, 6);
 });
 
 test('POST /api/columns sans nom retourne 400', async () => {

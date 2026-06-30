@@ -3,7 +3,7 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const db = require('./connection');
 
-const DEFAULT_COLUMNS = ['Idée', 'Script', 'Tournage', 'Montage', 'Publié'];
+const DEFAULT_COLUMNS = ['Idée', 'Préparation/Écriture', 'Tournage', 'Montage', 'Miniature', 'Publié'];
 const DEFAULT_TAGS = ['Minecraft', 'Pokémon', 'Ykw Watch', 'Inazuma Eleven'];
 const silent = process.env.NODE_ENV === 'test';
 
