@@ -1,0 +1,154 @@
+const assert = require('node:assert/strict');
+const { test, before, beforeEach } = require('node:test');
+const { app, resetDb, loginAs, request } = require('./helpers');
+
+let adminToken;
+let columns;
+
+before(() => resetDb());
+beforeEach(async () => {
+  resetDb();
+  adminToken = await loginAs('admin', 'admin123');
+  const res = await request(app).get('/api/columns').set('Authorization', `Bearer ${adminToken}`);
+  columns = res.body;
+});
+
+test('GET /api/cards sans token retourne 401', async () => {
+  const res = await request(app).get('/api/cards');
+  assert.equal(res.status, 401);
+});
+
+test('POST /api/cards crée une carte', async () => {
+  const res = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'Vidéo A', channel: 'MaChaine', priority: 'high', column_id: columns[0].id });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.title, 'Vidéo A');
+  assert.equal(res.body.channel, 'MaChaine');
+  assert.equal(res.body.priority, 'high');
+  assert.equal(res.body.position, 0);
+});
+
+test('POST /api/cards sans titre retourne 400', async () => {
+  const res = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ column_id: columns[0].id });
+  assert.equal(res.status, 400);
+});
+
+test('POST /api/cards avec une colonne invalide retourne 400', async () => {
+  const res = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: 9999 });
+  assert.equal(res.status, 400);
+});
+
+test('POST /api/cards avec une priorité invalide retourne 400', async () => {
+  const res = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id, priority: 'urgent' });
+  assert.equal(res.status, 400);
+});
+
+test('PATCH /api/cards/:id met à jour les champs', async () => {
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  const res = await request(app)
+    .patch(`/api/cards/${created.body.id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'Y', priority: 'low' });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.title, 'Y');
+  assert.equal(res.body.priority, 'low');
+});
+
+test('PATCH /api/cards/:id sur une carte inexistante retourne 404', async () => {
+  const res = await request(app)
+    .patch('/api/cards/9999')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'Y' });
+  assert.equal(res.status, 404);
+});
+
+test('DELETE /api/cards/:id supprime la carte', async () => {
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  const res = await request(app).delete(`/api/cards/${created.body.id}`).set('Authorization', `Bearer ${adminToken}`);
+  assert.equal(res.status, 204);
+});
+
+test('PATCH /api/cards/:id/move déplace vers une autre colonne', async () => {
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  const res = await request(app)
+    .patch(`/api/cards/${created.body.id}/move`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ columnId: columns[1].id, position: 0 });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.column_id, columns[1].id);
+  assert.equal(res.body.position, 0);
+});
+
+test('PATCH /api/cards/:id/move réordonne correctement au sein de la même colonne', async () => {
+  const a = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'A', column_id: columns[0].id });
+  await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'B', column_id: columns[0].id });
+  await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'C', column_id: columns[0].id });
+
+  // ordre initial : A(0) B(1) C(2) -- déplace A en position 2
+  await request(app)
+    .patch(`/api/cards/${a.body.id}/move`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ columnId: columns[0].id, position: 2 });
+
+  const list = await request(app).get('/api/cards').set('Authorization', `Bearer ${adminToken}`);
+  const ordered = list.body
+    .filter((card) => card.column_id === columns[0].id)
+    .sort((x, y) => x.position - y.position);
+  assert.deepEqual(
+    ordered.map((card) => card.title),
+    ['B', 'C', 'A']
+  );
+});
+
+test('PATCH /api/cards/:id/move avec une colonne invalide retourne 400', async () => {
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  const res = await request(app)
+    .patch(`/api/cards/${created.body.id}/move`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ columnId: 9999, position: 0 });
+  assert.equal(res.status, 400);
+});
+
+test('PATCH /api/cards/:id/move sur une carte inexistante retourne 404', async () => {
+  const res = await request(app)
+    .patch('/api/cards/9999/move')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ columnId: columns[0].id, position: 0 });
+  assert.equal(res.status, 404);
+});

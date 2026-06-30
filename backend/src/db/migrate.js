@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const db = require('./connection');
 
 const DEFAULT_COLUMNS = ['Idée', 'Script', 'Tournage', 'Montage', 'Publié'];
+const silent = process.env.NODE_ENV === 'test';
 
 function migrate() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
@@ -19,17 +20,23 @@ function migrate() {
       passwordHash,
       'admin'
     );
-    console.log(`Admin par défaut créé (username: ${username}, password: ${password}) — pensez à changer ce mot de passe.`);
+    if (!silent) {
+      console.log(`Admin par défaut créé (username: ${username}, password: ${password}) — pensez à changer ce mot de passe.`);
+    }
   }
 
   const columnCount = db.prepare('SELECT COUNT(*) AS count FROM columns').get().count;
   if (columnCount === 0) {
     const insertColumn = db.prepare('INSERT INTO columns (name, position) VALUES (?, ?)');
     DEFAULT_COLUMNS.forEach((name, index) => insertColumn.run(name, index));
-    console.log('Colonnes par défaut créées.');
+    if (!silent) {
+      console.log('Colonnes par défaut créées.');
+    }
   }
 
-  console.log('DB initialisée.');
+  if (!silent) {
+    console.log('DB initialisée.');
+  }
 }
 
 module.exports = migrate;
