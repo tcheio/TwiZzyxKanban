@@ -1,0 +1,14 @@
+@if (authService.isLoggedIn()) {
+  <nav class="navbar">
+    <span class="brand">TwiZzyxKanban</span>
+    <a routerLink="/board" routerLinkActive="active">Tableau</a>
+    @if (authService.isAdmin()) {
+      <a routerLink="/admin/users" routerLinkActive="active">Utilisateurs</a>
+    }
+    <span class="spacer"></span>
+    <span class="username">{{ authService.currentUser()?.username }}</span>
+    <button class="logout" (click)="logout()">Déconnexion</button>
+  </nav>
+}
+
+<router-outlet />

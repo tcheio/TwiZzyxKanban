@@ -1,0 +1,78 @@
+<div class="admin-page">
+  <h1>Gestion des utilisateurs</h1>
+
+  @if (error()) {
+    <p class="status error">{{ error() }}</p>
+  }
+
+  <table>
+    <thead>
+      <tr>
+        <th>Utilisateur</th>
+        <th>Rôle</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (user of users(); track user.id) {
+        <tr>
+          @if (editingId() === user.id) {
+            <td colspan="3">
+              <form class="edit-row" [formGroup]="editForm" (ngSubmit)="saveEdit(user)">
+                <input type="text" formControlName="username" />
+                <select formControlName="role">
+                  <option value="user">Utilisateur</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <input type="password" formControlName="password" placeholder="Nouveau mot de passe (optionnel)" />
+                <button type="submit" [disabled]="editForm.invalid">Enregistrer</button>
+                <button type="button" (click)="cancelEdit()">Annuler</button>
+              </form>
+            </td>
+          } @else {
+            <td>{{ user.username }}</td>
+            <td>{{ user.role === 'admin' ? 'Admin' : 'Utilisateur' }}</td>
+            <td class="actions">
+              <button type="button" (click)="startEdit(user)">Modifier</button>
+              <button
+                type="button"
+                class="danger"
+                [disabled]="user.id === authService.currentUser()?.id"
+                (click)="deleteUser(user)"
+              >
+                Supprimer
+              </button>
+            </td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  @if (creating()) {
+    <form class="create-form" [formGroup]="createForm" (ngSubmit)="createUser()">
+      <h2>Nouveau compte</h2>
+      <label>
+        Nom d'utilisateur
+        <input type="text" formControlName="username" />
+      </label>
+      <label>
+        Mot de passe
+        <input type="password" formControlName="password" />
+      </label>
+      <label>
+        Rôle
+        <select formControlName="role">
+          <option value="user">Utilisateur</option>
+          <option value="admin">Admin</option>
+        </select>
+      </label>
+      <div class="create-actions">
+        <button type="submit" [disabled]="createForm.invalid">Créer</button>
+        <button type="button" (click)="creating.set(false)">Annuler</button>
+      </div>
+    </form>
+  } @else {
+    <button type="button" class="new-account-btn" (click)="creating.set(true)">+ Nouveau compte</button>
+  }
+</div>

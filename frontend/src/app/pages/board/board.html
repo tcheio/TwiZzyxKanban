@@ -1,0 +1,79 @@
+<div class="board-page">
+  @if (loading()) {
+    <p class="status">Chargement...</p>
+  }
+  @if (error()) {
+    <p class="status error">{{ error() }}</p>
+  }
+
+  <div class="board" cdkDropListGroup>
+    @for (group of groups(); track group.column.id; let i = $index) {
+      <div class="column">
+        <div class="column-header">
+          <input
+            class="column-name"
+            [value]="group.column.name"
+            (change)="renameColumn(group.column, $any($event.target).value)"
+          />
+          <div class="column-actions">
+            <button type="button" (click)="moveColumn(i, -1)" [disabled]="i === 0" title="Déplacer à gauche">◀</button>
+            <button type="button" (click)="moveColumn(i, 1)" [disabled]="i === groups().length - 1" title="Déplacer à droite">▶</button>
+            <button type="button" class="danger" (click)="deleteColumn(group.column)" title="Supprimer la colonne">✕</button>
+          </div>
+        </div>
+
+        <div
+          class="column-body"
+          cdkDropList
+          [id]="'col-' + group.column.id"
+          [cdkDropListData]="group.cards"
+          (cdkDropListDropped)="drop($event)"
+        >
+          @for (card of group.cards; track card.id) {
+            <div class="card" cdkDrag (click)="openEdit(card)">
+              <button type="button" class="card-delete" (click)="deleteCard(card); $event.stopPropagation()">✕</button>
+              <div class="card-title">{{ card.title }}</div>
+              @if (card.channel) {
+                <div class="card-channel">{{ card.channel }}</div>
+              }
+              <div class="card-footer">
+                <span class="priority priority-{{ card.priority }}">{{ card.priority }}</span>
+                <span class="assignee">{{ userName(card.assigned_user_id) }}</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <button type="button" class="add-card" (click)="openCreate(group.column.id)">+ Ajouter une carte</button>
+      </div>
+    }
+
+    <div class="column add-column">
+      @if (addingColumn()) {
+        <input
+          class="column-name"
+          [value]="newColumnName()"
+          (input)="newColumnName.set($any($event.target).value)"
+          (keyup.enter)="addColumn()"
+          placeholder="Nom de la colonne"
+        />
+        <div class="column-actions">
+          <button type="button" (click)="addColumn()">Ajouter</button>
+          <button type="button" (click)="addingColumn.set(false)">Annuler</button>
+        </div>
+      } @else {
+        <button type="button" class="add-column-btn" (click)="addingColumn.set(true)">+ Nouvelle colonne</button>
+      }
+    </div>
+  </div>
+</div>
+
+@if (dialogOpen()) {
+  <app-card-dialog
+    [card]="editingCard()"
+    [users]="users()"
+    [defaultColumnId]="dialogColumnId()!"
+    (save)="saveCard($event)"
+    (cancel)="closeDialog()"
+  />
+}
