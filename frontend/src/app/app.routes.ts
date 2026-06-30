@@ -13,6 +13,18 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'tickets',
+    loadComponent: () =>
+      import('./pages/tickets/tickets-list/tickets-list').then((m) => m.TicketsList),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'tickets/:id',
+    loadComponent: () =>
+      import('./pages/tickets/ticket-detail/ticket-detail').then((m) => m.TicketDetail),
+    canActivate: [authGuard],
+  },
+  {
     path: 'admin/users',
     loadComponent: () =>
       import('./pages/admin-users/admin-users').then((m) => m.AdminUsers),

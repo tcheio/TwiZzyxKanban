@@ -12,8 +12,8 @@ const request = require('supertest');
 
 function resetDb() {
   migrate(); // garantit que le schéma existe (CREATE TABLE IF NOT EXISTS)
-  db.exec('DELETE FROM cards; DELETE FROM columns; DELETE FROM users;');
-  migrate(); // reseed l'admin par défaut + les colonnes par défaut
+  db.exec('DELETE FROM comments; DELETE FROM cards; DELETE FROM columns; DELETE FROM tags; DELETE FROM users;');
+  migrate(); // reseed l'admin, les colonnes et les tags par défaut
 }
 
 async function loginAs(username, password) {

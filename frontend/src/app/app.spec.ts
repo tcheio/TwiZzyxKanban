@@ -28,6 +28,7 @@ describe('App', () => {
 
     expect(compiled.querySelector('.navbar')).toBeTruthy();
     expect(compiled.querySelector('.username')?.textContent).toContain('admin');
+    expect(compiled.querySelector('a[routerLink="/tickets"]')).toBeTruthy();
     expect(compiled.querySelector('a[routerLink="/admin/users"]')).toBeTruthy();
   });
 
@@ -71,6 +72,7 @@ describe('App', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
 
+    expect(compiled.querySelector('a[routerLink="/tickets"]')).toBeTruthy();
     expect(compiled.querySelector('a[routerLink="/admin/users"]')).toBeFalsy();
   });
 });
