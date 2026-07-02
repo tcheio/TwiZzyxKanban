@@ -13,6 +13,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'board/settings',
+    loadComponent: () =>
+      import('./pages/board/board-settings/board-settings').then((m) => m.BoardSettings),
+    canActivate: [authGuard, adminGuard],
+  },
+  {
     path: 'tickets',
     loadComponent: () =>
       import('./pages/tickets/tickets-list/tickets-list').then((m) => m.TicketsList),

@@ -105,3 +105,76 @@ test('PATCH /api/columns/reorder sans orderedIds retourne 400', async () => {
     .send({});
   assert.equal(res.status, 400);
 });
+
+test('GET /api/columns reste autorisé pour un non-admin', async () => {
+  await request(app)
+    .post('/api/users')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ username: 'alice', password: 'alice123', role: 'user' });
+  const userToken = await loginAs('alice', 'alice123');
+
+  const res = await request(app).get('/api/columns').set('Authorization', `Bearer ${userToken}`);
+  assert.equal(res.status, 200);
+});
+
+test('POST /api/columns par un non-admin retourne 403', async () => {
+  await request(app)
+    .post('/api/users')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ username: 'alice', password: 'alice123', role: 'user' });
+  const userToken = await loginAs('alice', 'alice123');
+
+  const res = await request(app)
+    .post('/api/columns')
+    .set('Authorization', `Bearer ${userToken}`)
+    .send({ name: 'Archivé' });
+  assert.equal(res.status, 403);
+});
+
+test('PATCH /api/columns/:id par un non-admin retourne 403', async () => {
+  await request(app)
+    .post('/api/users')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ username: 'alice', password: 'alice123', role: 'user' });
+  const userToken = await loginAs('alice', 'alice123');
+
+  const list = await request(app).get('/api/columns').set('Authorization', `Bearer ${adminToken}`);
+  const id = list.body[0].id;
+
+  const res = await request(app)
+    .patch(`/api/columns/${id}`)
+    .set('Authorization', `Bearer ${userToken}`)
+    .send({ name: 'Renommé' });
+  assert.equal(res.status, 403);
+});
+
+test('DELETE /api/columns/:id par un non-admin retourne 403', async () => {
+  await request(app)
+    .post('/api/users')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ username: 'alice', password: 'alice123', role: 'user' });
+  const userToken = await loginAs('alice', 'alice123');
+
+  const list = await request(app).get('/api/columns').set('Authorization', `Bearer ${adminToken}`);
+  const id = list.body[0].id;
+
+  const res = await request(app).delete(`/api/columns/${id}`).set('Authorization', `Bearer ${userToken}`);
+  assert.equal(res.status, 403);
+});
+
+test('PATCH /api/columns/reorder par un non-admin retourne 403', async () => {
+  await request(app)
+    .post('/api/users')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ username: 'alice', password: 'alice123', role: 'user' });
+  const userToken = await loginAs('alice', 'alice123');
+
+  const list = await request(app).get('/api/columns').set('Authorization', `Bearer ${adminToken}`);
+  const ids = list.body.map((c) => c.id);
+
+  const res = await request(app)
+    .patch('/api/columns/reorder')
+    .set('Authorization', `Bearer ${userToken}`)
+    .send({ orderedIds: [...ids].reverse() });
+  assert.equal(res.status, 403);
+});

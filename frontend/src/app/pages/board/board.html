@@ -1,29 +1,59 @@
-<div class="board-page">
-  @if (loading()) {
-    <p class="status">Chargement...</p>
-  }
-  @if (error()) {
-    <p class="status error">{{ error() }}</p>
-  }
+<div class="bg-white">
+  <div class="border-b border-gray-100 px-6 pb-4 pt-5">
+    <div class="text-xs text-gray-400">TwiZzyxKanban</div>
+    <h1 class="mt-0.5 text-xl font-semibold text-gray-900">Tableau</h1>
+  </div>
 
-  <div class="board" cdkDropListGroup>
-    @for (group of groups(); track group.column.id; let i = $index) {
-      <div class="column">
-        <div class="column-header">
-          <input
-            class="column-name"
-            [value]="group.column.name"
-            (change)="renameColumn(group.column, $any($event.target).value)"
-          />
-          <div class="column-actions">
-            <button type="button" (click)="moveColumn(i, -1)" [disabled]="i === 0" title="Déplacer à gauche">◀</button>
-            <button type="button" (click)="moveColumn(i, 1)" [disabled]="i === groups().length - 1" title="Déplacer à droite">▶</button>
-            <button type="button" class="danger" (click)="deleteColumn(group.column)" title="Supprimer la colonne">✕</button>
-          </div>
+  <div class="flex flex-wrap items-center gap-3 px-6 py-4">
+    <div class="relative">
+      <svg viewBox="0 0 24 24" class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="7" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <input
+        type="text"
+        placeholder="Rechercher"
+        disabled
+        class="w-56 cursor-not-allowed rounded-md border border-gray-300 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-400 placeholder-gray-400 focus:outline-none"
+      />
+    </div>
+    @if (users().length) {
+      <div class="flex -space-x-2">
+        @for (user of users(); track user.id) {
+          <span
+            class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-blue-500 text-[11px] font-semibold text-white"
+            [title]="user.username"
+          >
+            {{ user.username.charAt(0).toUpperCase() }}
+          </span>
+        }
+      </div>
+    }
+    <span class="ml-auto rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-500">
+      Grouper par : Aucun
+    </span>
+  </div>
+
+  <div class="px-6 pb-6">
+    @if (loading()) {
+      <p class="mb-4 text-sm text-gray-500">Chargement...</p>
+    }
+    @if (error()) {
+      <p class="mb-4 text-sm font-medium text-red-600">{{ error() }}</p>
+    }
+
+    <div class="flex items-start gap-4 overflow-x-auto pb-4" cdkDropListGroup>
+    @for (group of groups(); track group.column.id) {
+      <div class="flex min-w-[200px] flex-1 flex-col">
+        <div class="mb-3 flex items-baseline gap-1.5 px-1">
+          <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            {{ group.column.name }}
+          </span>
+          <span class="text-xs font-medium text-gray-400">{{ group.cards.length }}</span>
         </div>
 
         <div
-          class="column-body"
+          class="flex min-h-[40px] flex-col gap-2"
           cdkDropList
           [id]="'col-' + group.column.id"
           [cdkDropListData]="group.cards"
@@ -32,55 +62,57 @@
         >
           @for (card of group.cards; track card.id) {
             <div
-              class="card"
+              class="cursor-grab rounded-md border border-gray-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
               cdkDrag
               [cdkDragData]="card"
               (cdkDragStarted)="onDragStarted()"
               (cdkDragEnded)="onDragEnded()"
               (click)="openTicket(card)"
             >
-              <div class="card-title">{{ card.title }}</div>
-              @if (card.channel) {
-                <div class="card-channel">{{ card.channel }}</div>
-              }
               @if (tagName(card.tag_id); as tag) {
-                <span class="tag-badge">{{ tag }}</span>
+                <span
+                  class="mb-1.5 inline-block rounded px-2 py-0.5 text-[11px] font-medium"
+                  [class]="tagClass(card.tag_id)"
+                >
+                  {{ tag }}
+                </span>
+              }
+              <div class="text-sm font-medium text-gray-900">{{ card.title }}</div>
+              @if (card.channel) {
+                <div class="mt-1 text-xs text-gray-500">{{ card.channel }}</div>
               }
               @if (card.due_date) {
-                <div class="card-due" [class.due-soon]="isDueSoon(card.due_date)">
+                <div
+                  class="mt-1.5 text-xs text-gray-500"
+                  [class.text-red-600]="isDueSoon(card.due_date)"
+                  [class.font-semibold]="isDueSoon(card.due_date)"
+                >
                   Échéance : {{ formatDate(card.due_date) }}
                 </div>
               }
-              <div class="card-footer">
-                <span class="priority priority-{{ card.priority }}">{{ card.priority }}</span>
-                <span class="assignee">{{ userName(card.assigned_user_id) }}</span>
+              <div class="mt-2.5 flex items-center justify-between">
+                <span class="inline-flex items-center gap-1 text-[11px] font-medium capitalize text-gray-500">
+                  <span class="h-2 w-2 rounded-sm" [class]="priorityClass(card.priority)"></span>
+                  {{ card.priority }}
+                </span>
+                <span
+                  class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-[11px] font-semibold text-white"
+                  [title]="userName(card.assigned_user_id)"
+                >
+                  {{ userInitial(card.assigned_user_id) }}
+                </span>
               </div>
             </div>
           }
         </div>
       </div>
     }
-
-    <div class="column add-column">
-      @if (addingColumn()) {
-        <input
-          class="column-name"
-          [value]="newColumnName()"
-          (input)="newColumnName.set($any($event.target).value)"
-          (keyup.enter)="addColumn()"
-          placeholder="Nom de la colonne"
-        />
-        <div class="column-actions">
-          <button type="button" (click)="addColumn()">Ajouter</button>
-          <button type="button" (click)="addingColumn.set(false)">Annuler</button>
-        </div>
-      } @else {
-        <button type="button" class="add-column-btn" (click)="addingColumn.set(true)">+ Nouvelle colonne</button>
-      }
     </div>
   </div>
 
   @if (toastMessage(); as message) {
-    <div class="toast">{{ message }}</div>
+    <div class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-md bg-red-600 px-4 py-2 text-sm text-white shadow-lg">
+      {{ message }}
+    </div>
   }
 </div>

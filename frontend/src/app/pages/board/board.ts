@@ -13,7 +13,7 @@ import { CardsService } from '../../services/cards.service';
 import { UsersService } from '../../services/users.service';
 import { TagsService } from '../../services/tags.service';
 import { Column } from '../../models/column.model';
-import { Card } from '../../models/card.model';
+import { Card, Priority } from '../../models/card.model';
 import { UserLite } from '../../models/user.model';
 import { Tag } from '../../models/tag.model';
 
@@ -28,11 +28,25 @@ const DUE_SOON_DAYS = 7;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const TOAST_DURATION_MS = 6000;
 
+const PRIORITY_CLASSES: Record<Priority, string> = {
+  low: 'bg-gray-400',
+  medium: 'bg-amber-500',
+  high: 'bg-red-600',
+};
+
+const TAG_CLASSES = [
+  'bg-sky-50 text-sky-700',
+  'bg-emerald-50 text-emerald-700',
+  'bg-violet-50 text-violet-700',
+  'bg-amber-50 text-amber-700',
+  'bg-rose-50 text-rose-700',
+  'bg-indigo-50 text-indigo-700',
+];
+
 @Component({
   selector: 'app-board',
   imports: [CdkDropListGroup, CdkDropList, CdkDrag],
   templateUrl: './board.html',
-  styleUrl: './board.css',
 })
 export class Board implements OnInit {
   private router = inject(Router);
@@ -42,9 +56,6 @@ export class Board implements OnInit {
   readonly tags = signal<Tag[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-
-  readonly newColumnName = signal('');
-  readonly addingColumn = signal(false);
 
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -94,9 +105,23 @@ export class Board implements OnInit {
     return this.users().find((u) => u.id === id)?.username ?? '—';
   }
 
+  userInitial(id: number | null): string {
+    const name = this.userName(id);
+    return name === '—' ? '?' : name.charAt(0).toUpperCase();
+  }
+
   tagName(tagId: number | null): string | null {
     if (!tagId) return null;
     return this.tags().find((t) => t.id === tagId)?.name ?? null;
+  }
+
+  priorityClass(priority: Priority): string {
+    return PRIORITY_CLASSES[priority];
+  }
+
+  tagClass(tagId: number | null): string {
+    if (!tagId) return '';
+    return TAG_CLASSES[tagId % TAG_CLASSES.length];
   }
 
   formatDate(dateStr: string): string {
@@ -177,55 +202,5 @@ export class Board implements OnInit {
 
   openTicket(card: Card): void {
     this.router.navigate(['/tickets', card.id]);
-  }
-
-  async addColumn(): Promise<void> {
-    const name = this.newColumnName().trim();
-    if (!name) return;
-    try {
-      await this.columnsService.create(name);
-      this.newColumnName.set('');
-      this.addingColumn.set(false);
-      await this.reload();
-    } catch {
-      this.error.set('Échec de la création de la colonne.');
-    }
-  }
-
-  async renameColumn(column: Column, name: string): Promise<void> {
-    const trimmed = name.trim();
-    if (!trimmed || trimmed === column.name) return;
-    try {
-      await this.columnsService.rename(column.id, trimmed);
-      await this.reload();
-    } catch {
-      this.error.set('Échec du renommage de la colonne.');
-    }
-  }
-
-  async deleteColumn(column: Column): Promise<void> {
-    if (!confirm(`Supprimer la colonne "${column.name}" ?`)) return;
-    try {
-      await this.columnsService.remove(column.id);
-      await this.reload();
-    } catch {
-      this.error.set('Impossible de supprimer une colonne contenant des cartes.');
-    }
-  }
-
-  async moveColumn(index: number, direction: -1 | 1): Promise<void> {
-    const groups = this.groups();
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= groups.length) return;
-
-    const orderedIds = groups.map((g) => g.column.id);
-    [orderedIds[index], orderedIds[targetIndex]] = [orderedIds[targetIndex], orderedIds[index]];
-
-    try {
-      await this.columnsService.reorder(orderedIds);
-      await this.reload();
-    } catch {
-      this.error.set('Échec de la réorganisation des colonnes.');
-    }
   }
 }
