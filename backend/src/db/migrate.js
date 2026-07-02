@@ -3,9 +3,21 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const db = require('./connection');
 
-const DEFAULT_COLUMNS = ['Idée', 'Préparation/Écriture', 'Tournage', 'Montage', 'Miniature', 'Publié'];
+const DEFAULT_COLUMNS = ['💡Idées', '📝Préparation/Écriture', '🎥Tournage', '🎬Montage', '🖼️Miniature', '✅Publié'];
 const DEFAULT_TAGS = ['Minecraft', 'Pokémon', 'Ykw Watch', 'Inazuma Eleven'];
 const silent = process.env.NODE_ENV === 'test';
+
+// Renomme les colonnes par défaut d'une base déjà existante vers les nouveaux noms
+// (avec émoji). N'affecte pas une colonne que l'utilisateur a lui-même renommée,
+// puisque la comparaison se fait sur l'ancien nom exact.
+const LEGACY_COLUMN_RENAMES = {
+  Idée: '💡Idées',
+  'Préparation/Écriture': '📝Préparation/Écriture',
+  Tournage: '🎥Tournage',
+  Montage: '🎬Montage',
+  Miniature: '🖼️Miniature',
+  Publié: '✅Publié',
+};
 
 function migrate() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
@@ -52,6 +64,9 @@ function migrate() {
     if (!silent) {
       console.log('Colonnes par défaut créées.');
     }
+  } else {
+    const renameColumn = db.prepare('UPDATE columns SET name = ? WHERE name = ?');
+    Object.entries(LEGACY_COLUMN_RENAMES).forEach(([oldName, newName]) => renameColumn.run(newName, oldName));
   }
 
   const tagCount = db.prepare('SELECT COUNT(*) AS count FROM tags').get().count;

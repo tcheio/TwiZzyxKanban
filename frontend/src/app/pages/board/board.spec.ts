@@ -237,7 +237,7 @@ describe('Board', () => {
   });
 
   it('reload() masque un ticket publié depuis plus de 14 jours', async () => {
-    const publishedColumns: Column[] = [...columns, { id: 3, name: 'Publié', position: 2 }];
+    const publishedColumns: Column[] = [...columns, { id: 3, name: '✅Publié', position: 2 }];
     const oldPublishedAt = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
     const recentPublishedAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
     const publishedCards: Card[] = [
@@ -254,7 +254,7 @@ describe('Board', () => {
   });
 
   it("canEnter() empêche un ticket publié d'entrer dans une autre colonne mais autorise le réordonnancement", async () => {
-    const publishedColumns: Column[] = [...columns, { id: 3, name: 'Publié', position: 2 }];
+    const publishedColumns: Column[] = [...columns, { id: 3, name: '✅Publié', position: 2 }];
     const publishedCard: Card = { ...baseCards[0], id: 20, title: 'Publié A', column_id: 3, published_at: new Date().toISOString() };
     columnsService.list.mockResolvedValue(publishedColumns);
     cardsService.list.mockResolvedValue([...baseCards, publishedCard]);
@@ -269,7 +269,7 @@ describe('Board', () => {
   });
 
   it('drop() ne déplace pas un ticket publié vers une autre colonne', async () => {
-    const publishedColumns: Column[] = [...columns, { id: 3, name: 'Publié', position: 2 }];
+    const publishedColumns: Column[] = [...columns, { id: 3, name: '✅Publié', position: 2 }];
     const publishedCard: Card = { ...baseCards[0], id: 20, title: 'Publié A', column_id: 3, published_at: new Date().toISOString() };
     columnsService.list.mockResolvedValue(publishedColumns);
     cardsService.list.mockResolvedValue([...baseCards, publishedCard]);
@@ -291,7 +291,7 @@ describe('Board', () => {
 
   it('affiche un toast pendant 6 secondes lors d\'une tentative de déplacement hors de Publié', async () => {
     vi.useFakeTimers();
-    const publishedColumns: Column[] = [...columns, { id: 3, name: 'Publié', position: 2 }];
+    const publishedColumns: Column[] = [...columns, { id: 3, name: '✅Publié', position: 2 }];
     const publishedCard: Card = { ...baseCards[0], id: 20, title: 'Publié A', column_id: 3, published_at: new Date().toISOString() };
     columnsService.list.mockResolvedValue(publishedColumns);
     cardsService.list.mockResolvedValue([...baseCards, publishedCard]);

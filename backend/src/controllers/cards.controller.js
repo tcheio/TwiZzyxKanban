@@ -1,7 +1,7 @@
 const db = require('../db/connection');
 
 const VALID_PRIORITIES = ['low', 'medium', 'high'];
-const PUBLISHED_COLUMN_NAME = 'Publié';
+const PUBLISHED_COLUMN_NAME = '✅Publié';
 
 function isPublishedColumn(columnId) {
   const column = db.prepare('SELECT name FROM columns WHERE id = ?').get(columnId);

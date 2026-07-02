@@ -51,7 +51,7 @@ Ouvre http://localhost:4200.
 
 Au premier démarrage, le backend crée automatiquement :
 - Un compte admin (`DEFAULT_ADMIN_USERNAME` / `DEFAULT_ADMIN_PASSWORD` dans `.env`, par défaut `admin` / `admin123`)
-- Les 5 colonnes par défaut : Idée, Script, Tournage, Montage, Publié
+- Les 6 colonnes par défaut : 💡Idées, 📝Préparation/Écriture, 🎥Tournage, 🎬Montage, 🖼️Miniature, ✅Publié
 
 **Change le mot de passe admin par défaut dès la première connexion** (via la page "Utilisateurs").
 

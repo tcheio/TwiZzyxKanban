@@ -336,7 +336,7 @@ test('PATCH /api/cards/:id met à jour due_date', async () => {
 });
 
 test('PATCH /api/cards/:id/move vers la colonne Publié renseigne published_at', async () => {
-  const publishedColumn = columns.find((c) => c.name === 'Publié');
+  const publishedColumn = columns.find((c) => c.name === '✅Publié');
   const created = await request(app)
     .post('/api/cards')
     .set('Authorization', `Bearer ${adminToken}`)
@@ -352,7 +352,7 @@ test('PATCH /api/cards/:id/move vers la colonne Publié renseigne published_at',
 });
 
 test('PATCH /api/cards/:id/move hors de la colonne Publié retourne 400', async () => {
-  const publishedColumn = columns.find((c) => c.name === 'Publié');
+  const publishedColumn = columns.find((c) => c.name === '✅Publié');
   const created = await request(app)
     .post('/api/cards')
     .set('Authorization', `Bearer ${adminToken}`)
@@ -366,7 +366,7 @@ test('PATCH /api/cards/:id/move hors de la colonne Publié retourne 400', async 
 });
 
 test('PATCH /api/cards/:id/move réordonner au sein de Publié reste autorisé', async () => {
-  const publishedColumn = columns.find((c) => c.name === 'Publié');
+  const publishedColumn = columns.find((c) => c.name === '✅Publié');
   const a = await request(app)
     .post('/api/cards')
     .set('Authorization', `Bearer ${adminToken}`)

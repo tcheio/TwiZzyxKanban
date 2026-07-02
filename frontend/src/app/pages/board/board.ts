@@ -22,7 +22,7 @@ interface ColumnGroup {
   cards: Card[];
 }
 
-const PUBLISHED_COLUMN_NAME = 'Publié';
+const PUBLISHED_COLUMN_NAME = '✅Publié';
 const PUBLISHED_RETENTION_DAYS = 14;
 const DUE_SOON_DAYS = 7;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;

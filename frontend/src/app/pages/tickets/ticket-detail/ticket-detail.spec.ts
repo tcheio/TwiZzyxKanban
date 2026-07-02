@@ -158,7 +158,7 @@ describe('TicketDetail', () => {
 
   it('isPublished() vaut true seulement si la colonne courante est "Publié"', async () => {
     cardsService.get.mockResolvedValue({ ...ticket, column_id: 3 });
-    columnsService.list.mockResolvedValue([...columns, { id: 3, name: 'Publié', position: 2 }]);
+    columnsService.list.mockResolvedValue([...columns, { id: 3, name: '✅Publié', position: 2 }]);
 
     await component.reload();
 
@@ -167,7 +167,7 @@ describe('TicketDetail', () => {
 
   it('updateStatus() ne fait rien si le ticket est déjà publié', async () => {
     cardsService.get.mockResolvedValue({ ...ticket, column_id: 3 });
-    columnsService.list.mockResolvedValue([...columns, { id: 3, name: 'Publié', position: 2 }]);
+    columnsService.list.mockResolvedValue([...columns, { id: 3, name: '✅Publié', position: 2 }]);
     await component.reload();
 
     await component.updateStatus(1);
