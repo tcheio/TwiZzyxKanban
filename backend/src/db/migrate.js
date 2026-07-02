@@ -25,6 +25,11 @@ function migrate() {
     db.exec('ALTER TABLE cards ADD COLUMN published_at TEXT');
   }
 
+  const userColumns = db.prepare('PRAGMA table_info(users)').all();
+  if (!userColumns.some((col) => col.name === 'avatar_url')) {
+    db.exec('ALTER TABLE users ADD COLUMN avatar_url TEXT');
+  }
+
   const userCount = db.prepare('SELECT COUNT(*) AS count FROM users').get().count;
   if (userCount === 0) {
     const username = process.env.DEFAULT_ADMIN_USERNAME || 'admin';

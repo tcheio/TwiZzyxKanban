@@ -68,7 +68,7 @@ describe('Board', () => {
       due_date: null,
     },
   ];
-  const users = [{ id: 1, username: 'alice' }];
+  const users = [{ id: 1, username: 'alice', avatar_url: 'data:image/jpeg;base64,abc' }];
   const tags = [{ id: 1, name: 'Minecraft' }];
 
   beforeEach(() => {
@@ -171,6 +171,43 @@ describe('Board', () => {
     expect(component.userInitial(1)).toBe('A');
     expect(component.userInitial(null)).toBe('?');
     expect(component.userInitial(999)).toBe('?');
+  });
+
+  it('userAvatar() retourne la photo de profil ou null', async () => {
+    await component.reload();
+
+    expect(component.userAvatar(1)).toBe('data:image/jpeg;base64,abc');
+    expect(component.userAvatar(null)).toBeNull();
+    expect(component.userAvatar(999)).toBeNull();
+  });
+
+  it('visibleCards() retourne toutes les cartes sans filtre, puis seulement celles du destinataire choisi', async () => {
+    await component.reload();
+    const group = component.groups()[0];
+
+    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['A', 'B']);
+
+    component.toggleAssigneeFilter(1);
+    const assignedGroup = component.groups()[1];
+    expect(component.visibleCards(group)).toEqual([]);
+    expect(component.visibleCards(assignedGroup).map((c) => c.title)).toEqual(['C']);
+  });
+
+  it('toggleAssigneeFilter() active puis désactive le filtre sur un second clic', () => {
+    expect(component.selectedAssigneeId()).toBeNull();
+
+    component.toggleAssigneeFilter(1);
+    expect(component.selectedAssigneeId()).toBe(1);
+
+    component.toggleAssigneeFilter(1);
+    expect(component.selectedAssigneeId()).toBeNull();
+  });
+
+  it('clearAssigneeFilter() réinitialise le filtre', () => {
+    component.toggleAssigneeFilter(1);
+    component.clearAssigneeFilter();
+
+    expect(component.selectedAssigneeId()).toBeNull();
   });
 
   it('priorityClass() retourne la classe Tailwind associée à la priorité', () => {

@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL CHECK(role IN ('admin','user')),
+  avatar_url TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

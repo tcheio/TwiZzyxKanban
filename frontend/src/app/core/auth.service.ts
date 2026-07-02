@@ -36,6 +36,11 @@ export class AuthService {
     this.currentUserSignal.set(null);
   }
 
+  setCurrentUser(user: User): void {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    this.currentUserSignal.set(user);
+  }
+
   getToken(): string | null {
     return localStorage.getItem(TOKEN_KEY);
   }

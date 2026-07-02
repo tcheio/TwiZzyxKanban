@@ -61,6 +61,8 @@ export class Board implements OnInit {
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
   private blockedDragAttempt = false;
 
+  readonly selectedAssigneeId = signal<number | null>(null);
+
   constructor(
     private columnsService: ColumnsService,
     private cardsService: CardsService,
@@ -108,6 +110,25 @@ export class Board implements OnInit {
   userInitial(id: number | null): string {
     const name = this.userName(id);
     return name === '—' ? '?' : name.charAt(0).toUpperCase();
+  }
+
+  userAvatar(id: number | null): string | null {
+    if (!id) return null;
+    return this.users().find((u) => u.id === id)?.avatar_url ?? null;
+  }
+
+  visibleCards(group: ColumnGroup): Card[] {
+    const assigneeId = this.selectedAssigneeId();
+    return assigneeId === null ? group.cards : group.cards.filter((c) => c.assigned_user_id === assigneeId);
+  }
+
+  toggleAssigneeFilter(userId: number | null): void {
+    if (userId === null) return;
+    this.selectedAssigneeId.set(this.selectedAssigneeId() === userId ? null : userId);
+  }
+
+  clearAssigneeFilter(): void {
+    this.selectedAssigneeId.set(null);
   }
 
   tagName(tagId: number | null): string | null {
