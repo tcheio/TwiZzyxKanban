@@ -7,6 +7,7 @@ import { ColumnsService } from '../../services/columns.service';
 import { CardsService } from '../../services/cards.service';
 import { UsersService } from '../../services/users.service';
 import { TagsService } from '../../services/tags.service';
+import { AuthService } from '../../core/auth.service';
 import { Card } from '../../models/card.model';
 import { Column } from '../../models/column.model';
 
@@ -93,6 +94,7 @@ describe('Board', () => {
         { provide: CardsService, useValue: cardsService },
         { provide: UsersService, useValue: usersService },
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
+        { provide: AuthService, useValue: { isAdmin: () => false, currentUser: () => null } },
         { provide: Router, useValue: { navigate } },
       ],
     });
@@ -165,60 +167,24 @@ describe('Board', () => {
     expect(cardsService.move).toHaveBeenCalledWith(10, 2, 1);
   });
 
-  it('addColumn() crée une colonne et réinitialise le champ', async () => {
-    component.newColumnName.set('Archivé');
-    component.addingColumn.set(true);
-
-    await component.addColumn();
-
-    expect(columnsService.create).toHaveBeenCalledWith('Archivé');
-    expect(component.newColumnName()).toBe('');
-    expect(component.addingColumn()).toBe(false);
-  });
-
-  it("addColumn() ne fait rien si le nom est vide ou ne contient que des espaces", async () => {
-    component.newColumnName.set('   ');
-
-    await component.addColumn();
-
-    expect(columnsService.create).not.toHaveBeenCalled();
-  });
-
-  it('renameColumn() ne fait rien si le nom est inchangé', async () => {
-    await component.renameColumn(columns[0], 'Idée');
-
-    expect(columnsService.rename).not.toHaveBeenCalled();
-  });
-
-  it('renameColumn() appelle le service si le nom change', async () => {
-    await component.renameColumn(columns[0], 'Brouillon');
-
-    expect(columnsService.rename).toHaveBeenCalledWith(1, 'Brouillon');
-  });
-
-  it('deleteColumn() supprime après confirmation', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('userInitial() retourne la première lettre du username ou "?"', async () => {
     await component.reload();
 
-    await component.deleteColumn(columns[0]);
-
-    expect(columnsService.remove).toHaveBeenCalledWith(columns[0].id);
+    expect(component.userInitial(1)).toBe('A');
+    expect(component.userInitial(null)).toBe('?');
+    expect(component.userInitial(999)).toBe('?');
   });
 
-  it('moveColumn() inverse deux colonnes adjacentes', async () => {
-    await component.reload();
-
-    await component.moveColumn(0, 1);
-
-    expect(columnsService.reorder).toHaveBeenCalledWith([2, 1]);
+  it('priorityClass() retourne la classe Tailwind associée à la priorité', () => {
+    expect(component.priorityClass('low')).toBe('bg-gray-400');
+    expect(component.priorityClass('medium')).toBe('bg-amber-500');
+    expect(component.priorityClass('high')).toBe('bg-red-600');
   });
 
-  it('moveColumn() ne fait rien hors limites', async () => {
-    await component.reload();
-
-    await component.moveColumn(0, -1);
-
-    expect(columnsService.reorder).not.toHaveBeenCalled();
+  it('tagClass() retourne une classe Tailwind stable pour un tag et vide sinon', () => {
+    expect(component.tagClass(null)).toBe('');
+    expect(component.tagClass(1)).toBe(component.tagClass(1));
+    expect(component.tagClass(1)).not.toBe('');
   });
 
   it('formatDate() convertit AAAA-MM-JJ en JJ-MM-AAAA', () => {
