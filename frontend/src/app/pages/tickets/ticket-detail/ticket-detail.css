@@ -83,6 +83,16 @@ button.danger {
   color: var(--text);
 }
 
+.ticket-fields select:disabled {
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.ticket-fields .hint {
+  font-size: 0.72rem;
+  color: var(--danger);
+}
+
 .description-section,
 .comments-section {
   background: white;

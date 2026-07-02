@@ -10,6 +10,8 @@ export interface Card {
   priority: Priority;
   column_id: number;
   position: number;
+  due_date: string | null;
+  published_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -22,4 +24,5 @@ export interface CardInput {
   assigned_user_id: number | null;
   priority: Priority;
   column_id: number;
+  due_date?: string | null;
 }

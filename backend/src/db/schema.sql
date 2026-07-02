@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS cards (
   priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('low','medium','high')),
   column_id INTEGER NOT NULL REFERENCES columns(id) ON DELETE CASCADE,
   position INTEGER NOT NULL,
+  due_date TEXT,
+  published_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

@@ -302,3 +302,83 @@ test('PATCH /api/cards/:id/move sans position ajoute la carte en fin de colonne 
     ['A', 'B', 'Moving']
   );
 });
+
+test('POST /api/cards avec due_date persiste la date', async () => {
+  const res = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id, due_date: '2026-07-15' });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.due_date, '2026-07-15');
+});
+
+test('POST /api/cards sans due_date le laisse à null', async () => {
+  const res = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.due_date, null);
+});
+
+test('PATCH /api/cards/:id met à jour due_date', async () => {
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  const res = await request(app)
+    .patch(`/api/cards/${created.body.id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ due_date: '2026-08-01' });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.due_date, '2026-08-01');
+});
+
+test('PATCH /api/cards/:id/move vers la colonne Publié renseigne published_at', async () => {
+  const publishedColumn = columns.find((c) => c.name === 'Publié');
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  const res = await request(app)
+    .patch(`/api/cards/${created.body.id}/move`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ columnId: publishedColumn.id });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.column_id, publishedColumn.id);
+  assert.ok(res.body.published_at);
+});
+
+test('PATCH /api/cards/:id/move hors de la colonne Publié retourne 400', async () => {
+  const publishedColumn = columns.find((c) => c.name === 'Publié');
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: publishedColumn.id });
+
+  const res = await request(app)
+    .patch(`/api/cards/${created.body.id}/move`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ columnId: columns[0].id });
+  assert.equal(res.status, 400);
+});
+
+test('PATCH /api/cards/:id/move réordonner au sein de Publié reste autorisé', async () => {
+  const publishedColumn = columns.find((c) => c.name === 'Publié');
+  const a = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'A', column_id: publishedColumn.id });
+  await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'B', column_id: publishedColumn.id });
+
+  const res = await request(app)
+    .patch(`/api/cards/${a.body.id}/move`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ columnId: publishedColumn.id, position: 1 });
+  assert.equal(res.status, 200);
+});

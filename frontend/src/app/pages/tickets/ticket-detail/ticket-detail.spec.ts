@@ -25,6 +25,7 @@ describe('TicketDetail', () => {
     create: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
   };
+  let columnsService: { list: ReturnType<typeof vi.fn> };
   let navigate: ReturnType<typeof vi.fn>;
   let currentUser: ReturnType<typeof vi.fn>;
   let isAdmin: ReturnType<typeof vi.fn>;
@@ -48,6 +49,7 @@ describe('TicketDetail', () => {
     priority: 'medium',
     column_id: 1,
     position: 0,
+    due_date: null,
   };
   const comments: Comment[] = [
     { id: 1, card_id: 5, user_id: 1, username: 'alice', body: 'Salut', created_at: '2026-01-01' },
@@ -69,11 +71,12 @@ describe('TicketDetail', () => {
       create: vi.fn().mockResolvedValue({}),
       remove: vi.fn().mockResolvedValue(undefined),
     };
+    columnsService = { list: vi.fn().mockResolvedValue(columns) };
 
     TestBed.configureTestingModule({
       providers: [
         { provide: CardsService, useValue: cardsService },
-        { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
+        { provide: ColumnsService, useValue: columnsService },
         { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
         { provide: CommentsService, useValue: commentsService },
@@ -140,6 +143,36 @@ describe('TicketDetail', () => {
     component.updateTag(null);
     await Promise.resolve();
     expect(cardsService.update).toHaveBeenCalledWith(5, { tag_id: null });
+  });
+
+  it('updateDueDate() persiste la date ou null si vide', async () => {
+    await component.reload();
+    component.updateDueDate('2026-08-01');
+    await Promise.resolve();
+    expect(cardsService.update).toHaveBeenCalledWith(5, { due_date: '2026-08-01' });
+
+    component.updateDueDate('');
+    await Promise.resolve();
+    expect(cardsService.update).toHaveBeenCalledWith(5, { due_date: null });
+  });
+
+  it('isPublished() vaut true seulement si la colonne courante est "Publié"', async () => {
+    cardsService.get.mockResolvedValue({ ...ticket, column_id: 3 });
+    columnsService.list.mockResolvedValue([...columns, { id: 3, name: 'Publié', position: 2 }]);
+
+    await component.reload();
+
+    expect(component.isPublished()).toBe(true);
+  });
+
+  it('updateStatus() ne fait rien si le ticket est déjà publié', async () => {
+    cardsService.get.mockResolvedValue({ ...ticket, column_id: 3 });
+    columnsService.list.mockResolvedValue([...columns, { id: 3, name: 'Publié', position: 2 }]);
+    await component.reload();
+
+    await component.updateStatus(1);
+
+    expect(cardsService.move).not.toHaveBeenCalled();
   });
 
   it('updateStatus() ne fait rien si la colonne est inchangée', async () => {

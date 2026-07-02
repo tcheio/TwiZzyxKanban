@@ -41,6 +41,7 @@ describe('TicketsList', () => {
       priority: 'low',
       column_id: 3,
       position: 0,
+      due_date: null,
     },
     {
       id: 11,
@@ -52,6 +53,7 @@ describe('TicketsList', () => {
       priority: 'high',
       column_id: 1,
       position: 0,
+      due_date: null,
     },
     {
       id: 12,
@@ -63,6 +65,7 @@ describe('TicketsList', () => {
       priority: 'medium',
       column_id: 2,
       position: 0,
+      due_date: null,
     },
   ];
 

@@ -108,6 +108,17 @@
   margin-top: 0.15rem;
 }
 
+.card-due {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+}
+
+.card-due.due-soon {
+  color: var(--danger);
+  font-weight: 600;
+}
+
 .tag-badge {
   display: inline-block;
   margin-top: 0.3rem;

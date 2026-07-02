@@ -24,11 +24,14 @@
 
       <label>
         Statut
-        <select [ngModel]="t.column_id" (ngModelChange)="updateStatus($event)">
+        <select [ngModel]="t.column_id" (ngModelChange)="updateStatus($event)" [disabled]="isPublished()">
           @for (column of columns(); track column.id) {
             <option [ngValue]="column.id">{{ column.name }}</option>
           }
         </select>
+        @if (isPublished()) {
+          <span class="hint">Un ticket publié ne peut plus changer de statut.</span>
+        }
       </label>
 
       <label>
@@ -58,6 +61,11 @@
           <option value="medium">Moyenne</option>
           <option value="high">Haute</option>
         </select>
+      </label>
+
+      <label>
+        Date d'échéance
+        <input type="date" [value]="t.due_date ?? ''" (change)="updateDueDate($any($event.target).value)" />
       </label>
     </div>
 

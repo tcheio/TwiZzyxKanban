@@ -22,6 +22,11 @@ interface ColumnGroup {
   cards: Card[];
 }
 
+const PUBLISHED_COLUMN_NAME = 'Publié';
+const PUBLISHED_RETENTION_DAYS = 14;
+const DUE_SOON_DAYS = 7;
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
 @Component({
   selector: 'app-board',
   imports: [CdkDropListGroup, CdkDropList, CdkDrag],
@@ -68,6 +73,7 @@ export class Board implements OnInit {
           column,
           cards: cards
             .filter((c) => c.column_id === column.id)
+            .filter((c) => this.isVisibleInColumn(c, column))
             .sort((a, b) => a.position - b.position),
         }))
       );
@@ -88,8 +94,32 @@ export class Board implements OnInit {
     return this.tags().find((t) => t.id === tagId)?.name ?? null;
   }
 
+  isDueSoon(dueDate: string | null): boolean {
+    if (!dueDate) return false;
+    const diffDays = (new Date(dueDate).getTime() - Date.now()) / MS_PER_DAY;
+    return diffDays <= DUE_SOON_DAYS;
+  }
+
+  private isVisibleInColumn(card: Card, column: Column): boolean {
+    if (column.name !== PUBLISHED_COLUMN_NAME || !card.published_at) return true;
+    const ageDays = (Date.now() - new Date(card.published_at).getTime()) / MS_PER_DAY;
+    return ageDays < PUBLISHED_RETENTION_DAYS;
+  }
+
+  private isPublished(card: Card): boolean {
+    return this.groups().find((g) => g.column.id === card.column_id)?.column.name === PUBLISHED_COLUMN_NAME;
+  }
+
+  canEnter = (drag: CdkDrag<Card>, drop: CdkDropList): boolean => {
+    const card = drag.data;
+    return !this.isPublished(card) || drop.id === 'col-' + card.column_id;
+  };
+
   async drop(event: CdkDragDrop<Card[]>): Promise<void> {
     const card = event.previousContainer.data[event.previousIndex];
+    if (event.previousContainer !== event.container && this.isPublished(card)) {
+      return;
+    }
 
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);

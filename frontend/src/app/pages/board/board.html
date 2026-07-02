@@ -27,16 +27,22 @@
           cdkDropList
           [id]="'col-' + group.column.id"
           [cdkDropListData]="group.cards"
+          [cdkDropListEnterPredicate]="canEnter"
           (cdkDropListDropped)="drop($event)"
         >
           @for (card of group.cards; track card.id) {
-            <div class="card" cdkDrag (click)="openTicket(card)">
+            <div class="card" cdkDrag [cdkDragData]="card" (click)="openTicket(card)">
               <div class="card-title">{{ card.title }}</div>
               @if (card.channel) {
                 <div class="card-channel">{{ card.channel }}</div>
               }
               @if (tagName(card.tag_id); as tag) {
                 <span class="tag-badge">{{ tag }}</span>
+              }
+              @if (card.due_date) {
+                <div class="card-due" [class.due-soon]="isDueSoon(card.due_date)">
+                  Échéance : {{ card.due_date }}
+                </div>
               }
               <div class="card-footer">
                 <span class="priority priority-{{ card.priority }}">{{ card.priority }}</span>

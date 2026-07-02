@@ -34,6 +34,7 @@ describe('TagsList', () => {
       priority: 'low',
       column_id: 1,
       position: 0,
+      due_date: null,
     },
     {
       id: 11,
@@ -45,6 +46,7 @@ describe('TagsList', () => {
       priority: 'high',
       column_id: 1,
       position: 1,
+      due_date: null,
     },
     {
       id: 12,
@@ -56,6 +58,7 @@ describe('TagsList', () => {
       priority: 'medium',
       column_id: 1,
       position: 2,
+      due_date: null,
     },
   ];
 
