@@ -123,7 +123,7 @@ export class TicketDetail implements OnInit {
   isPublished(): boolean {
     const ticket = this.ticket();
     if (!ticket) return false;
-    return this.columns().find((c) => c.id === ticket.column_id)?.name === 'Publié';
+    return this.columns().find((c) => c.id === ticket.column_id)?.name === '✅Publié';
   }
 
   async updateStatus(columnId: number): Promise<void> {

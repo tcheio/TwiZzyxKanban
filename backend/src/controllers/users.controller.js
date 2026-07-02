@@ -5,13 +5,15 @@ const VALID_ROLES = ['admin', 'user'];
 
 function list(req, res) {
   const users = db
-    .prepare('SELECT id, username, role, created_at FROM users ORDER BY username')
+    .prepare('SELECT id, username, role, avatar_url, created_at FROM users ORDER BY username')
     .all();
   res.json(users);
 }
 
 function liteList(req, res) {
-  const users = db.prepare('SELECT id, username FROM users ORDER BY username').all();
+  const users = db
+    .prepare('SELECT id, username, avatar_url FROM users ORDER BY username')
+    .all();
   res.json(users);
 }
 
@@ -35,7 +37,7 @@ function create(req, res) {
     .run(username, passwordHash, role);
 
   const user = db
-    .prepare('SELECT id, username, role, created_at FROM users WHERE id = ?')
+    .prepare('SELECT id, username, role, avatar_url, created_at FROM users WHERE id = ?')
     .get(result.lastInsertRowid);
   res.status(201).json(user);
 }
@@ -72,7 +74,7 @@ function update(req, res) {
   );
 
   const updated = db
-    .prepare('SELECT id, username, role, created_at FROM users WHERE id = ?')
+    .prepare('SELECT id, username, role, avatar_url, created_at FROM users WHERE id = ?')
     .get(id);
   res.json(updated);
 }

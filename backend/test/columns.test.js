@@ -20,7 +20,7 @@ test('GET /api/columns retourne les 6 colonnes par défaut triées par position'
   assert.equal(res.status, 200);
   assert.deepEqual(
     res.body.map((c) => c.name),
-    ['Idée', 'Préparation/Écriture', 'Tournage', 'Montage', 'Miniature', 'Publié']
+    ['💡Idées', '📝Préparation/Écriture', '🎥Tournage', '🎬Montage', '🖼️Miniature', '✅Publié']
   );
 });
 

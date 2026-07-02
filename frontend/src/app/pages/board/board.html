@@ -1,10 +1,10 @@
-<div class="bg-white">
-  <div class="border-b border-gray-100 px-6 pb-4 pt-5">
+<div class="flex h-[calc(100vh-88px)] flex-col bg-white">
+  <div class="shrink-0 border-b border-gray-100 px-6 pb-4 pt-5">
     <div class="text-xs text-gray-400">TwiZzyxKanban</div>
     <h1 class="mt-0.5 text-xl font-semibold text-gray-900">Tableau</h1>
   </div>
 
-  <div class="flex flex-wrap items-center gap-3 px-6 py-4">
+  <div class="flex shrink-0 flex-wrap items-center gap-3 px-6 py-4">
     <div class="relative">
       <svg viewBox="0 0 24 24" class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="7" />
@@ -20,47 +20,62 @@
     @if (users().length) {
       <div class="flex -space-x-2">
         @for (user of users(); track user.id) {
-          <span
-            class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-blue-500 text-[11px] font-semibold text-white"
+          <button
+            type="button"
+            class="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-blue-500 text-[11px] font-semibold text-white ring-blue-500 hover:z-10 hover:ring-2"
+            [class.ring-2]="selectedAssigneeId() === user.id"
+            [class.z-10]="selectedAssigneeId() === user.id"
             [title]="user.username"
+            (click)="toggleAssigneeFilter(user.id)"
           >
-            {{ user.username.charAt(0).toUpperCase() }}
-          </span>
+            @if (user.avatar_url; as avatar) {
+              <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+            } @else {
+              {{ user.username.charAt(0).toUpperCase() }}
+            }
+          </button>
         }
       </div>
+    }
+    @if (selectedAssigneeId(); as assigneeId) {
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700">
+        Filtré par : {{ userName(assigneeId) }}
+        <button type="button" class="text-blue-400 hover:text-blue-600" (click)="clearAssigneeFilter()">✕</button>
+      </span>
     }
     <span class="ml-auto rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-500">
       Grouper par : Aucun
     </span>
   </div>
 
-  <div class="px-6 pb-6">
+  <div class="flex min-h-0 flex-1 flex-col px-6 pb-6">
     @if (loading()) {
-      <p class="mb-4 text-sm text-gray-500">Chargement...</p>
+      <p class="mb-4 shrink-0 text-sm text-gray-500">Chargement...</p>
     }
     @if (error()) {
-      <p class="mb-4 text-sm font-medium text-red-600">{{ error() }}</p>
+      <p class="mb-4 shrink-0 text-sm font-medium text-red-600">{{ error() }}</p>
     }
 
-    <div class="flex items-start gap-4 overflow-x-auto pb-4" cdkDropListGroup>
+    <div class="flex min-h-0 flex-1 items-stretch gap-4 overflow-x-auto pb-4" cdkDropListGroup>
     @for (group of groups(); track group.column.id) {
-      <div class="flex min-w-[200px] flex-1 flex-col">
-        <div class="mb-3 flex items-baseline gap-1.5 px-1">
+      <div class="flex min-h-0 min-w-[200px] flex-1 flex-col rounded-lg border-2 border-gray-300 p-3">
+        <div class="mb-3 flex shrink-0 items-baseline gap-1.5 px-1">
           <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">
             {{ group.column.name }}
           </span>
-          <span class="text-xs font-medium text-gray-400">{{ group.cards.length }}</span>
+          <span class="text-xs font-medium text-gray-400">{{ visibleCards(group).length }}</span>
         </div>
 
         <div
-          class="flex min-h-[40px] flex-col gap-2"
+          class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto"
           cdkDropList
           [id]="'col-' + group.column.id"
           [cdkDropListData]="group.cards"
+          [cdkDropListDisabled]="selectedAssigneeId() !== null"
           [cdkDropListEnterPredicate]="canEnter"
           (cdkDropListDropped)="drop($event)"
         >
-          @for (card of group.cards; track card.id) {
+          @for (card of visibleCards(group); track card.id) {
             <div
               class="cursor-grab rounded-md border border-gray-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
               cdkDrag
@@ -95,12 +110,22 @@
                   <span class="h-2 w-2 rounded-sm" [class]="priorityClass(card.priority)"></span>
                   {{ card.priority }}
                 </span>
-                <span
-                  class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-[11px] font-semibold text-white"
-                  [title]="userName(card.assigned_user_id)"
-                >
-                  {{ userInitial(card.assigned_user_id) }}
-                </span>
+                @if (card.assigned_user_id) {
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2 text-[11px] font-medium text-gray-600 hover:bg-gray-100"
+                    (click)="$event.stopPropagation(); toggleAssigneeFilter(card.assigned_user_id)"
+                  >
+                    <span class="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-blue-500 text-[10px] font-semibold text-white">
+                      @if (userAvatar(card.assigned_user_id); as avatar) {
+                        <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                      } @else {
+                        {{ userInitial(card.assigned_user_id) }}
+                      }
+                    </span>
+                    {{ userName(card.assigned_user_id) }}
+                  </button>
+                }
               </div>
             </div>
           }

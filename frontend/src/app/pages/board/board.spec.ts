@@ -68,7 +68,7 @@ describe('Board', () => {
       due_date: null,
     },
   ];
-  const users = [{ id: 1, username: 'alice' }];
+  const users = [{ id: 1, username: 'alice', avatar_url: 'data:image/jpeg;base64,abc' }];
   const tags = [{ id: 1, name: 'Minecraft' }];
 
   beforeEach(() => {
@@ -173,6 +173,43 @@ describe('Board', () => {
     expect(component.userInitial(999)).toBe('?');
   });
 
+  it('userAvatar() retourne la photo de profil ou null', async () => {
+    await component.reload();
+
+    expect(component.userAvatar(1)).toBe('data:image/jpeg;base64,abc');
+    expect(component.userAvatar(null)).toBeNull();
+    expect(component.userAvatar(999)).toBeNull();
+  });
+
+  it('visibleCards() retourne toutes les cartes sans filtre, puis seulement celles du destinataire choisi', async () => {
+    await component.reload();
+    const group = component.groups()[0];
+
+    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['A', 'B']);
+
+    component.toggleAssigneeFilter(1);
+    const assignedGroup = component.groups()[1];
+    expect(component.visibleCards(group)).toEqual([]);
+    expect(component.visibleCards(assignedGroup).map((c) => c.title)).toEqual(['C']);
+  });
+
+  it('toggleAssigneeFilter() active puis désactive le filtre sur un second clic', () => {
+    expect(component.selectedAssigneeId()).toBeNull();
+
+    component.toggleAssigneeFilter(1);
+    expect(component.selectedAssigneeId()).toBe(1);
+
+    component.toggleAssigneeFilter(1);
+    expect(component.selectedAssigneeId()).toBeNull();
+  });
+
+  it('clearAssigneeFilter() réinitialise le filtre', () => {
+    component.toggleAssigneeFilter(1);
+    component.clearAssigneeFilter();
+
+    expect(component.selectedAssigneeId()).toBeNull();
+  });
+
   it('priorityClass() retourne la classe Tailwind associée à la priorité', () => {
     expect(component.priorityClass('low')).toBe('bg-gray-400');
     expect(component.priorityClass('medium')).toBe('bg-amber-500');
@@ -200,7 +237,7 @@ describe('Board', () => {
   });
 
   it('reload() masque un ticket publié depuis plus de 14 jours', async () => {
-    const publishedColumns: Column[] = [...columns, { id: 3, name: 'Publié', position: 2 }];
+    const publishedColumns: Column[] = [...columns, { id: 3, name: '✅Publié', position: 2 }];
     const oldPublishedAt = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
     const recentPublishedAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
     const publishedCards: Card[] = [
@@ -217,7 +254,7 @@ describe('Board', () => {
   });
 
   it("canEnter() empêche un ticket publié d'entrer dans une autre colonne mais autorise le réordonnancement", async () => {
-    const publishedColumns: Column[] = [...columns, { id: 3, name: 'Publié', position: 2 }];
+    const publishedColumns: Column[] = [...columns, { id: 3, name: '✅Publié', position: 2 }];
     const publishedCard: Card = { ...baseCards[0], id: 20, title: 'Publié A', column_id: 3, published_at: new Date().toISOString() };
     columnsService.list.mockResolvedValue(publishedColumns);
     cardsService.list.mockResolvedValue([...baseCards, publishedCard]);
@@ -232,7 +269,7 @@ describe('Board', () => {
   });
 
   it('drop() ne déplace pas un ticket publié vers une autre colonne', async () => {
-    const publishedColumns: Column[] = [...columns, { id: 3, name: 'Publié', position: 2 }];
+    const publishedColumns: Column[] = [...columns, { id: 3, name: '✅Publié', position: 2 }];
     const publishedCard: Card = { ...baseCards[0], id: 20, title: 'Publié A', column_id: 3, published_at: new Date().toISOString() };
     columnsService.list.mockResolvedValue(publishedColumns);
     cardsService.list.mockResolvedValue([...baseCards, publishedCard]);
@@ -254,7 +291,7 @@ describe('Board', () => {
 
   it('affiche un toast pendant 6 secondes lors d\'une tentative de déplacement hors de Publié', async () => {
     vi.useFakeTimers();
-    const publishedColumns: Column[] = [...columns, { id: 3, name: 'Publié', position: 2 }];
+    const publishedColumns: Column[] = [...columns, { id: 3, name: '✅Publié', position: 2 }];
     const publishedCard: Card = { ...baseCards[0], id: 20, title: 'Publié A', column_id: 3, published_at: new Date().toISOString() };
     columnsService.list.mockResolvedValue(publishedColumns);
     cardsService.list.mockResolvedValue([...baseCards, publishedCard]);
