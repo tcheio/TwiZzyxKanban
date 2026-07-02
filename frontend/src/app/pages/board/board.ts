@@ -99,6 +99,11 @@ export class Board implements OnInit {
     return this.tags().find((t) => t.id === tagId)?.name ?? null;
   }
 
+  formatDate(dateStr: string): string {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}-${month}-${year}`;
+  }
+
   isDueSoon(dueDate: string | null): boolean {
     if (!dueDate) return false;
     const diffDays = (new Date(dueDate).getTime() - Date.now()) / MS_PER_DAY;

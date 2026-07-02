@@ -221,6 +221,11 @@ describe('Board', () => {
     expect(columnsService.reorder).not.toHaveBeenCalled();
   });
 
+  it('formatDate() convertit AAAA-MM-JJ en JJ-MM-AAAA', () => {
+    expect(component.formatDate('2026-07-03')).toBe('03-07-2026');
+    expect(component.formatDate('2026-01-15')).toBe('15-01-2026');
+  });
+
   it('isDueSoon() retourne true à 7 jours ou moins et false au-delà', () => {
     const soon = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
     const far = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString();

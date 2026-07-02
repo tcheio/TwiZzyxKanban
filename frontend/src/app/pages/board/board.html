@@ -48,7 +48,7 @@
               }
               @if (card.due_date) {
                 <div class="card-due" [class.due-soon]="isDueSoon(card.due_date)">
-                  Échéance : {{ card.due_date }}
+                  Échéance : {{ formatDate(card.due_date) }}
                 </div>
               }
               <div class="card-footer">
