@@ -194,3 +194,17 @@
 .cdk-drop-list-dragging .card:not(.cdk-drag-placeholder) {
   transition: transform 200ms ease;
 }
+
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--danger);
+  color: white;
+  padding: 0.7rem 1.2rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  font-size: 0.85rem;
+  z-index: 1000;
+}

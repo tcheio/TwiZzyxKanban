@@ -31,7 +31,14 @@
           (cdkDropListDropped)="drop($event)"
         >
           @for (card of group.cards; track card.id) {
-            <div class="card" cdkDrag [cdkDragData]="card" (click)="openTicket(card)">
+            <div
+              class="card"
+              cdkDrag
+              [cdkDragData]="card"
+              (cdkDragStarted)="onDragStarted()"
+              (cdkDragEnded)="onDragEnded()"
+              (click)="openTicket(card)"
+            >
               <div class="card-title">{{ card.title }}</div>
               @if (card.channel) {
                 <div class="card-channel">{{ card.channel }}</div>
@@ -72,4 +79,8 @@
       }
     </div>
   </div>
+
+  @if (toastMessage(); as message) {
+    <div class="toast">{{ message }}</div>
+  }
 </div>

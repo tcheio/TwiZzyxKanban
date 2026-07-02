@@ -26,6 +26,7 @@ const PUBLISHED_COLUMN_NAME = 'Publié';
 const PUBLISHED_RETENTION_DAYS = 14;
 const DUE_SOON_DAYS = 7;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const TOAST_DURATION_MS = 6000;
 
 @Component({
   selector: 'app-board',
@@ -44,6 +45,10 @@ export class Board implements OnInit {
 
   readonly newColumnName = signal('');
   readonly addingColumn = signal(false);
+
+  readonly toastMessage = signal<string | null>(null);
+  private toastTimeout: ReturnType<typeof setTimeout> | null = null;
+  private blockedDragAttempt = false;
 
   constructor(
     private columnsService: ColumnsService,
@@ -112,8 +117,31 @@ export class Board implements OnInit {
 
   canEnter = (drag: CdkDrag<Card>, drop: CdkDropList): boolean => {
     const card = drag.data;
-    return !this.isPublished(card) || drop.id === 'col-' + card.column_id;
+    const allowed = !this.isPublished(card) || drop.id === 'col-' + card.column_id;
+    if (!allowed) {
+      this.blockedDragAttempt = true;
+    }
+    return allowed;
   };
+
+  onDragStarted(): void {
+    this.blockedDragAttempt = false;
+  }
+
+  onDragEnded(): void {
+    if (this.blockedDragAttempt) {
+      this.showToast('Un ticket publié ne peut plus être déplacé vers une autre colonne.');
+      this.blockedDragAttempt = false;
+    }
+  }
+
+  private showToast(message: string): void {
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+    this.toastMessage.set(message);
+    this.toastTimeout = setTimeout(() => this.toastMessage.set(null), TOAST_DURATION_MS);
+  }
 
   async drop(event: CdkDragDrop<Card[]>): Promise<void> {
     const card = event.previousContainer.data[event.previousIndex];

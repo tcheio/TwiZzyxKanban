@@ -282,4 +282,43 @@ describe('Board', () => {
 
     expect(cardsService.move).not.toHaveBeenCalled();
   });
+
+  it('affiche un toast pendant 6 secondes lors d\'une tentative de déplacement hors de Publié', async () => {
+    vi.useFakeTimers();
+    const publishedColumns: Column[] = [...columns, { id: 3, name: 'Publié', position: 2 }];
+    const publishedCard: Card = { ...baseCards[0], id: 20, title: 'Publié A', column_id: 3, published_at: new Date().toISOString() };
+    columnsService.list.mockResolvedValue(publishedColumns);
+    cardsService.list.mockResolvedValue([...baseCards, publishedCard]);
+    await component.reload();
+
+    const drag = { data: publishedCard } as unknown as Parameters<typeof component.canEnter>[0];
+    const otherList = { id: 'col-1' } as unknown as Parameters<typeof component.canEnter>[1];
+
+    component.onDragStarted();
+    component.canEnter(drag, otherList);
+    component.onDragEnded();
+
+    expect(component.toastMessage()).toBe('Un ticket publié ne peut plus être déplacé vers une autre colonne.');
+
+    vi.advanceTimersByTime(5999);
+    expect(component.toastMessage()).not.toBeNull();
+
+    vi.advanceTimersByTime(1);
+    expect(component.toastMessage()).toBeNull();
+
+    vi.useRealTimers();
+  });
+
+  it("n'affiche pas de toast quand le déplacement est autorisé", async () => {
+    await component.reload();
+
+    const drag = { data: baseCards[0] } as unknown as Parameters<typeof component.canEnter>[0];
+    const otherList = { id: 'col-2' } as unknown as Parameters<typeof component.canEnter>[1];
+
+    component.onDragStarted();
+    component.canEnter(drag, otherList);
+    component.onDragEnded();
+
+    expect(component.toastMessage()).toBeNull();
+  });
 });
