@@ -26,10 +26,11 @@ describe('App', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.querySelector('.navbar')).toBeTruthy();
+    expect(compiled.querySelector('.app-shell')).toBeTruthy();
     expect(compiled.querySelector('.username')?.textContent).toContain('admin');
     expect(compiled.querySelector('a[routerLink="/tickets"]')).toBeTruthy();
     expect(compiled.querySelector('a[routerLink="/admin/users"]')).toBeTruthy();
+    expect(compiled.querySelector('a[routerLink="/board/settings"]')).toBeTruthy();
   });
 
   it('masque la barre de navigation quand déconnecté', () => {
@@ -48,7 +49,7 @@ describe('App', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.querySelector('.navbar')).toBeFalsy();
+    expect(compiled.querySelector('.app-shell')).toBeFalsy();
   });
 
   it("masque le lien Utilisateurs pour un non-admin", () => {
@@ -74,5 +75,6 @@ describe('App', () => {
 
     expect(compiled.querySelector('a[routerLink="/tickets"]')).toBeTruthy();
     expect(compiled.querySelector('a[routerLink="/admin/users"]')).toBeFalsy();
+    expect(compiled.querySelector('a[routerLink="/board/settings"]')).toBeFalsy();
   });
 });

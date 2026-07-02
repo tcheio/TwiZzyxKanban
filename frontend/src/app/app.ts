@@ -6,7 +6,6 @@ import { AuthService } from './core/auth.service';
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './app.html',
-  styleUrl: './app.css',
 })
 export class App {
   constructor(
@@ -17,5 +16,10 @@ export class App {
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  userInitial(): string {
+    const username = this.authService.currentUser()?.username;
+    return username ? username.charAt(0).toUpperCase() : '?';
   }
 }

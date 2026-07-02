@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import {
   CdkDropList,
   CdkDropListGroup,
@@ -12,7 +12,6 @@ import { ColumnsService } from '../../services/columns.service';
 import { CardsService } from '../../services/cards.service';
 import { UsersService } from '../../services/users.service';
 import { TagsService } from '../../services/tags.service';
-import { AuthService } from '../../core/auth.service';
 import { Column } from '../../models/column.model';
 import { Card, Priority } from '../../models/card.model';
 import { UserLite } from '../../models/user.model';
@@ -46,12 +45,11 @@ const TAG_CLASSES = [
 
 @Component({
   selector: 'app-board',
-  imports: [CdkDropListGroup, CdkDropList, CdkDrag, RouterLink],
+  imports: [CdkDropListGroup, CdkDropList, CdkDrag],
   templateUrl: './board.html',
 })
 export class Board implements OnInit {
   private router = inject(Router);
-  protected authService = inject(AuthService);
 
   readonly groups = signal<ColumnGroup[]>([]);
   readonly users = signal<UserLite[]>([]);

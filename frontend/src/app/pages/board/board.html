@@ -1,26 +1,48 @@
-<div class="min-h-screen bg-white p-6">
-  <div class="mb-5 flex items-center justify-between">
-    <h1 class="text-lg font-semibold text-gray-800">Tableau</h1>
-    @if (authService.isAdmin()) {
-      <a
-        routerLink="/board/settings"
-        class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
-        title="Paramètres du tableau"
-      >
-        <span aria-hidden="true">⚙</span>
-        Paramètres
-      </a>
-    }
+<div class="bg-white">
+  <div class="border-b border-gray-100 px-6 pb-4 pt-5">
+    <div class="text-xs text-gray-400">TwiZzyxKanban</div>
+    <h1 class="mt-0.5 text-xl font-semibold text-gray-900">Tableau</h1>
   </div>
 
-  @if (loading()) {
-    <p class="mb-4 text-sm text-gray-500">Chargement...</p>
-  }
-  @if (error()) {
-    <p class="mb-4 text-sm font-medium text-red-600">{{ error() }}</p>
-  }
+  <div class="flex flex-wrap items-center gap-3 px-6 py-4">
+    <div class="relative">
+      <svg viewBox="0 0 24 24" class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="7" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <input
+        type="text"
+        placeholder="Rechercher"
+        disabled
+        class="w-56 cursor-not-allowed rounded-md border border-gray-300 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-400 placeholder-gray-400 focus:outline-none"
+      />
+    </div>
+    @if (users().length) {
+      <div class="flex -space-x-2">
+        @for (user of users(); track user.id) {
+          <span
+            class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-blue-500 text-[11px] font-semibold text-white"
+            [title]="user.username"
+          >
+            {{ user.username.charAt(0).toUpperCase() }}
+          </span>
+        }
+      </div>
+    }
+    <span class="ml-auto rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-500">
+      Grouper par : Aucun
+    </span>
+  </div>
 
-  <div class="flex items-start gap-6 overflow-x-auto pb-4" cdkDropListGroup>
+  <div class="px-6 pb-6">
+    @if (loading()) {
+      <p class="mb-4 text-sm text-gray-500">Chargement...</p>
+    }
+    @if (error()) {
+      <p class="mb-4 text-sm font-medium text-red-600">{{ error() }}</p>
+    }
+
+    <div class="flex items-start gap-6 overflow-x-auto pb-4" cdkDropListGroup>
     @for (group of groups(); track group.column.id) {
       <div class="flex w-[272px] shrink-0 flex-col">
         <div class="mb-3 flex items-baseline gap-1.5 px-1">
@@ -85,6 +107,7 @@
         </div>
       </div>
     }
+    </div>
   </div>
 
   @if (toastMessage(); as message) {

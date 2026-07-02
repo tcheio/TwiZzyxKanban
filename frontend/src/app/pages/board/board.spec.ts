@@ -7,7 +7,6 @@ import { ColumnsService } from '../../services/columns.service';
 import { CardsService } from '../../services/cards.service';
 import { UsersService } from '../../services/users.service';
 import { TagsService } from '../../services/tags.service';
-import { AuthService } from '../../core/auth.service';
 import { Card } from '../../models/card.model';
 import { Column } from '../../models/column.model';
 
@@ -94,7 +93,6 @@ describe('Board', () => {
         { provide: CardsService, useValue: cardsService },
         { provide: UsersService, useValue: usersService },
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
-        { provide: AuthService, useValue: { isAdmin: () => false, currentUser: () => null } },
         { provide: Router, useValue: { navigate } },
       ],
     });
