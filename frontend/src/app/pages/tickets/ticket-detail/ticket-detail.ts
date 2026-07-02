@@ -83,6 +83,7 @@ export class TicketDetail implements OnInit {
     priority?: Priority;
     description?: string | null;
     tag_id?: number | null;
+    due_date?: string | null;
   }): Promise<void> {
     const ticket = this.ticket();
     if (!ticket) return;
@@ -115,9 +116,19 @@ export class TicketDetail implements OnInit {
     this.patch({ tag_id: tagId });
   }
 
+  updateDueDate(value: string): void {
+    this.patch({ due_date: value || null });
+  }
+
+  isPublished(): boolean {
+    const ticket = this.ticket();
+    if (!ticket) return false;
+    return this.columns().find((c) => c.id === ticket.column_id)?.name === 'Publié';
+  }
+
   async updateStatus(columnId: number): Promise<void> {
     const ticket = this.ticket();
-    if (!ticket || columnId === ticket.column_id) return;
+    if (!ticket || columnId === ticket.column_id || this.isPublished()) return;
     try {
       const moved = await this.cardsService.move(ticket.id, columnId);
       this.ticket.set(moved);

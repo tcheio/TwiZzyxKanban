@@ -51,6 +51,11 @@
       </select>
     </label>
 
+    <label>
+      Date d'échéance
+      <input type="date" formControlName="due_date" />
+    </label>
+
     <div class="dialog-actions">
       <button type="button" (click)="cancel.emit()">Annuler</button>
       <button type="submit" [disabled]="form.invalid">Créer</button>

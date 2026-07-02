@@ -1,6 +1,12 @@
 const db = require('../db/connection');
 
 const VALID_PRIORITIES = ['low', 'medium', 'high'];
+const PUBLISHED_COLUMN_NAME = 'Publié';
+
+function isPublishedColumn(columnId) {
+  const column = db.prepare('SELECT name FROM columns WHERE id = ?').get(columnId);
+  return column?.name === PUBLISHED_COLUMN_NAME;
+}
 
 function list(req, res) {
   const cards = db.prepare('SELECT * FROM cards ORDER BY column_id, position').all();
@@ -17,7 +23,7 @@ function getOne(req, res) {
 }
 
 function create(req, res) {
-  const { title, channel, assigned_user_id, priority, column_id, tag_id } = req.body || {};
+  const { title, channel, assigned_user_id, priority, column_id, tag_id, due_date } = req.body || {};
 
   if (!title || !column_id) {
     return res.status(400).json({ error: 'title et column_id requis' });
@@ -41,10 +47,12 @@ function create(req, res) {
     .prepare('SELECT COALESCE(MAX(position), -1) AS maxPos FROM cards WHERE column_id = ?')
     .get(column_id).maxPos;
 
+  const publishedAt = isPublishedColumn(column_id) ? new Date().toISOString() : null;
+
   const result = db
     .prepare(
-      `INSERT INTO cards (title, channel, assigned_user_id, priority, column_id, tag_id, position)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO cards (title, channel, assigned_user_id, priority, column_id, tag_id, position, due_date, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       title,
@@ -53,7 +61,9 @@ function create(req, res) {
       priority || 'medium',
       column_id,
       tag_id || null,
-      maxPosition + 1
+      maxPosition + 1,
+      due_date || null,
+      publishedAt
     );
 
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(result.lastInsertRowid);
@@ -62,7 +72,7 @@ function create(req, res) {
 
 function update(req, res) {
   const id = Number(req.params.id);
-  const { title, channel, description, assigned_user_id, priority, tag_id } = req.body || {};
+  const { title, channel, description, assigned_user_id, priority, tag_id, due_date } = req.body || {};
 
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
   if (!card) {
@@ -79,7 +89,7 @@ function update(req, res) {
   }
 
   db.prepare(
-    `UPDATE cards SET title = ?, channel = ?, description = ?, assigned_user_id = ?, priority = ?, tag_id = ?, updated_at = datetime('now')
+    `UPDATE cards SET title = ?, channel = ?, description = ?, assigned_user_id = ?, priority = ?, tag_id = ?, due_date = ?, updated_at = datetime('now')
      WHERE id = ?`
   ).run(
     title ?? card.title,
@@ -88,6 +98,7 @@ function update(req, res) {
     assigned_user_id !== undefined ? assigned_user_id : card.assigned_user_id,
     priority || card.priority,
     tag_id !== undefined ? tag_id : card.tag_id,
+    due_date !== undefined ? due_date : card.due_date,
     id
   );
 
@@ -120,9 +131,13 @@ function move(req, res) {
     return res.status(400).json({ error: 'columnId requis' });
   }
 
-  const targetColumn = db.prepare('SELECT id FROM columns WHERE id = ?').get(columnId);
+  const targetColumn = db.prepare('SELECT id, name FROM columns WHERE id = ?').get(columnId);
   if (!targetColumn) {
     return res.status(400).json({ error: 'columnId invalide' });
+  }
+
+  if (columnId !== card.column_id && isPublishedColumn(card.column_id) && targetColumn.name !== PUBLISHED_COLUMN_NAME) {
+    return res.status(400).json({ error: 'Un ticket publié ne peut plus être déplacé vers une autre colonne.' });
   }
 
   if (position === undefined) {
@@ -157,9 +172,15 @@ function move(req, res) {
       ).run(columnId, position);
     }
 
-    db.prepare(
-      `UPDATE cards SET column_id = ?, position = ?, updated_at = datetime('now') WHERE id = ?`
-    ).run(columnId, position, id);
+    if (columnId !== card.column_id && targetColumn.name === PUBLISHED_COLUMN_NAME) {
+      db.prepare(
+        `UPDATE cards SET column_id = ?, position = ?, published_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`
+      ).run(columnId, position, id);
+    } else {
+      db.prepare(
+        `UPDATE cards SET column_id = ?, position = ?, updated_at = datetime('now') WHERE id = ?`
+      ).run(columnId, position, id);
+    }
   });
   moveTx();
 

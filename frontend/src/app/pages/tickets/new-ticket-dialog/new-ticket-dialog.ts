@@ -27,6 +27,7 @@ export class NewTicketDialog {
     tag_id: [null as number | null],
     assigned_user_id: [null as number | null],
     priority: ['medium' as Priority, Validators.required],
+    due_date: [''],
   });
 
   submit(): void {
@@ -39,6 +40,7 @@ export class NewTicketDialog {
       tag_id: raw.tag_id ?? null,
       assigned_user_id: raw.assigned_user_id ?? null,
       priority: raw.priority!,
+      due_date: raw.due_date || null,
     });
   }
 }

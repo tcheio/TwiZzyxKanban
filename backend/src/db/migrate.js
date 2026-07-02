@@ -18,6 +18,12 @@ function migrate() {
   if (!cardColumns.some((col) => col.name === 'tag_id')) {
     db.exec('ALTER TABLE cards ADD COLUMN tag_id INTEGER REFERENCES tags(id) ON DELETE SET NULL');
   }
+  if (!cardColumns.some((col) => col.name === 'due_date')) {
+    db.exec('ALTER TABLE cards ADD COLUMN due_date TEXT');
+  }
+  if (!cardColumns.some((col) => col.name === 'published_at')) {
+    db.exec('ALTER TABLE cards ADD COLUMN published_at TEXT');
+  }
 
   const userCount = db.prepare('SELECT COUNT(*) AS count FROM users').get().count;
   if (userCount === 0) {

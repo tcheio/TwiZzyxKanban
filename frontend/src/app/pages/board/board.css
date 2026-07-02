@@ -108,6 +108,17 @@
   margin-top: 0.15rem;
 }
 
+.card-due {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+}
+
+.card-due.due-soon {
+  color: var(--danger);
+  font-weight: 600;
+}
+
 .tag-badge {
   display: inline-block;
   margin-top: 0.3rem;
@@ -182,4 +193,18 @@
 
 .cdk-drop-list-dragging .card:not(.cdk-drag-placeholder) {
   transition: transform 200ms ease;
+}
+
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--danger);
+  color: white;
+  padding: 0.7rem 1.2rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  font-size: 0.85rem;
+  z-index: 1000;
 }

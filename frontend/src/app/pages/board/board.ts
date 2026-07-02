@@ -22,6 +22,12 @@ interface ColumnGroup {
   cards: Card[];
 }
 
+const PUBLISHED_COLUMN_NAME = 'Publié';
+const PUBLISHED_RETENTION_DAYS = 14;
+const DUE_SOON_DAYS = 7;
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const TOAST_DURATION_MS = 6000;
+
 @Component({
   selector: 'app-board',
   imports: [CdkDropListGroup, CdkDropList, CdkDrag],
@@ -39,6 +45,10 @@ export class Board implements OnInit {
 
   readonly newColumnName = signal('');
   readonly addingColumn = signal(false);
+
+  readonly toastMessage = signal<string | null>(null);
+  private toastTimeout: ReturnType<typeof setTimeout> | null = null;
+  private blockedDragAttempt = false;
 
   constructor(
     private columnsService: ColumnsService,
@@ -68,6 +78,7 @@ export class Board implements OnInit {
           column,
           cards: cards
             .filter((c) => c.column_id === column.id)
+            .filter((c) => this.isVisibleInColumn(c, column))
             .sort((a, b) => a.position - b.position),
         }))
       );
@@ -88,8 +99,60 @@ export class Board implements OnInit {
     return this.tags().find((t) => t.id === tagId)?.name ?? null;
   }
 
+  formatDate(dateStr: string): string {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}-${month}-${year}`;
+  }
+
+  isDueSoon(dueDate: string | null): boolean {
+    if (!dueDate) return false;
+    const diffDays = (new Date(dueDate).getTime() - Date.now()) / MS_PER_DAY;
+    return diffDays <= DUE_SOON_DAYS;
+  }
+
+  private isVisibleInColumn(card: Card, column: Column): boolean {
+    if (column.name !== PUBLISHED_COLUMN_NAME || !card.published_at) return true;
+    const ageDays = (Date.now() - new Date(card.published_at).getTime()) / MS_PER_DAY;
+    return ageDays < PUBLISHED_RETENTION_DAYS;
+  }
+
+  private isPublished(card: Card): boolean {
+    return this.groups().find((g) => g.column.id === card.column_id)?.column.name === PUBLISHED_COLUMN_NAME;
+  }
+
+  canEnter = (drag: CdkDrag<Card>, drop: CdkDropList): boolean => {
+    const card = drag.data;
+    const allowed = !this.isPublished(card) || drop.id === 'col-' + card.column_id;
+    if (!allowed) {
+      this.blockedDragAttempt = true;
+    }
+    return allowed;
+  };
+
+  onDragStarted(): void {
+    this.blockedDragAttempt = false;
+  }
+
+  onDragEnded(): void {
+    if (this.blockedDragAttempt) {
+      this.showToast('Un ticket publié ne peut plus être déplacé vers une autre colonne.');
+      this.blockedDragAttempt = false;
+    }
+  }
+
+  private showToast(message: string): void {
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+    this.toastMessage.set(message);
+    this.toastTimeout = setTimeout(() => this.toastMessage.set(null), TOAST_DURATION_MS);
+  }
+
   async drop(event: CdkDragDrop<Card[]>): Promise<void> {
     const card = event.previousContainer.data[event.previousIndex];
+    if (event.previousContainer !== event.container && this.isPublished(card)) {
+      return;
+    }
 
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);

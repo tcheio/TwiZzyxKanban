@@ -52,6 +52,7 @@ describe('NewTicketDialog', () => {
       tag_id: 1,
       assigned_user_id: 1,
       priority: 'high',
+      due_date: '2026-07-15',
     });
     component.submit();
 
@@ -62,10 +63,11 @@ describe('NewTicketDialog', () => {
       tag_id: 1,
       assigned_user_id: 1,
       priority: 'high',
+      due_date: '2026-07-15',
     });
   });
 
-  it("submit() convertit une chaîne vide en null pour channel/assigned_user_id, et accepte tag_id=null", () => {
+  it("submit() convertit une chaîne vide en null pour channel/assigned_user_id/due_date, et accepte tag_id=null", () => {
     let emitted: CardInput | null = null;
     component.save.subscribe((value) => (emitted = value));
 
@@ -76,11 +78,13 @@ describe('NewTicketDialog', () => {
       tag_id: null,
       assigned_user_id: null,
       priority: 'medium',
+      due_date: '',
     });
     component.submit();
 
     expect(emitted!.channel).toBeNull();
     expect(emitted!.assigned_user_id).toBeNull();
     expect(emitted!.tag_id).toBeNull();
+    expect(emitted!.due_date).toBeNull();
   });
 });

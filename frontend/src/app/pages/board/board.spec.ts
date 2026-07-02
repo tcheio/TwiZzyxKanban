@@ -41,6 +41,7 @@ describe('Board', () => {
       priority: 'medium',
       column_id: 1,
       position: 0,
+      due_date: null,
     },
     {
       id: 11,
@@ -52,6 +53,7 @@ describe('Board', () => {
       priority: 'medium',
       column_id: 1,
       position: 1,
+      due_date: null,
     },
     {
       id: 12,
@@ -63,6 +65,7 @@ describe('Board', () => {
       priority: 'medium',
       column_id: 2,
       position: 0,
+      due_date: null,
     },
   ];
   const users = [{ id: 1, username: 'alice' }];
@@ -216,5 +219,111 @@ describe('Board', () => {
     await component.moveColumn(0, -1);
 
     expect(columnsService.reorder).not.toHaveBeenCalled();
+  });
+
+  it('formatDate() convertit AAAA-MM-JJ en JJ-MM-AAAA', () => {
+    expect(component.formatDate('2026-07-03')).toBe('03-07-2026');
+    expect(component.formatDate('2026-01-15')).toBe('15-01-2026');
+  });
+
+  it('isDueSoon() retourne true à 7 jours ou moins et false au-delà', () => {
+    const soon = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    const far = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString();
+
+    expect(component.isDueSoon(soon)).toBe(true);
+    expect(component.isDueSoon(far)).toBe(false);
+    expect(component.isDueSoon(null)).toBe(false);
+  });
+
+  it('reload() masque un ticket publié depuis plus de 14 jours', async () => {
+    const publishedColumns: Column[] = [...columns, { id: 3, name: 'Publié', position: 2 }];
+    const oldPublishedAt = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
+    const recentPublishedAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const publishedCards: Card[] = [
+      { ...baseCards[0], id: 20, title: 'Ancien', column_id: 3, published_at: oldPublishedAt },
+      { ...baseCards[0], id: 21, title: 'Récent', column_id: 3, published_at: recentPublishedAt },
+    ];
+    columnsService.list.mockResolvedValue(publishedColumns);
+    cardsService.list.mockResolvedValue([...baseCards, ...publishedCards]);
+
+    await component.reload();
+
+    const publishedGroup = component.groups().find((g) => g.column.id === 3);
+    expect(publishedGroup?.cards.map((c) => c.title)).toEqual(['Récent']);
+  });
+
+  it("canEnter() empêche un ticket publié d'entrer dans une autre colonne mais autorise le réordonnancement", async () => {
+    const publishedColumns: Column[] = [...columns, { id: 3, name: 'Publié', position: 2 }];
+    const publishedCard: Card = { ...baseCards[0], id: 20, title: 'Publié A', column_id: 3, published_at: new Date().toISOString() };
+    columnsService.list.mockResolvedValue(publishedColumns);
+    cardsService.list.mockResolvedValue([...baseCards, publishedCard]);
+    await component.reload();
+
+    const drag = { data: publishedCard } as unknown as Parameters<typeof component.canEnter>[0];
+    const otherList = { id: 'col-1' } as unknown as Parameters<typeof component.canEnter>[1];
+    const sameList = { id: 'col-3' } as unknown as Parameters<typeof component.canEnter>[1];
+
+    expect(component.canEnter(drag, otherList)).toBe(false);
+    expect(component.canEnter(drag, sameList)).toBe(true);
+  });
+
+  it('drop() ne déplace pas un ticket publié vers une autre colonne', async () => {
+    const publishedColumns: Column[] = [...columns, { id: 3, name: 'Publié', position: 2 }];
+    const publishedCard: Card = { ...baseCards[0], id: 20, title: 'Publié A', column_id: 3, published_at: new Date().toISOString() };
+    columnsService.list.mockResolvedValue(publishedColumns);
+    cardsService.list.mockResolvedValue([...baseCards, publishedCard]);
+    await component.reload();
+
+    const publishedGroupCards = component.groups().find((g) => g.column.id === 3)!.cards;
+    const targetCards = component.groups()[0].cards;
+    const event = {
+      previousContainer: { data: publishedGroupCards, id: 'col-3' },
+      container: { data: targetCards, id: 'col-1' },
+      previousIndex: 0,
+      currentIndex: 0,
+    } as unknown as CdkDragDrop<Card[]>;
+
+    await component.drop(event);
+
+    expect(cardsService.move).not.toHaveBeenCalled();
+  });
+
+  it('affiche un toast pendant 6 secondes lors d\'une tentative de déplacement hors de Publié', async () => {
+    vi.useFakeTimers();
+    const publishedColumns: Column[] = [...columns, { id: 3, name: 'Publié', position: 2 }];
+    const publishedCard: Card = { ...baseCards[0], id: 20, title: 'Publié A', column_id: 3, published_at: new Date().toISOString() };
+    columnsService.list.mockResolvedValue(publishedColumns);
+    cardsService.list.mockResolvedValue([...baseCards, publishedCard]);
+    await component.reload();
+
+    const drag = { data: publishedCard } as unknown as Parameters<typeof component.canEnter>[0];
+    const otherList = { id: 'col-1' } as unknown as Parameters<typeof component.canEnter>[1];
+
+    component.onDragStarted();
+    component.canEnter(drag, otherList);
+    component.onDragEnded();
+
+    expect(component.toastMessage()).toBe('Un ticket publié ne peut plus être déplacé vers une autre colonne.');
+
+    vi.advanceTimersByTime(5999);
+    expect(component.toastMessage()).not.toBeNull();
+
+    vi.advanceTimersByTime(1);
+    expect(component.toastMessage()).toBeNull();
+
+    vi.useRealTimers();
+  });
+
+  it("n'affiche pas de toast quand le déplacement est autorisé", async () => {
+    await component.reload();
+
+    const drag = { data: baseCards[0] } as unknown as Parameters<typeof component.canEnter>[0];
+    const otherList = { id: 'col-2' } as unknown as Parameters<typeof component.canEnter>[1];
+
+    component.onDragStarted();
+    component.canEnter(drag, otherList);
+    component.onDragEnded();
+
+    expect(component.toastMessage()).toBeNull();
   });
 });
