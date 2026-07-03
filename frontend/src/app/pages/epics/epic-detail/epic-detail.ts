@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { EpicsService } from '../../../services/epics.service';
 import { CardsService } from '../../../services/cards.service';
 import { ColumnsService } from '../../../services/columns.service';
@@ -31,6 +32,7 @@ const PRIORITY_DOT_CLASSES: Record<Priority, string> = {
 export class EpicDetail implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private titleService = inject(Title);
   private epicsService = inject(EpicsService);
   private cardsService = inject(CardsService);
   private columnsService = inject(ColumnsService);
@@ -90,6 +92,7 @@ export class EpicDetail implements OnInit {
       this.epic.set(epic);
       this.columns.set(columns);
       this.users.set(users);
+      this.titleService.setTitle(`${epic.name} - TwiZzyxKanban`);
 
       const columnPosition = new Map(columns.map((c) => [c.id, c.position]));
       const ticketsForEpic = cards
