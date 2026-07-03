@@ -1,10 +1,10 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { TagsService } from '../../../services/tags.service';
+import { EpicsService } from '../../../services/epics.service';
 import { CardsService } from '../../../services/cards.service';
 import { ColumnsService } from '../../../services/columns.service';
 import { UsersService } from '../../../services/users.service';
-import { Tag } from '../../../models/tag.model';
+import { Epic } from '../../../models/epic.model';
 import { Card, Priority } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
 import { UserLite } from '../../../models/user.model';
@@ -17,20 +17,20 @@ const PRIORITY_LABELS: Record<Priority, string> = {
 };
 
 @Component({
-  selector: 'app-tag-detail',
+  selector: 'app-epic-detail',
   imports: [RouterLink, ChartComponent],
-  templateUrl: './tag-detail.html',
-  styleUrl: './tag-detail.css',
+  templateUrl: './epic-detail.html',
+  styleUrl: './epic-detail.css',
 })
-export class TagDetail implements OnInit {
+export class EpicDetail implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private tagsService = inject(TagsService);
+  private epicsService = inject(EpicsService);
   private cardsService = inject(CardsService);
   private columnsService = inject(ColumnsService);
   private usersService = inject(UsersService);
 
-  readonly tag = signal<Tag | null>(null);
+  readonly epic = signal<Epic | null>(null);
   readonly columns = signal<Column[]>([]);
   readonly users = signal<UserLite[]>([]);
   readonly tickets = signal<Card[]>([]);
@@ -55,11 +55,11 @@ export class TagDetail implements OnInit {
     };
   });
 
-  private tagId = Number(this.route.snapshot.paramMap.get('id'));
+  private epicId = Number(this.route.snapshot.paramMap.get('id'));
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {
-      this.tagId = Number(params.get('id'));
+      this.epicId = Number(params.get('id'));
       this.reload();
     });
   }
@@ -68,33 +68,33 @@ export class TagDetail implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [tags, cards, columns, users] = await Promise.all([
-        this.tagsService.list(),
+      const [epics, cards, columns, users] = await Promise.all([
+        this.epicsService.list(),
         this.cardsService.list(),
         this.columnsService.list(),
         this.usersService.lite(),
       ]);
 
-      const tag = tags.find((t) => t.id === this.tagId) ?? null;
-      if (!tag) {
-        this.error.set('Tag introuvable.');
+      const epic = epics.find((e) => e.id === this.epicId) ?? null;
+      if (!epic) {
+        this.error.set('EPIC introuvable.');
         return;
       }
 
-      this.tag.set(tag);
+      this.epic.set(epic);
       this.columns.set(columns);
       this.users.set(users);
 
       const columnPosition = new Map(columns.map((c) => [c.id, c.position]));
-      const ticketsForTag = cards
-        .filter((c) => c.tag_id === tag.id)
+      const ticketsForEpic = cards
+        .filter((c) => c.epic_id === epic.id)
         .sort((a, b) => {
           const colDiff = (columnPosition.get(a.column_id) ?? 0) - (columnPosition.get(b.column_id) ?? 0);
           return colDiff !== 0 ? colDiff : a.position - b.position;
         });
-      this.tickets.set(ticketsForTag);
+      this.tickets.set(ticketsForEpic);
     } catch {
-      this.error.set('Impossible de charger le tag.');
+      this.error.set("Impossible de charger l'EPIC.");
     } finally {
       this.loading.set(false);
     }

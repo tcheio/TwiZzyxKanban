@@ -12,10 +12,14 @@ import { ColumnsService } from '../../services/columns.service';
 import { CardsService } from '../../services/cards.service';
 import { UsersService } from '../../services/users.service';
 import { TagsService } from '../../services/tags.service';
+import { EpicsService } from '../../services/epics.service';
 import { Column } from '../../models/column.model';
 import { Card, Priority } from '../../models/card.model';
 import { UserLite } from '../../models/user.model';
 import { Tag } from '../../models/tag.model';
+import { Epic } from '../../models/epic.model';
+import { epicBadgeClass } from '../../shared/epic-colors';
+import { tagBadgeClass } from '../../shared/tag-colors';
 
 interface ColumnGroup {
   column: Column;
@@ -34,15 +38,6 @@ const PRIORITY_CLASSES: Record<Priority, string> = {
   high: 'bg-red-600',
 };
 
-const TAG_CLASSES = [
-  'bg-sky-50 text-sky-700',
-  'bg-emerald-50 text-emerald-700',
-  'bg-violet-50 text-violet-700',
-  'bg-amber-50 text-amber-700',
-  'bg-rose-50 text-rose-700',
-  'bg-indigo-50 text-indigo-700',
-];
-
 @Component({
   selector: 'app-board',
   imports: [CdkDropListGroup, CdkDropList, CdkDrag],
@@ -54,6 +49,7 @@ export class Board implements OnInit {
   readonly groups = signal<ColumnGroup[]>([]);
   readonly users = signal<UserLite[]>([]);
   readonly tags = signal<Tag[]>([]);
+  readonly epics = signal<Epic[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
@@ -67,7 +63,8 @@ export class Board implements OnInit {
     private columnsService: ColumnsService,
     private cardsService: CardsService,
     private usersService: UsersService,
-    private tagsService: TagsService
+    private tagsService: TagsService,
+    private epicsService: EpicsService
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -78,14 +75,16 @@ export class Board implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [columns, cards, users, tags] = await Promise.all([
+      const [columns, cards, users, tags, epics] = await Promise.all([
         this.columnsService.list(),
         this.cardsService.list(),
         this.usersService.lite(),
         this.tagsService.list(),
+        this.epicsService.list(),
       ]);
       this.users.set(users);
       this.tags.set(tags);
+      this.epics.set(epics);
       this.groups.set(
         columns.map((column) => ({
           column,
@@ -141,8 +140,18 @@ export class Board implements OnInit {
   }
 
   tagClass(tagId: number | null): string {
-    if (!tagId) return '';
-    return TAG_CLASSES[tagId % TAG_CLASSES.length];
+    return tagBadgeClass(tagId);
+  }
+
+  epicName(epicId: number | null): string | null {
+    if (!epicId) return null;
+    return this.epics().find((e) => e.id === epicId)?.name ?? null;
+  }
+
+  epicClass(epicId: number | null): string {
+    if (!epicId) return '';
+    const color = this.epics().find((e) => e.id === epicId)?.color;
+    return epicBadgeClass(color);
   }
 
   formatDate(dateStr: string): string {

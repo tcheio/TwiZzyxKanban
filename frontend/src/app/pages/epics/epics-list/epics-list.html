@@ -1,0 +1,72 @@
+<div class="epics-page">
+  <h1>EPICs</h1>
+
+  @if (loading()) {
+    <p class="status">Chargement...</p>
+  }
+  @if (error()) {
+    <p class="status error">{{ error() }}</p>
+  }
+
+  @if (!loading() && epics().length === 0) {
+    <p class="status">Aucune EPIC pour le moment.</p>
+  }
+
+  <div class="epic-list">
+    @for (epic of epics(); track epic.id) {
+      <div class="epic-row" (click)="openEpic(epic)">
+        @if (editingId() === epic.id) {
+          <form class="edit-form" (ngSubmit)="saveEdit(epic)" (click)="$event.stopPropagation()">
+            <input
+              type="text"
+              [ngModel]="editName()"
+              (ngModelChange)="editName.set($event)"
+              name="editName"
+              autofocus
+            />
+            <select [ngModel]="editColor()" (ngModelChange)="editColor.set($event)" name="editColor">
+              @for (color of epicColors; track color) {
+                <option [value]="color">{{ color }}</option>
+              }
+            </select>
+            <button type="submit">Enregistrer</button>
+            <button type="button" (click)="cancelEdit()">Annuler</button>
+          </form>
+        } @else {
+          <span class="epic-dot" [class]="epicDotClass(epic.color)"></span>
+          <span class="epic-name">{{ epic.name }}</span>
+          <span class="ticket-count">{{ ticketCount(epic.id) }} ticket(s)</span>
+          @if (authService.isAdmin()) {
+            <div class="actions" (click)="$event.stopPropagation()">
+              <button type="button" (click)="startEdit(epic)">Modifier</button>
+              <button type="button" class="danger" (click)="deleteEpic(epic)">Supprimer</button>
+            </div>
+          }
+        }
+      </div>
+    }
+  </div>
+
+  @if (authService.isAdmin()) {
+    @if (creating()) {
+      <form class="create-form" (ngSubmit)="createEpic()">
+        <input
+          type="text"
+          [ngModel]="newEpicName()"
+          (ngModelChange)="newEpicName.set($event)"
+          name="newEpicName"
+          placeholder="Nom de l'EPIC"
+        />
+        <select [ngModel]="newEpicColor()" (ngModelChange)="newEpicColor.set($event)" name="newEpicColor">
+          @for (color of epicColors; track color) {
+            <option [value]="color">{{ color }}</option>
+          }
+        </select>
+        <button type="submit">Créer</button>
+        <button type="button" (click)="creating.set(false)">Annuler</button>
+      </form>
+    } @else {
+      <button type="button" class="new-epic-btn" (click)="creating.set(true)">+ Nouvelle EPIC</button>
+    }
+  }
+</div>

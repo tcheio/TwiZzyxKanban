@@ -7,6 +7,7 @@ import { ColumnsService } from '../../../services/columns.service';
 import { UsersService } from '../../../services/users.service';
 import { CommentsService } from '../../../services/comments.service';
 import { TagsService } from '../../../services/tags.service';
+import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
 import { Card } from '../../../models/card.model';
 import { Comment } from '../../../models/comment.model';
@@ -42,9 +43,9 @@ describe('TicketDetail', () => {
   const ticket: Card = {
     id: 5,
     title: 'Mon ticket',
-    channel: 'MaChaine',
     description: 'Notes existantes',
     tag_id: 1,
+    epic_id: null,
     assigned_user_id: 1,
     priority: 'medium',
     column_id: 1,
@@ -79,6 +80,7 @@ describe('TicketDetail', () => {
         { provide: ColumnsService, useValue: columnsService },
         { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
+        { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: CommentsService, useValue: commentsService },
         { provide: AuthService, useValue: { currentUser, isAdmin } },
         { provide: Router, useValue: { navigate } },
@@ -100,10 +102,10 @@ describe('TicketDetail', () => {
     expect(component.descriptionDraft()).toBe('Notes existantes');
   });
 
-  it('userName() résout le username ou un tiret', async () => {
+  it('assigneeOptions()/tagOptions() exposent les libellés pour le search-select', async () => {
     await component.reload();
-    expect(component.userName(1)).toBe('alice');
-    expect(component.userName(null)).toBe('—');
+    expect(component.assigneeOptions()).toEqual([{ id: 1, label: 'alice', avatarUrl: null, avatarInitial: 'A' }]);
+    expect(component.tagOptions().map((o) => o.label)).toEqual(['Minecraft', 'Pokémon']);
   });
 
   it('updateTitle() ignore une valeur vide', async () => {
@@ -119,14 +121,12 @@ describe('TicketDetail', () => {
     expect(cardsService.update).toHaveBeenCalledWith(5, { title: 'Nouveau titre' });
   });
 
-  it('updateChannel()/updatePriority()/updateAssignee() persistent le bon champ', async () => {
+  it('updatePriority()/updateAssignee() persistent le bon champ', async () => {
     await component.reload();
-    component.updateChannel('AutreChaine');
     component.updatePriority('high');
     component.updateAssignee(null);
     await Promise.resolve();
 
-    expect(cardsService.update).toHaveBeenCalledWith(5, { channel: 'AutreChaine' });
     expect(cardsService.update).toHaveBeenCalledWith(5, { priority: 'high' });
     expect(cardsService.update).toHaveBeenCalledWith(5, { assigned_user_id: null });
   });

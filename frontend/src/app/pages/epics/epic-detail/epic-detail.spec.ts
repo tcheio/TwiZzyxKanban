@@ -2,21 +2,21 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { TagDetail } from './tag-detail';
-import { TagsService } from '../../../services/tags.service';
+import { EpicDetail } from './epic-detail';
+import { EpicsService } from '../../../services/epics.service';
 import { CardsService } from '../../../services/cards.service';
 import { ColumnsService } from '../../../services/columns.service';
 import { UsersService } from '../../../services/users.service';
 import { Card } from '../../../models/card.model';
 
-describe('TagDetail', () => {
-  let component: TagDetail;
+describe('EpicDetail', () => {
+  let component: EpicDetail;
   let navigate: ReturnType<typeof vi.fn>;
   let paramMap$: Subject<{ get: (key: string) => string | null }>;
 
-  const tags = [
-    { id: 1, name: 'Minecraft' },
-    { id: 2, name: 'Pokémon' },
+  const epics = [
+    { id: 1, name: 'TwiZzyx', color: 'red' },
+    { id: 2, name: 'Twitch', color: 'violet' },
   ];
   const columns = [
     { id: 1, name: 'Idée', position: 0 },
@@ -28,8 +28,8 @@ describe('TagDetail', () => {
       id: 10,
       title: 'Dans Publié',
       description: null,
-      tag_id: 1,
-      epic_id: null,
+      tag_id: null,
+      epic_id: 1,
       assigned_user_id: 1,
       priority: 'low',
       column_id: 2,
@@ -40,8 +40,8 @@ describe('TagDetail', () => {
       id: 11,
       title: 'Dans Idée',
       description: null,
-      tag_id: 1,
-      epic_id: null,
+      tag_id: null,
+      epic_id: 1,
       assigned_user_id: null,
       priority: 'high',
       column_id: 1,
@@ -50,10 +50,10 @@ describe('TagDetail', () => {
     },
     {
       id: 12,
-      title: 'Autre tag',
+      title: 'Autre epic',
       description: null,
-      tag_id: 2,
-      epic_id: null,
+      tag_id: null,
+      epic_id: 2,
       assigned_user_id: null,
       priority: 'medium',
       column_id: 1,
@@ -68,7 +68,7 @@ describe('TagDetail', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
-        { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
+        { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue(epics) } },
         { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
         { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
         { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
@@ -79,25 +79,25 @@ describe('TagDetail', () => {
         },
       ],
     });
-    component = TestBed.createComponent(TagDetail).componentInstance;
+    component = TestBed.createComponent(EpicDetail).componentInstance;
   }
 
   beforeEach(() => configure('1'));
 
-  it('reload() charge le tag et trie ses tickets par position de colonne', async () => {
+  it("reload() charge l'EPIC et trie ses tickets par position de colonne", async () => {
     await component.reload();
 
-    expect(component.tag()).toEqual(tags[0]);
+    expect(component.epic()).toEqual(epics[0]);
     expect(component.tickets().map((t) => t.title)).toEqual(['Dans Idée', 'Dans Publié']);
     expect(component.error()).toBeNull();
   });
 
-  it('reload() définit une erreur si le tag est introuvable', async () => {
+  it("reload() définit une erreur si l'EPIC est introuvable", async () => {
     configure('999');
     await component.reload();
 
-    expect(component.tag()).toBeNull();
-    expect(component.error()).toBe('Tag introuvable.');
+    expect(component.epic()).toBeNull();
+    expect(component.error()).toBe('EPIC introuvable.');
   });
 
   it('statusChart() compte les tickets par colonne', async () => {
@@ -134,16 +134,16 @@ describe('TagDetail', () => {
     expect(navigate).toHaveBeenCalledWith(['/tickets', cards[0].id]);
   });
 
-  it('ngOnInit() recharge le tag à chaque changement de paramètre de route (navigation directe entre tags)', async () => {
+  it("ngOnInit() recharge l'EPIC à chaque changement de paramètre de route (navigation directe entre EPICs)", async () => {
     const reloadSpy = vi.spyOn(component, 'reload');
     component.ngOnInit();
 
     paramMap$.next({ get: () => '1' });
     await reloadSpy.mock.results[0].value;
-    expect(component.tag()?.id).toBe(1);
+    expect(component.epic()?.id).toBe(1);
 
     paramMap$.next({ get: () => '2' });
     await reloadSpy.mock.results[1].value;
-    expect(component.tag()?.id).toBe(2);
+    expect(component.epic()?.id).toBe(2);
   });
 });

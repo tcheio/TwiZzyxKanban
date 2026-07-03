@@ -46,6 +46,16 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'epics',
+    loadComponent: () => import('./pages/epics/epics-list/epics-list').then((m) => m.EpicsList),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'epics/:id',
+    loadComponent: () => import('./pages/epics/epic-detail/epic-detail').then((m) => m.EpicDetail),
+    canActivate: [authGuard],
+  },
+  {
     path: 'admin/users',
     loadComponent: () =>
       import('./pages/admin-users/admin-users').then((m) => m.AdminUsers),

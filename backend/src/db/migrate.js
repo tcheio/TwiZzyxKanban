@@ -5,6 +5,11 @@ const db = require('./connection');
 
 const DEFAULT_COLUMNS = ['💡Idées', '📝Préparation/Écriture', '🎥Tournage', '🎬Montage', '🖼️Miniature', '✅Publié'];
 const DEFAULT_TAGS = ['Minecraft', 'Pokémon', 'Ykw Watch', 'Inazuma Eleven'];
+const DEFAULT_EPICS = [
+  { name: 'TwiZzyx', color: 'red' },
+  { name: 'TwiZzyxPasSympa', color: 'orange' },
+  { name: 'Twitch', color: 'violet' },
+];
 const silent = process.env.NODE_ENV === 'test';
 
 // Renomme les colonnes par défaut d'une base déjà existante vers les nouveaux noms
@@ -29,6 +34,9 @@ function migrate() {
   }
   if (!cardColumns.some((col) => col.name === 'tag_id')) {
     db.exec('ALTER TABLE cards ADD COLUMN tag_id INTEGER REFERENCES tags(id) ON DELETE SET NULL');
+  }
+  if (!cardColumns.some((col) => col.name === 'epic_id')) {
+    db.exec('ALTER TABLE cards ADD COLUMN epic_id INTEGER REFERENCES epics(id) ON DELETE SET NULL');
   }
   if (!cardColumns.some((col) => col.name === 'due_date')) {
     db.exec('ALTER TABLE cards ADD COLUMN due_date TEXT');
@@ -75,6 +83,30 @@ function migrate() {
     DEFAULT_TAGS.forEach((name) => insertTag.run(name));
     if (!silent) {
       console.log('Tags par défaut créés.');
+    }
+  }
+
+  const epicCount = db.prepare('SELECT COUNT(*) AS count FROM epics').get().count;
+  if (epicCount === 0) {
+    const insertEpic = db.prepare('INSERT INTO epics (name, color) VALUES (?, ?)');
+    DEFAULT_EPICS.forEach(({ name, color }) => insertEpic.run(name, color));
+    if (!silent) {
+      console.log('Epics par défaut créées.');
+    }
+  }
+
+  // L'EPIC remplace l'ancien champ libre "Chaîne YTB" : les cartes existantes dont le
+  // texte de channel correspond exactement au nom d'une EPIC sont rattachées à celle-ci
+  // avant que la colonne ne soit supprimée, pour ne pas perdre l'information.
+  if (cardColumns.some((col) => col.name === 'channel')) {
+    db.prepare(
+      `UPDATE cards SET epic_id = (SELECT id FROM epics WHERE epics.name = cards.channel)
+       WHERE epic_id IS NULL AND channel IS NOT NULL
+         AND EXISTS (SELECT 1 FROM epics WHERE epics.name = cards.channel)`
+    ).run();
+    db.exec('ALTER TABLE cards DROP COLUMN channel');
+    if (!silent) {
+      console.log('Colonne channel migrée vers epic_id puis supprimée.');
     }
   }
 

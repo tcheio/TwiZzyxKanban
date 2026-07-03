@@ -7,6 +7,7 @@ import { ColumnsService } from '../../services/columns.service';
 import { CardsService } from '../../services/cards.service';
 import { UsersService } from '../../services/users.service';
 import { TagsService } from '../../services/tags.service';
+import { EpicsService } from '../../services/epics.service';
 import { Card } from '../../models/card.model';
 import { Column } from '../../models/column.model';
 
@@ -34,9 +35,9 @@ describe('Board', () => {
     {
       id: 10,
       title: 'A',
-      channel: null,
       description: null,
       tag_id: 1,
+      epic_id: null,
       assigned_user_id: null,
       priority: 'medium',
       column_id: 1,
@@ -46,9 +47,9 @@ describe('Board', () => {
     {
       id: 11,
       title: 'B',
-      channel: null,
       description: null,
       tag_id: null,
+      epic_id: null,
       assigned_user_id: null,
       priority: 'medium',
       column_id: 1,
@@ -58,9 +59,9 @@ describe('Board', () => {
     {
       id: 12,
       title: 'C',
-      channel: null,
       description: null,
       tag_id: null,
+      epic_id: null,
       assigned_user_id: 1,
       priority: 'medium',
       column_id: 2,
@@ -93,6 +94,7 @@ describe('Board', () => {
         { provide: CardsService, useValue: cardsService },
         { provide: UsersService, useValue: usersService },
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
+        { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: Router, useValue: { navigate } },
       ],
     });

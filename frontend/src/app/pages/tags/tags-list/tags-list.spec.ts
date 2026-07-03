@@ -27,9 +27,9 @@ describe('TagsList', () => {
     {
       id: 10,
       title: 'Ticket A',
-      channel: null,
       description: null,
       tag_id: 1,
+      epic_id: null,
       assigned_user_id: null,
       priority: 'low',
       column_id: 1,
@@ -39,9 +39,9 @@ describe('TagsList', () => {
     {
       id: 11,
       title: 'Ticket B',
-      channel: null,
       description: null,
       tag_id: 1,
+      epic_id: null,
       assigned_user_id: null,
       priority: 'high',
       column_id: 1,
@@ -51,9 +51,9 @@ describe('TagsList', () => {
     {
       id: 12,
       title: 'Ticket C',
-      channel: null,
       description: null,
       tag_id: 2,
+      epic_id: null,
       assigned_user_id: null,
       priority: 'medium',
       column_id: 1,

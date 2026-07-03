@@ -25,6 +25,16 @@
     </label>
 
     <label>
+      EPIC
+      <select [ngModel]="filterEpicId()" (ngModelChange)="filterEpicId.set($event)">
+        <option [ngValue]="null">Toutes</option>
+        @for (epic of epics(); track epic.id) {
+          <option [ngValue]="epic.id">{{ epic.name }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
       Assigné
       <select [ngModel]="filterAssigneeId()" (ngModelChange)="filterAssigneeId.set($event)">
         <option [ngValue]="null">Tous</option>
@@ -61,8 +71,8 @@
       <thead>
         <tr>
           <th>Titre</th>
-          <th>Chaîne YTB</th>
           <th>Tag</th>
+          <th>EPIC</th>
           <th>Statut</th>
           <th>Assigné</th>
           <th>Priorité</th>
@@ -72,8 +82,8 @@
         @for (ticket of filteredTickets(); track ticket.id) {
           <tr (click)="openTicket(ticket)">
             <td>{{ ticket.title }}</td>
-            <td>{{ ticket.channel || '—' }}</td>
             <td><span class="tag-badge">{{ tagName(ticket.tag_id) }}</span></td>
+            <td><span class="tag-badge">{{ epicName(ticket.epic_id) }}</span></td>
             <td><span class="status-chip">{{ columnName(ticket.column_id) }}</span></td>
             <td>{{ userName(ticket.assigned_user_id) }}</td>
             <td><span class="priority priority-{{ ticket.priority }}">{{ ticket.priority }}</span></td>
@@ -89,6 +99,7 @@
     [columns]="columns()"
     [users]="users()"
     [tags]="tags()"
+    [epics]="epics()"
     (save)="createTicket($event)"
     (cancel)="dialogOpen.set(false)"
   />

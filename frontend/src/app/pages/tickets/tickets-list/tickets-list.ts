@@ -5,10 +5,12 @@ import { ColumnsService } from '../../../services/columns.service';
 import { CardsService } from '../../../services/cards.service';
 import { UsersService } from '../../../services/users.service';
 import { TagsService } from '../../../services/tags.service';
+import { EpicsService } from '../../../services/epics.service';
 import { Card, CardInput } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
 import { UserLite } from '../../../models/user.model';
 import { Tag } from '../../../models/tag.model';
+import { Epic } from '../../../models/epic.model';
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
 import { AuthService } from '../../../core/auth.service';
 
@@ -23,6 +25,7 @@ export class TicketsList implements OnInit {
   private cardsService = inject(CardsService);
   private usersService = inject(UsersService);
   private tagsService = inject(TagsService);
+  private epicsService = inject(EpicsService);
   private router = inject(Router);
   protected authService = inject(AuthService);
 
@@ -30,24 +33,32 @@ export class TicketsList implements OnInit {
   readonly tickets = signal<Card[]>([]);
   readonly users = signal<UserLite[]>([]);
   readonly tags = signal<Tag[]>([]);
+  readonly epics = signal<Epic[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly dialogOpen = signal(false);
 
   readonly filterTagId = signal<number | null>(null);
+  readonly filterEpicId = signal<number | null>(null);
   readonly filterAssigneeId = signal<number | null>(null);
   readonly filterColumnId = signal<number | null>(null);
 
   readonly hasActiveFilters = computed(
-    () => this.filterTagId() !== null || this.filterAssigneeId() !== null || this.filterColumnId() !== null
+    () =>
+      this.filterTagId() !== null ||
+      this.filterEpicId() !== null ||
+      this.filterAssigneeId() !== null ||
+      this.filterColumnId() !== null
   );
 
   readonly filteredTickets = computed(() => {
     const tagId = this.filterTagId();
+    const epicId = this.filterEpicId();
     const assigneeId = this.filterAssigneeId();
     const columnId = this.filterColumnId();
     return this.tickets().filter((ticket) => {
       if (tagId !== null && ticket.tag_id !== tagId) return false;
+      if (epicId !== null && ticket.epic_id !== epicId) return false;
       if (assigneeId !== null && ticket.assigned_user_id !== assigneeId) return false;
       if (columnId !== null && ticket.column_id !== columnId) return false;
       return true;
@@ -62,15 +73,17 @@ export class TicketsList implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [columns, cards, users, tags] = await Promise.all([
+      const [columns, cards, users, tags, epics] = await Promise.all([
         this.columnsService.list(),
         this.cardsService.list(),
         this.usersService.lite(),
         this.tagsService.list(),
+        this.epicsService.list(),
       ]);
       this.columns.set(columns);
       this.users.set(users);
       this.tags.set(tags);
+      this.epics.set(epics);
 
       const columnPosition = new Map(columns.map((c) => [c.id, c.position]));
       const sorted = [...cards].sort((a, b) => {
@@ -87,6 +100,7 @@ export class TicketsList implements OnInit {
 
   resetFilters(): void {
     this.filterTagId.set(null);
+    this.filterEpicId.set(null);
     this.filterAssigneeId.set(null);
     this.filterColumnId.set(null);
   }
@@ -103,6 +117,11 @@ export class TicketsList implements OnInit {
   tagName(tagId: number | null): string {
     if (!tagId) return '—';
     return this.tags().find((t) => t.id === tagId)?.name ?? '—';
+  }
+
+  epicName(epicId: number | null): string {
+    if (!epicId) return '—';
+    return this.epics().find((e) => e.id === epicId)?.name ?? '—';
   }
 
   openTicket(card: Card): void {

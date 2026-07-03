@@ -6,6 +6,7 @@ const usersRoutes = require('./routes/users.routes');
 const columnsRoutes = require('./routes/columns.routes');
 const cardsRoutes = require('./routes/cards.routes');
 const tagsRoutes = require('./routes/tags.routes');
+const epicsRoutes = require('./routes/epics.routes');
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use('/api/users', requireAuth, usersRoutes);
 app.use('/api/columns', requireAuth, columnsRoutes);
 app.use('/api/cards', requireAuth, cardsRoutes);
 app.use('/api/tags', requireAuth, tagsRoutes);
+app.use('/api/epics', requireAuth, epicsRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

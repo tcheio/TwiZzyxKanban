@@ -37,7 +37,6 @@ describe('CardsService', () => {
   it('create() effectue un POST /api/cards avec les bons champs', async () => {
     const input = {
       title: 'Vidéo',
-      channel: 'MaChaine',
       assigned_user_id: null,
       priority: 'high' as const,
       column_id: 1,

@@ -16,6 +16,10 @@ describe('NewTicketDialog', () => {
     { id: 1, name: 'Minecraft' },
     { id: 2, name: 'Pokémon' },
   ];
+  const epics = [
+    { id: 1, name: 'TwiZzyx', color: 'red' },
+    { id: 2, name: 'Twitch', color: 'violet' },
+  ];
 
   beforeEach(() => {
     TestBed.configureTestingModule({ imports: [NewTicketDialog] });
@@ -24,6 +28,7 @@ describe('NewTicketDialog', () => {
     component.columns = columns;
     component.users = users;
     component.tags = tags;
+    component.epics = epics;
     fixture.detectChanges();
   });
 
@@ -47,9 +52,9 @@ describe('NewTicketDialog', () => {
 
     component.form.setValue({
       title: 'Nouvelle vidéo',
-      channel: 'MaChaine',
       column_id: 2,
       tag_id: 1,
+      epic_id: 1,
       assigned_user_id: 1,
       priority: 'high',
       due_date: '2026-07-15',
@@ -58,33 +63,33 @@ describe('NewTicketDialog', () => {
 
     expect(emitted).toEqual({
       title: 'Nouvelle vidéo',
-      channel: 'MaChaine',
       column_id: 2,
       tag_id: 1,
+      epic_id: 1,
       assigned_user_id: 1,
       priority: 'high',
       due_date: '2026-07-15',
     });
   });
 
-  it("submit() convertit une chaîne vide en null pour channel/assigned_user_id/due_date, et accepte tag_id=null", () => {
+  it("submit() convertit une chaîne vide en null pour assigned_user_id/due_date, et accepte tag_id=null", () => {
     let emitted: CardInput | null = null;
     component.save.subscribe((value) => (emitted = value));
 
     component.form.setValue({
       title: 'X',
-      channel: '',
       column_id: 1,
       tag_id: null,
+      epic_id: null,
       assigned_user_id: null,
       priority: 'medium',
       due_date: '',
     });
     component.submit();
 
-    expect(emitted!.channel).toBeNull();
     expect(emitted!.assigned_user_id).toBeNull();
     expect(emitted!.tag_id).toBeNull();
+    expect(emitted!.epic_id).toBeNull();
     expect(emitted!.due_date).toBeNull();
   });
 });

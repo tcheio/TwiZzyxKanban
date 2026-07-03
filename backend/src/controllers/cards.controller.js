@@ -23,7 +23,7 @@ function getOne(req, res) {
 }
 
 function create(req, res) {
-  const { title, channel, assigned_user_id, priority, column_id, tag_id, due_date } = req.body || {};
+  const { title, assigned_user_id, priority, column_id, tag_id, epic_id, due_date } = req.body || {};
 
   if (!title || !column_id) {
     return res.status(400).json({ error: 'title et column_id requis' });
@@ -42,6 +42,12 @@ function create(req, res) {
       return res.status(400).json({ error: 'tag_id invalide' });
     }
   }
+  if (epic_id) {
+    const epic = db.prepare('SELECT id FROM epics WHERE id = ?').get(epic_id);
+    if (!epic) {
+      return res.status(400).json({ error: 'epic_id invalide' });
+    }
+  }
 
   const maxPosition = db
     .prepare('SELECT COALESCE(MAX(position), -1) AS maxPos FROM cards WHERE column_id = ?')
@@ -51,16 +57,16 @@ function create(req, res) {
 
   const result = db
     .prepare(
-      `INSERT INTO cards (title, channel, assigned_user_id, priority, column_id, tag_id, position, due_date, published_at)
+      `INSERT INTO cards (title, assigned_user_id, priority, column_id, tag_id, epic_id, position, due_date, published_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       title,
-      channel || null,
       assigned_user_id || null,
       priority || 'medium',
       column_id,
       tag_id || null,
+      epic_id || null,
       maxPosition + 1,
       due_date || null,
       publishedAt
@@ -72,7 +78,7 @@ function create(req, res) {
 
 function update(req, res) {
   const id = Number(req.params.id);
-  const { title, channel, description, assigned_user_id, priority, tag_id, due_date } = req.body || {};
+  const { title, description, assigned_user_id, priority, tag_id, epic_id, due_date } = req.body || {};
 
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
   if (!card) {
@@ -87,17 +93,23 @@ function update(req, res) {
       return res.status(400).json({ error: 'tag_id invalide' });
     }
   }
+  if (epic_id) {
+    const epic = db.prepare('SELECT id FROM epics WHERE id = ?').get(epic_id);
+    if (!epic) {
+      return res.status(400).json({ error: 'epic_id invalide' });
+    }
+  }
 
   db.prepare(
-    `UPDATE cards SET title = ?, channel = ?, description = ?, assigned_user_id = ?, priority = ?, tag_id = ?, due_date = ?, updated_at = datetime('now')
+    `UPDATE cards SET title = ?, description = ?, assigned_user_id = ?, priority = ?, tag_id = ?, epic_id = ?, due_date = ?, updated_at = datetime('now')
      WHERE id = ?`
   ).run(
     title ?? card.title,
-    channel !== undefined ? channel : card.channel,
     description !== undefined ? description : card.description,
     assigned_user_id !== undefined ? assigned_user_id : card.assigned_user_id,
     priority || card.priority,
     tag_id !== undefined ? tag_id : card.tag_id,
+    epic_id !== undefined ? epic_id : card.epic_id,
     due_date !== undefined ? due_date : card.due_date,
     id
   );

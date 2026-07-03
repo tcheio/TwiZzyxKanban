@@ -8,11 +8,6 @@
     </label>
 
     <label>
-      Chaîne YTB
-      <input type="text" formControlName="channel" />
-    </label>
-
-    <label>
       Colonne
       <select formControlName="column_id">
         <option [ngValue]="null" disabled>— Choisir une colonne —</option>
@@ -28,6 +23,16 @@
         <option [ngValue]="null">— Aucun tag —</option>
         @for (tag of tags; track tag.id) {
           <option [ngValue]="tag.id">{{ tag.name }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      EPIC
+      <select formControlName="epic_id">
+        <option [ngValue]="null">— Aucune EPIC —</option>
+        @for (epic of epics; track epic.id) {
+          <option [ngValue]="epic.id">{{ epic.name }}</option>
         }
       </select>
     </label>
