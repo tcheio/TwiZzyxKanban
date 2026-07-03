@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Subject } from 'rxjs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EpicDetail } from './epic-detail';
 import { EpicsService } from '../../../services/epics.service';
@@ -11,6 +12,7 @@ import { Card } from '../../../models/card.model';
 describe('EpicDetail', () => {
   let component: EpicDetail;
   let navigate: ReturnType<typeof vi.fn>;
+  let paramMap$: Subject<{ get: (key: string) => string | null }>;
 
   const epics = [
     { id: 1, name: 'TwiZzyx', color: 'red' },
@@ -62,6 +64,7 @@ describe('EpicDetail', () => {
 
   function configure(id: string) {
     navigate = vi.fn();
+    paramMap$ = new Subject();
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
@@ -70,7 +73,10 @@ describe('EpicDetail', () => {
         { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
         { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
         { provide: Router, useValue: { navigate } },
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => id } } } },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: { get: () => id } }, paramMap: paramMap$.asObservable() },
+        },
       ],
     });
     component = TestBed.createComponent(EpicDetail).componentInstance;
@@ -126,5 +132,18 @@ describe('EpicDetail', () => {
     component.openTicket(cards[0]);
 
     expect(navigate).toHaveBeenCalledWith(['/tickets', cards[0].id]);
+  });
+
+  it("ngOnInit() recharge l'EPIC à chaque changement de paramètre de route (navigation directe entre EPICs)", async () => {
+    const reloadSpy = vi.spyOn(component, 'reload');
+    component.ngOnInit();
+
+    paramMap$.next({ get: () => '1' });
+    await reloadSpy.mock.results[0].value;
+    expect(component.epic()?.id).toBe(1);
+
+    paramMap$.next({ get: () => '2' });
+    await reloadSpy.mock.results[1].value;
+    expect(component.epic()?.id).toBe(2);
   });
 });

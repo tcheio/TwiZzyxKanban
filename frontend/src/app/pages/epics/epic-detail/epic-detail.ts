@@ -55,12 +55,13 @@ export class EpicDetail implements OnInit {
     };
   });
 
-  private get epicId(): number {
-    return Number(this.route.snapshot.paramMap.get('id'));
-  }
+  private epicId = Number(this.route.snapshot.paramMap.get('id'));
 
-  async ngOnInit(): Promise<void> {
-    await this.reload();
+  ngOnInit(): void {
+    this.route.paramMap.subscribe((params) => {
+      this.epicId = Number(params.get('id'));
+      this.reload();
+    });
   }
 
   async reload(): Promise<void> {

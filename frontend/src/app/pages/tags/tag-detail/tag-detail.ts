@@ -55,12 +55,13 @@ export class TagDetail implements OnInit {
     };
   });
 
-  private get tagId(): number {
-    return Number(this.route.snapshot.paramMap.get('id'));
-  }
+  private tagId = Number(this.route.snapshot.paramMap.get('id'));
 
-  async ngOnInit(): Promise<void> {
-    await this.reload();
+  ngOnInit(): void {
+    this.route.paramMap.subscribe((params) => {
+      this.tagId = Number(params.get('id'));
+      this.reload();
+    });
   }
 
   async reload(): Promise<void> {
