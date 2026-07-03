@@ -86,10 +86,18 @@
             >
               @if (tagName(card.tag_id); as tag) {
                 <span
-                  class="mb-1.5 inline-block rounded px-2 py-0.5 text-[11px] font-medium"
+                  class="mb-1.5 mr-1 inline-block rounded px-2 py-0.5 text-[11px] font-medium"
                   [class]="tagClass(card.tag_id)"
                 >
                   {{ tag }}
+                </span>
+              }
+              @if (epicName(card.epic_id); as epic) {
+                <span
+                  class="mb-1.5 inline-block rounded px-2 py-0.5 text-[11px] font-medium"
+                  [class]="epicClass(card.epic_id)"
+                >
+                  {{ epic }}
                 </span>
               }
               <div class="text-sm font-medium text-gray-900">{{ card.title }}</div>

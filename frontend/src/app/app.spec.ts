@@ -3,6 +3,9 @@ import { provideRouter } from '@angular/router';
 import { describe, it, expect } from 'vitest';
 import { App } from './app';
 import { AuthService } from './core/auth.service';
+import { EpicsService } from './services/epics.service';
+
+const epicsServiceStub = { list: () => Promise.resolve([]) };
 
 describe('App', () => {
   it('affiche la barre de navigation quand connecté', () => {
@@ -10,6 +13,7 @@ describe('App', () => {
       imports: [App],
       providers: [
         provideRouter([]),
+        { provide: EpicsService, useValue: epicsServiceStub },
         {
           provide: AuthService,
           useValue: {
@@ -38,6 +42,7 @@ describe('App', () => {
       imports: [App],
       providers: [
         provideRouter([]),
+        { provide: EpicsService, useValue: epicsServiceStub },
         {
           provide: AuthService,
           useValue: { isLoggedIn: () => false, isAdmin: () => false, currentUser: () => null, logout: () => {} },
@@ -57,6 +62,7 @@ describe('App', () => {
       imports: [App],
       providers: [
         provideRouter([]),
+        { provide: EpicsService, useValue: epicsServiceStub },
         {
           provide: AuthService,
           useValue: {

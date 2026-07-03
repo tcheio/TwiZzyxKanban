@@ -5,6 +5,7 @@ const { app, resetDb, loginAs, request } = require('./helpers');
 let adminToken;
 let columns;
 let tags;
+let epics;
 
 before(() => resetDb());
 beforeEach(async () => {
@@ -14,6 +15,8 @@ beforeEach(async () => {
   columns = res.body;
   const tagsRes = await request(app).get('/api/tags').set('Authorization', `Bearer ${adminToken}`);
   tags = tagsRes.body;
+  const epicsRes = await request(app).get('/api/epics').set('Authorization', `Bearer ${adminToken}`);
+  epics = epicsRes.body;
 });
 
 test('GET /api/cards sans token retourne 401', async () => {
@@ -256,6 +259,59 @@ test('PATCH /api/cards/:id met à jour le tag_id', async () => {
     .send({ tag_id: tags[1].id });
   assert.equal(res.status, 200);
   assert.equal(res.body.tag_id, tags[1].id);
+});
+
+test('POST /api/cards avec un epic_id persiste l\'epic', async () => {
+  const res = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id, epic_id: epics[0].id });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.epic_id, epics[0].id);
+});
+
+test('POST /api/cards sans epic_id le laisse à null', async () => {
+  const res = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.epic_id, null);
+});
+
+test('POST /api/cards avec un epic_id invalide retourne 400', async () => {
+  const res = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id, epic_id: 9999 });
+  assert.equal(res.status, 400);
+});
+
+test('PATCH /api/cards/:id met à jour l\'epic_id', async () => {
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  const res = await request(app)
+    .patch(`/api/cards/${created.body.id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ epic_id: epics[1].id });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.epic_id, epics[1].id);
+});
+
+test('PATCH /api/cards/:id avec un epic_id invalide retourne 400', async () => {
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  const res = await request(app)
+    .patch(`/api/cards/${created.body.id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ epic_id: 9999 });
+  assert.equal(res.status, 400);
 });
 
 test('PATCH /api/cards/:id avec un tag_id invalide retourne 400', async () => {

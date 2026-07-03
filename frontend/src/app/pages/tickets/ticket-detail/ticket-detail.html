@@ -45,6 +45,16 @@
       </label>
 
       <label>
+        EPIC
+        <select [ngModel]="t.epic_id" (ngModelChange)="updateEpic($event)">
+          <option [ngValue]="null">— Aucune EPIC —</option>
+          @for (epic of epics(); track epic.id) {
+            <option [ngValue]="epic.id">{{ epic.name }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
         Assigné à
         <select [ngModel]="t.assigned_user_id" (ngModelChange)="updateAssignee($event)">
           <option [ngValue]="null">— Non assigné —</option>

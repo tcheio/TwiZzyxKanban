@@ -20,12 +20,20 @@ CREATE TABLE IF NOT EXISTS tags (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS epics (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  color TEXT NOT NULL DEFAULT 'gray',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS cards (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL,
   channel TEXT,
   description TEXT,
   tag_id INTEGER REFERENCES tags(id) ON DELETE SET NULL,
+  epic_id INTEGER REFERENCES epics(id) ON DELETE SET NULL,
   assigned_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('low','medium','high')),
   column_id INTEGER NOT NULL REFERENCES columns(id) ON DELETE CASCADE,

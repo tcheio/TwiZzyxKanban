@@ -6,12 +6,14 @@ import { ColumnsService } from '../../../services/columns.service';
 import { UsersService } from '../../../services/users.service';
 import { CommentsService } from '../../../services/comments.service';
 import { TagsService } from '../../../services/tags.service';
+import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
 import { Card, Priority } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
 import { UserLite } from '../../../models/user.model';
 import { Comment } from '../../../models/comment.model';
 import { Tag } from '../../../models/tag.model';
+import { Epic } from '../../../models/epic.model';
 
 @Component({
   selector: 'app-ticket-detail',
@@ -27,12 +29,14 @@ export class TicketDetail implements OnInit {
   private usersService = inject(UsersService);
   private commentsService = inject(CommentsService);
   private tagsService = inject(TagsService);
+  private epicsService = inject(EpicsService);
   protected authService = inject(AuthService);
 
   readonly ticket = signal<Card | null>(null);
   readonly columns = signal<Column[]>([]);
   readonly users = signal<UserLite[]>([]);
   readonly tags = signal<Tag[]>([]);
+  readonly epics = signal<Epic[]>([]);
   readonly comments = signal<Comment[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -51,17 +55,19 @@ export class TicketDetail implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [ticket, columns, users, tags, comments] = await Promise.all([
+      const [ticket, columns, users, tags, epics, comments] = await Promise.all([
         this.cardsService.get(this.ticketId),
         this.columnsService.list(),
         this.usersService.lite(),
         this.tagsService.list(),
+        this.epicsService.list(),
         this.commentsService.list(this.ticketId),
       ]);
       this.ticket.set(ticket);
       this.columns.set(columns);
       this.users.set(users);
       this.tags.set(tags);
+      this.epics.set(epics);
       this.comments.set(comments);
       this.descriptionDraft.set(ticket.description ?? '');
     } catch {
@@ -83,6 +89,7 @@ export class TicketDetail implements OnInit {
     priority?: Priority;
     description?: string | null;
     tag_id?: number | null;
+    epic_id?: number | null;
     due_date?: string | null;
   }): Promise<void> {
     const ticket = this.ticket();
@@ -114,6 +121,10 @@ export class TicketDetail implements OnInit {
 
   updateTag(tagId: number | null): void {
     this.patch({ tag_id: tagId });
+  }
+
+  updateEpic(epicId: number | null): void {
+    this.patch({ epic_id: epicId });
   }
 
   updateDueDate(value: string): void {

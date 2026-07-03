@@ -7,6 +7,7 @@ import { ColumnsService } from '../../../services/columns.service';
 import { UsersService } from '../../../services/users.service';
 import { CommentsService } from '../../../services/comments.service';
 import { TagsService } from '../../../services/tags.service';
+import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
 import { Card } from '../../../models/card.model';
 import { Comment } from '../../../models/comment.model';
@@ -45,6 +46,7 @@ describe('TicketDetail', () => {
     channel: 'MaChaine',
     description: 'Notes existantes',
     tag_id: 1,
+    epic_id: null,
     assigned_user_id: 1,
     priority: 'medium',
     column_id: 1,
@@ -79,6 +81,7 @@ describe('TicketDetail', () => {
         { provide: ColumnsService, useValue: columnsService },
         { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
+        { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: CommentsService, useValue: commentsService },
         { provide: AuthService, useValue: { currentUser, isAdmin } },
         { provide: Router, useValue: { navigate } },

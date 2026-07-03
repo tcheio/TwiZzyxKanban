@@ -1,20 +1,20 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { TagDetail } from './tag-detail';
-import { TagsService } from '../../../services/tags.service';
+import { EpicDetail } from './epic-detail';
+import { EpicsService } from '../../../services/epics.service';
 import { CardsService } from '../../../services/cards.service';
 import { ColumnsService } from '../../../services/columns.service';
 import { UsersService } from '../../../services/users.service';
 import { Card } from '../../../models/card.model';
 
-describe('TagDetail', () => {
-  let component: TagDetail;
+describe('EpicDetail', () => {
+  let component: EpicDetail;
   let navigate: ReturnType<typeof vi.fn>;
 
-  const tags = [
-    { id: 1, name: 'Minecraft' },
-    { id: 2, name: 'Pokémon' },
+  const epics = [
+    { id: 1, name: 'TwiZzyx', color: 'red' },
+    { id: 2, name: 'Twitch', color: 'violet' },
   ];
   const columns = [
     { id: 1, name: 'Idée', position: 0 },
@@ -27,8 +27,8 @@ describe('TagDetail', () => {
       title: 'Dans Publié',
       channel: null,
       description: null,
-      tag_id: 1,
-      epic_id: null,
+      tag_id: null,
+      epic_id: 1,
       assigned_user_id: 1,
       priority: 'low',
       column_id: 2,
@@ -40,8 +40,8 @@ describe('TagDetail', () => {
       title: 'Dans Idée',
       channel: null,
       description: null,
-      tag_id: 1,
-      epic_id: null,
+      tag_id: null,
+      epic_id: 1,
       assigned_user_id: null,
       priority: 'high',
       column_id: 1,
@@ -50,11 +50,11 @@ describe('TagDetail', () => {
     },
     {
       id: 12,
-      title: 'Autre tag',
+      title: 'Autre epic',
       channel: null,
       description: null,
-      tag_id: 2,
-      epic_id: null,
+      tag_id: null,
+      epic_id: 2,
       assigned_user_id: null,
       priority: 'medium',
       column_id: 1,
@@ -68,7 +68,7 @@ describe('TagDetail', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
-        { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
+        { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue(epics) } },
         { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
         { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
         { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
@@ -76,25 +76,25 @@ describe('TagDetail', () => {
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => id } } } },
       ],
     });
-    component = TestBed.createComponent(TagDetail).componentInstance;
+    component = TestBed.createComponent(EpicDetail).componentInstance;
   }
 
   beforeEach(() => configure('1'));
 
-  it('reload() charge le tag et trie ses tickets par position de colonne', async () => {
+  it("reload() charge l'EPIC et trie ses tickets par position de colonne", async () => {
     await component.reload();
 
-    expect(component.tag()).toEqual(tags[0]);
+    expect(component.epic()).toEqual(epics[0]);
     expect(component.tickets().map((t) => t.title)).toEqual(['Dans Idée', 'Dans Publié']);
     expect(component.error()).toBeNull();
   });
 
-  it('reload() définit une erreur si le tag est introuvable', async () => {
+  it("reload() définit une erreur si l'EPIC est introuvable", async () => {
     configure('999');
     await component.reload();
 
-    expect(component.tag()).toBeNull();
-    expect(component.error()).toBe('Tag introuvable.');
+    expect(component.epic()).toBeNull();
+    expect(component.error()).toBe('EPIC introuvable.');
   });
 
   it('statusChart() compte les tickets par colonne', async () => {

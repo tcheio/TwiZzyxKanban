@@ -6,6 +6,7 @@ export interface Card {
   channel: string | null;
   description: string | null;
   tag_id: number | null;
+  epic_id: number | null;
   assigned_user_id: number | null;
   priority: Priority;
   column_id: number;
@@ -21,6 +22,7 @@ export interface CardInput {
   channel: string | null;
   description?: string | null;
   tag_id?: number | null;
+  epic_id?: number | null;
   assigned_user_id: number | null;
   priority: Priority;
   column_id: number;

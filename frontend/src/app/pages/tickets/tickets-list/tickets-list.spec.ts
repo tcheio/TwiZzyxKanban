@@ -6,6 +6,7 @@ import { ColumnsService } from '../../../services/columns.service';
 import { CardsService } from '../../../services/cards.service';
 import { UsersService } from '../../../services/users.service';
 import { TagsService } from '../../../services/tags.service';
+import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
 import { Card } from '../../../models/card.model';
 
@@ -37,6 +38,7 @@ describe('TicketsList', () => {
       channel: null,
       description: null,
       tag_id: 2,
+      epic_id: null,
       assigned_user_id: null,
       priority: 'low',
       column_id: 3,
@@ -49,6 +51,7 @@ describe('TicketsList', () => {
       channel: null,
       description: null,
       tag_id: 1,
+      epic_id: null,
       assigned_user_id: 1,
       priority: 'high',
       column_id: 1,
@@ -61,6 +64,7 @@ describe('TicketsList', () => {
       channel: null,
       description: null,
       tag_id: null,
+      epic_id: null,
       assigned_user_id: 2,
       priority: 'medium',
       column_id: 2,
@@ -87,6 +91,7 @@ describe('TicketsList', () => {
         { provide: CardsService, useValue: cardsService },
         { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
         { provide: TagsService, useValue: tagsService },
+        { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: AuthService, useValue: { isAdmin } },
         { provide: Router, useValue: { navigate } },
       ],
@@ -145,6 +150,7 @@ describe('TicketsList', () => {
       channel: null,
       column_id: 1,
       tag_id: null,
+      epic_id: null,
       assigned_user_id: null,
       priority: 'medium',
     });
