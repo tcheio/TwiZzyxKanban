@@ -28,7 +28,6 @@ const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = [
   selector: 'app-ticket-detail',
   imports: [RouterLink, FormsModule, SearchSelect],
   templateUrl: './ticket-detail.html',
-  styleUrl: './ticket-detail.css',
 })
 export class TicketDetail implements OnInit {
   private route = inject(ActivatedRoute);

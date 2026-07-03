@@ -13,10 +13,10 @@
   </div>
 
   @if (loading()) {
-    <p class="status">Chargement...</p>
+    <p class="text-sm text-gray-500">Chargement...</p>
   }
   @if (error()) {
-    <p class="status error">{{ error() }}</p>
+    <p class="text-sm text-red-600">{{ error() }}</p>
   }
   @if (!loading() && epics().length === 0) {
     <p class="text-sm text-gray-500">Aucune EPIC pour le moment.</p>

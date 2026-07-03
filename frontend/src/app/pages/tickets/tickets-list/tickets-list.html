@@ -13,10 +13,10 @@
   </div>
 
   @if (loading()) {
-    <p class="status">Chargement...</p>
+    <p class="text-sm text-gray-500">Chargement...</p>
   }
   @if (error()) {
-    <p class="status error">{{ error() }}</p>
+    <p class="text-sm text-red-600">{{ error() }}</p>
   }
 
   <div class="filters mb-4 flex flex-wrap items-end gap-4 rounded-lg border border-gray-200 bg-white p-3">

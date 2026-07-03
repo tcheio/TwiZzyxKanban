@@ -12,7 +12,6 @@ import { tagBadgeClass } from '../../../shared/tag-colors';
   selector: 'app-tags-list',
   imports: [FormsModule],
   templateUrl: './tags-list.html',
-  styleUrl: './tags-list.css',
 })
 export class TagsList implements OnInit {
   private tagsService = inject(TagsService);

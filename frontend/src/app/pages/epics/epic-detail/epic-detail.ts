@@ -27,7 +27,6 @@ const PRIORITY_DOT_CLASSES: Record<Priority, string> = {
   selector: 'app-epic-detail',
   imports: [RouterLink, ChartComponent],
   templateUrl: './epic-detail.html',
-  styleUrl: './epic-detail.css',
 })
 export class EpicDetail implements OnInit {
   private route = inject(ActivatedRoute);

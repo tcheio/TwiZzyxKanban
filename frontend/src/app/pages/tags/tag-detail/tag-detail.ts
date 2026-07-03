@@ -27,7 +27,6 @@ const PRIORITY_DOT_CLASSES: Record<Priority, string> = {
   selector: 'app-tag-detail',
   imports: [RouterLink, ChartComponent],
   templateUrl: './tag-detail.html',
-  styleUrl: './tag-detail.css',
 })
 export class TagDetail implements OnInit {
   private route = inject(ActivatedRoute);

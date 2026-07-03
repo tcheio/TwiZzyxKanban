@@ -27,7 +27,6 @@ const PRIORITY_DOT_CLASSES: Record<string, string> = {
   selector: 'app-tickets-list',
   imports: [FormsModule, NewTicketDialog, SearchSelect],
   templateUrl: './tickets-list.html',
-  styleUrl: './tickets-list.css',
 })
 export class TicketsList implements OnInit {
   private columnsService = inject(ColumnsService);
