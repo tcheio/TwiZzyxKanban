@@ -1,23 +1,41 @@
-<div class="login-page">
-  <form class="login-card" [formGroup]="form" (ngSubmit)="submit()">
-    <h1>TwiZzyxKanban</h1>
-    <p class="subtitle">Connecte-toi pour accéder au tableau</p>
+<div class="flex min-h-screen items-center justify-center bg-gray-100">
+  <form
+    class="flex w-80 flex-col gap-3 rounded-lg bg-white p-8 shadow-md"
+    [formGroup]="form"
+    (ngSubmit)="submit()"
+  >
+    <h1 class="m-0 text-2xl font-bold text-gray-900">TwiZzyxKanban</h1>
+    <p class="mb-2 text-sm text-gray-500">Connecte-toi pour accéder au tableau</p>
 
-    <label>
+    <label class="flex flex-col gap-1 text-sm text-gray-700">
       Nom d'utilisateur
-      <input type="text" formControlName="username" autocomplete="username" />
+      <input
+        type="text"
+        formControlName="username"
+        autocomplete="username"
+        class="rounded-md border border-gray-300 px-2.5 py-2 text-base text-gray-900 focus:border-blue-400 focus:outline-none"
+      />
     </label>
 
-    <label>
+    <label class="flex flex-col gap-1 text-sm text-gray-700">
       Mot de passe
-      <input type="password" formControlName="password" autocomplete="current-password" />
+      <input
+        type="password"
+        formControlName="password"
+        autocomplete="current-password"
+        class="rounded-md border border-gray-300 px-2.5 py-2 text-base text-gray-900 focus:border-blue-400 focus:outline-none"
+      />
     </label>
 
     @if (error()) {
-      <p class="error">{{ error() }}</p>
+      <p class="m-0 text-sm text-red-600">{{ error() }}</p>
     }
 
-    <button type="submit" [disabled]="form.invalid || loading()">
+    <button
+      type="submit"
+      [disabled]="form.invalid || loading()"
+      class="mt-2 rounded-md bg-blue-600 py-2.5 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+    >
       {{ loading() ? 'Connexion...' : 'Se connecter' }}
     </button>
   </form>

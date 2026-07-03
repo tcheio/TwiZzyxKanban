@@ -13,12 +13,20 @@ import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
 import { AuthService } from '../../../core/auth.service';
+import { epicBadgeClass } from '../../../shared/epic-colors';
+import { tagBadgeClass } from '../../../shared/tag-colors';
+import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
+
+const PRIORITY_DOT_CLASSES: Record<string, string> = {
+  low: 'bg-gray-400',
+  medium: 'bg-amber-500',
+  high: 'bg-red-600',
+};
 
 @Component({
   selector: 'app-tickets-list',
-  imports: [FormsModule, NewTicketDialog],
+  imports: [FormsModule, NewTicketDialog, SearchSelect],
   templateUrl: './tickets-list.html',
-  styleUrl: './tickets-list.css',
 })
 export class TicketsList implements OnInit {
   private columnsService = inject(ColumnsService);
@@ -122,6 +130,51 @@ export class TicketsList implements OnInit {
   epicName(epicId: number | null): string {
     if (!epicId) return '—';
     return this.epics().find((e) => e.id === epicId)?.name ?? '—';
+  }
+
+  userAvatar(id: number | null): string | null {
+    if (!id) return null;
+    return this.users().find((u) => u.id === id)?.avatar_url ?? null;
+  }
+
+  userInitial(id: number | null): string {
+    const name = this.userName(id);
+    return name === '—' ? '?' : name.charAt(0).toUpperCase();
+  }
+
+  tagClass(tagId: number | null): string {
+    return tagBadgeClass(tagId);
+  }
+
+  epicClass(epicId: number | null): string {
+    if (!epicId) return '';
+    const color = this.epics().find((e) => e.id === epicId)?.color;
+    return epicBadgeClass(color);
+  }
+
+  priorityDotClass(priority: string): string {
+    return PRIORITY_DOT_CLASSES[priority] ?? PRIORITY_DOT_CLASSES['low'];
+  }
+
+  tagFilterOptions(): SearchSelectOption<number>[] {
+    return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.id) }));
+  }
+
+  epicFilterOptions(): SearchSelectOption<number>[] {
+    return this.epics().map((e) => ({ id: e.id, label: e.name, badgeClass: epicBadgeClass(e.color) }));
+  }
+
+  assigneeFilterOptions(): SearchSelectOption<number>[] {
+    return this.users().map((u) => ({
+      id: u.id,
+      label: u.username,
+      avatarUrl: u.avatar_url ?? null,
+      avatarInitial: u.username.charAt(0).toUpperCase(),
+    }));
+  }
+
+  statusFilterOptions(): SearchSelectOption<number>[] {
+    return this.columns().map((c) => ({ id: c.id, label: c.name }));
   }
 
   openTicket(card: Card): void {

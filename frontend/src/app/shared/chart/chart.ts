@@ -18,7 +18,7 @@ const PALETTE = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#a855f7
   selector: 'app-chart',
   imports: [],
   templateUrl: './chart.html',
-  styleUrl: './chart.css',
+  host: { class: 'block relative max-w-xs' },
 })
 export class ChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input({ required: true }) type: ChartType = 'bar';

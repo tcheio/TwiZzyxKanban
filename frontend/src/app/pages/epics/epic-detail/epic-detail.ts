@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { EpicsService } from '../../../services/epics.service';
 import { CardsService } from '../../../services/cards.service';
 import { ColumnsService } from '../../../services/columns.service';
@@ -9,6 +10,7 @@ import { Card, Priority } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
 import { UserLite } from '../../../models/user.model';
 import { ChartComponent } from '../../../shared/chart/chart';
+import { epicBadgeClass, epicDotClass } from '../../../shared/epic-colors';
 
 const PRIORITY_LABELS: Record<Priority, string> = {
   low: 'Basse',
@@ -16,15 +18,21 @@ const PRIORITY_LABELS: Record<Priority, string> = {
   high: 'Haute',
 };
 
+const PRIORITY_DOT_CLASSES: Record<Priority, string> = {
+  low: 'bg-gray-400',
+  medium: 'bg-amber-500',
+  high: 'bg-red-600',
+};
+
 @Component({
   selector: 'app-epic-detail',
   imports: [RouterLink, ChartComponent],
   templateUrl: './epic-detail.html',
-  styleUrl: './epic-detail.css',
 })
 export class EpicDetail implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private titleService = inject(Title);
   private epicsService = inject(EpicsService);
   private cardsService = inject(CardsService);
   private columnsService = inject(ColumnsService);
@@ -84,6 +92,7 @@ export class EpicDetail implements OnInit {
       this.epic.set(epic);
       this.columns.set(columns);
       this.users.set(users);
+      this.titleService.setTitle(`${epic.name} - TwiZzyxKanban`);
 
       const columnPosition = new Map(columns.map((c) => [c.id, c.position]));
       const ticketsForEpic = cards
@@ -107,6 +116,28 @@ export class EpicDetail implements OnInit {
   userName(id: number | null): string {
     if (!id) return '—';
     return this.users().find((u) => u.id === id)?.username ?? '—';
+  }
+
+  userInitial(id: number | null): string {
+    const name = this.userName(id);
+    return name === '—' ? '?' : name.charAt(0).toUpperCase();
+  }
+
+  userAvatar(id: number | null): string | null {
+    if (!id) return null;
+    return this.users().find((u) => u.id === id)?.avatar_url ?? null;
+  }
+
+  epicClass(): string {
+    return epicBadgeClass(this.epic()?.color);
+  }
+
+  epicDot(): string {
+    return epicDotClass(this.epic()?.color);
+  }
+
+  priorityDotClass(priority: Priority): string {
+    return PRIORITY_DOT_CLASSES[priority];
   }
 
   openTicket(card: Card): void {

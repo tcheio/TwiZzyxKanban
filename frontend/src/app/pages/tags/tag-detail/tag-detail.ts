@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { TagsService } from '../../../services/tags.service';
 import { CardsService } from '../../../services/cards.service';
 import { ColumnsService } from '../../../services/columns.service';
@@ -9,6 +10,7 @@ import { Card, Priority } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
 import { UserLite } from '../../../models/user.model';
 import { ChartComponent } from '../../../shared/chart/chart';
+import { tagBadgeClass } from '../../../shared/tag-colors';
 
 const PRIORITY_LABELS: Record<Priority, string> = {
   low: 'Basse',
@@ -16,15 +18,21 @@ const PRIORITY_LABELS: Record<Priority, string> = {
   high: 'Haute',
 };
 
+const PRIORITY_DOT_CLASSES: Record<Priority, string> = {
+  low: 'bg-gray-400',
+  medium: 'bg-amber-500',
+  high: 'bg-red-600',
+};
+
 @Component({
   selector: 'app-tag-detail',
   imports: [RouterLink, ChartComponent],
   templateUrl: './tag-detail.html',
-  styleUrl: './tag-detail.css',
 })
 export class TagDetail implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private titleService = inject(Title);
   private tagsService = inject(TagsService);
   private cardsService = inject(CardsService);
   private columnsService = inject(ColumnsService);
@@ -84,6 +92,7 @@ export class TagDetail implements OnInit {
       this.tag.set(tag);
       this.columns.set(columns);
       this.users.set(users);
+      this.titleService.setTitle(`${tag.name} - TwiZzyxKanban`);
 
       const columnPosition = new Map(columns.map((c) => [c.id, c.position]));
       const ticketsForTag = cards
@@ -107,6 +116,24 @@ export class TagDetail implements OnInit {
   userName(id: number | null): string {
     if (!id) return '—';
     return this.users().find((u) => u.id === id)?.username ?? '—';
+  }
+
+  userInitial(id: number | null): string {
+    const name = this.userName(id);
+    return name === '—' ? '?' : name.charAt(0).toUpperCase();
+  }
+
+  userAvatar(id: number | null): string | null {
+    if (!id) return null;
+    return this.users().find((u) => u.id === id)?.avatar_url ?? null;
+  }
+
+  tagClass(): string {
+    return tagBadgeClass(this.tag()?.id ?? null);
+  }
+
+  priorityDotClass(priority: Priority): string {
+    return PRIORITY_DOT_CLASSES[priority];
   }
 
   openTicket(card: Card): void {

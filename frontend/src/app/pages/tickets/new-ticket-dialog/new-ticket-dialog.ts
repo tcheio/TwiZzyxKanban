@@ -10,7 +10,6 @@ import { Epic } from '../../../models/epic.model';
   selector: 'app-new-ticket-dialog',
   imports: [ReactiveFormsModule],
   templateUrl: './new-ticket-dialog.html',
-  styleUrl: './new-ticket-dialog.css',
 })
 export class NewTicketDialog {
   private fb = inject(FormBuilder);

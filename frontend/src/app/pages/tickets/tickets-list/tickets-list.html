@@ -1,96 +1,153 @@
-<div class="tickets-page">
-  <div class="header">
-    <h1>Tickets</h1>
+<div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+  <div class="header mb-4 flex items-center justify-between">
+    <h1 class="text-xl font-bold text-gray-900">Tickets</h1>
     @if (authService.isAdmin()) {
-      <button type="button" (click)="dialogOpen.set(true)">+ Nouveau ticket</button>
+      <button
+        type="button"
+        class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+        (click)="dialogOpen.set(true)"
+      >
+        + Nouveau ticket
+      </button>
     }
   </div>
 
   @if (loading()) {
-    <p class="status">Chargement...</p>
+    <p class="text-sm text-gray-500">Chargement...</p>
   }
   @if (error()) {
-    <p class="status error">{{ error() }}</p>
+    <p class="text-sm text-red-600">{{ error() }}</p>
   }
 
-  <div class="filters">
-    <label>
-      Tag
-      <select [ngModel]="filterTagId()" (ngModelChange)="filterTagId.set($event)">
-        <option [ngValue]="null">Tous</option>
-        @for (tag of tags(); track tag.id) {
-          <option [ngValue]="tag.id">{{ tag.name }}</option>
-        }
-      </select>
-    </label>
-
-    <label>
-      EPIC
-      <select [ngModel]="filterEpicId()" (ngModelChange)="filterEpicId.set($event)">
-        <option [ngValue]="null">Toutes</option>
-        @for (epic of epics(); track epic.id) {
-          <option [ngValue]="epic.id">{{ epic.name }}</option>
-        }
-      </select>
-    </label>
-
-    <label>
-      Assigné
-      <select [ngModel]="filterAssigneeId()" (ngModelChange)="filterAssigneeId.set($event)">
-        <option [ngValue]="null">Tous</option>
-        @for (user of users(); track user.id) {
-          <option [ngValue]="user.id">{{ user.username }}</option>
-        }
-      </select>
-    </label>
-
-    <label>
-      Statut
-      <select [ngModel]="filterColumnId()" (ngModelChange)="filterColumnId.set($event)">
-        <option [ngValue]="null">Tous les statuts</option>
-        @for (column of columns(); track column.id) {
-          <option [ngValue]="column.id">{{ column.name }}</option>
-        }
-      </select>
-    </label>
+  <div class="filters mb-4 flex flex-wrap items-end gap-4 rounded-lg border border-gray-200 bg-white p-3">
+    <div class="flex flex-col gap-1">
+      <label class="text-[11px] font-medium uppercase tracking-wide text-gray-400">Tag</label>
+      <app-search-select
+        [options]="tagFilterOptions()"
+        [value]="filterTagId()"
+        nullLabel="Tous"
+        searchPlaceholder="Rechercher un tag..."
+        (valueChange)="filterTagId.set($event)"
+      />
+    </div>
+    <div class="flex flex-col gap-1">
+      <label class="text-[11px] font-medium uppercase tracking-wide text-gray-400">EPIC</label>
+      <app-search-select
+        [options]="epicFilterOptions()"
+        [value]="filterEpicId()"
+        nullLabel="Toutes"
+        searchPlaceholder="Rechercher une EPIC..."
+        (valueChange)="filterEpicId.set($event)"
+      />
+    </div>
+    <div class="flex flex-col gap-1">
+      <label class="text-[11px] font-medium uppercase tracking-wide text-gray-400">Assigné</label>
+      <app-search-select
+        [options]="assigneeFilterOptions()"
+        [value]="filterAssigneeId()"
+        nullLabel="Tous"
+        searchPlaceholder="Rechercher une personne..."
+        (valueChange)="filterAssigneeId.set($event)"
+      />
+    </div>
+    <div class="flex flex-col gap-1">
+      <label class="text-[11px] font-medium uppercase tracking-wide text-gray-400">Statut</label>
+      <app-search-select
+        [options]="statusFilterOptions()"
+        [value]="filterColumnId()"
+        nullLabel="Tous les statuts"
+        searchPlaceholder="Rechercher un statut..."
+        (valueChange)="filterColumnId.set($event)"
+      />
+    </div>
 
     @if (hasActiveFilters()) {
-      <button type="button" class="reset-filters" (click)="resetFilters()">Réinitialiser les filtres</button>
+      <button
+        type="button"
+        class="reset-filters ml-auto rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50"
+        (click)="resetFilters()"
+      >
+        Réinitialiser les filtres
+      </button>
     }
   </div>
 
   @if (!loading() && tickets().length === 0) {
-    <p class="status">Aucun ticket pour le moment.</p>
+    <p class="text-sm text-gray-500">Aucun ticket pour le moment.</p>
   }
   @if (!loading() && tickets().length > 0 && filteredTickets().length === 0) {
-    <p class="status">Aucun ticket ne correspond aux filtres.</p>
+    <p class="text-sm text-gray-500">Aucun ticket ne correspond aux filtres.</p>
   }
 
   @if (filteredTickets().length > 0) {
-    <table>
-      <thead>
-        <tr>
-          <th>Titre</th>
-          <th>Tag</th>
-          <th>EPIC</th>
-          <th>Statut</th>
-          <th>Assigné</th>
-          <th>Priorité</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (ticket of filteredTickets(); track ticket.id) {
-          <tr (click)="openTicket(ticket)">
-            <td>{{ ticket.title }}</td>
-            <td><span class="tag-badge">{{ tagName(ticket.tag_id) }}</span></td>
-            <td><span class="tag-badge">{{ epicName(ticket.epic_id) }}</span></td>
-            <td><span class="status-chip">{{ columnName(ticket.column_id) }}</span></td>
-            <td>{{ userName(ticket.assigned_user_id) }}</td>
-            <td><span class="priority priority-{{ ticket.priority }}">{{ ticket.priority }}</span></td>
+    <div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-100 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <th class="px-4 py-2.5">Titre</th>
+            <th class="px-4 py-2.5">Tag</th>
+            <th class="px-4 py-2.5">EPIC</th>
+            <th class="px-4 py-2.5">Statut</th>
+            <th class="px-4 py-2.5">Assigné</th>
+            <th class="px-4 py-2.5">Priorité</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          @for (ticket of filteredTickets(); track ticket.id) {
+            <tr class="cursor-pointer hover:bg-gray-50" (click)="openTicket(ticket)">
+              <td class="px-4 py-2.5 font-medium text-gray-900">{{ ticket.title }}</td>
+              <td class="px-4 py-2.5">
+                @if (ticket.tag_id) {
+                  <span class="tag-badge rounded px-1.5 py-0.5 text-xs font-medium" [class]="tagClass(ticket.tag_id)">
+                    {{ tagName(ticket.tag_id) }}
+                  </span>
+                } @else {
+                  <span class="text-gray-400">—</span>
+                }
+              </td>
+              <td class="px-4 py-2.5">
+                @if (ticket.epic_id) {
+                  <span class="tag-badge rounded px-1.5 py-0.5 text-xs font-medium" [class]="epicClass(ticket.epic_id)">
+                    {{ epicName(ticket.epic_id) }}
+                  </span>
+                } @else {
+                  <span class="text-gray-400">—</span>
+                }
+              </td>
+              <td class="px-4 py-2.5">
+                <span class="status-chip rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                  {{ columnName(ticket.column_id) }}
+                </span>
+              </td>
+              <td class="px-4 py-2.5">
+                @if (ticket.assigned_user_id) {
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      class="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-500 text-[10px] font-semibold text-white"
+                    >
+                      @if (userAvatar(ticket.assigned_user_id); as avatar) {
+                        <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                      } @else {
+                        {{ userInitial(ticket.assigned_user_id) }}
+                      }
+                    </span>
+                    {{ userName(ticket.assigned_user_id) }}
+                  </div>
+                } @else {
+                  <span class="text-gray-400">—</span>
+                }
+              </td>
+              <td class="px-4 py-2.5">
+                <span class="priority inline-flex items-center gap-1 text-xs font-medium capitalize text-gray-600">
+                  <span class="h-2 w-2 rounded-sm" [class]="priorityDotClass(ticket.priority)"></span>
+                  {{ ticket.priority }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   }
 </div>
 

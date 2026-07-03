@@ -8,7 +8,6 @@ import { AuthService } from '../../core/auth.service';
   selector: 'app-admin-users',
   imports: [ReactiveFormsModule],
   templateUrl: './admin-users.html',
-  styleUrl: './admin-users.css',
 })
 export class AdminUsers implements OnInit {
   private fb = inject(FormBuilder);

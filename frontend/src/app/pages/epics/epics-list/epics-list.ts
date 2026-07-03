@@ -12,7 +12,6 @@ import { EPIC_COLORS, epicDotClass } from '../../../shared/epic-colors';
   selector: 'app-epics-list',
   imports: [FormsModule],
   templateUrl: './epics-list.html',
-  styleUrl: './epics-list.css',
 })
 export class EpicsList implements OnInit {
   private epicsService = inject(EpicsService);

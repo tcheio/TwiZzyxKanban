@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { CardsService } from '../../../services/cards.service';
 import { ColumnsService } from '../../../services/columns.service';
@@ -28,11 +29,11 @@ const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = [
   selector: 'app-ticket-detail',
   imports: [RouterLink, FormsModule, SearchSelect],
   templateUrl: './ticket-detail.html',
-  styleUrl: './ticket-detail.css',
 })
 export class TicketDetail implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private titleService = inject(Title);
   private cardsService = inject(CardsService);
   private columnsService = inject(ColumnsService);
   private usersService = inject(UsersService);
@@ -79,6 +80,7 @@ export class TicketDetail implements OnInit {
       this.epics.set(epics);
       this.comments.set(comments);
       this.descriptionDraft.set(ticket.description ?? '');
+      this.titleService.setTitle(`${ticket.title} - TwiZzyxKanban`);
     } catch {
       this.error.set('Ticket introuvable.');
     } finally {

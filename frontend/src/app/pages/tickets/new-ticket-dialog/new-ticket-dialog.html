@@ -1,15 +1,28 @@
-<div class="overlay" (click)="cancel.emit()">
-  <form class="dialog" [formGroup]="form" (click)="$event.stopPropagation()" (ngSubmit)="submit()">
-    <h2>Nouveau ticket</h2>
+<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" (click)="cancel.emit()">
+  <form
+    class="flex w-[360px] flex-col gap-3 rounded-lg bg-white p-6"
+    [formGroup]="form"
+    (click)="$event.stopPropagation()"
+    (ngSubmit)="submit()"
+  >
+    <h2 class="m-0 mb-1 text-lg font-semibold text-gray-900">Nouveau ticket</h2>
 
-    <label>
+    <label class="flex flex-col gap-1 text-sm text-gray-700">
       Titre
-      <input type="text" formControlName="title" autofocus />
+      <input
+        type="text"
+        formControlName="title"
+        autofocus
+        class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
+      />
     </label>
 
-    <label>
+    <label class="flex flex-col gap-1 text-sm text-gray-700">
       Colonne
-      <select formControlName="column_id">
+      <select
+        formControlName="column_id"
+        class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
+      >
         <option [ngValue]="null" disabled>— Choisir une colonne —</option>
         @for (column of columns; track column.id) {
           <option [ngValue]="column.id">{{ column.name }}</option>
@@ -17,9 +30,12 @@
       </select>
     </label>
 
-    <label>
+    <label class="flex flex-col gap-1 text-sm text-gray-700">
       Tag
-      <select formControlName="tag_id">
+      <select
+        formControlName="tag_id"
+        class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
+      >
         <option [ngValue]="null">— Aucun tag —</option>
         @for (tag of tags; track tag.id) {
           <option [ngValue]="tag.id">{{ tag.name }}</option>
@@ -27,9 +43,12 @@
       </select>
     </label>
 
-    <label>
+    <label class="flex flex-col gap-1 text-sm text-gray-700">
       EPIC
-      <select formControlName="epic_id">
+      <select
+        formControlName="epic_id"
+        class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
+      >
         <option [ngValue]="null">— Aucune EPIC —</option>
         @for (epic of epics; track epic.id) {
           <option [ngValue]="epic.id">{{ epic.name }}</option>
@@ -37,9 +56,12 @@
       </select>
     </label>
 
-    <label>
+    <label class="flex flex-col gap-1 text-sm text-gray-700">
       Assigné à
-      <select formControlName="assigned_user_id">
+      <select
+        formControlName="assigned_user_id"
+        class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
+      >
         <option [ngValue]="null">— Non assigné —</option>
         @for (user of users; track user.id) {
           <option [ngValue]="user.id">{{ user.username }}</option>
@@ -47,23 +69,42 @@
       </select>
     </label>
 
-    <label>
+    <label class="flex flex-col gap-1 text-sm text-gray-700">
       Priorité
-      <select formControlName="priority">
+      <select
+        formControlName="priority"
+        class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
+      >
         <option value="low">Basse</option>
         <option value="medium">Moyenne</option>
         <option value="high">Haute</option>
       </select>
     </label>
 
-    <label>
+    <label class="flex flex-col gap-1 text-sm text-gray-700">
       Date d'échéance
-      <input type="date" formControlName="due_date" />
+      <input
+        type="date"
+        formControlName="due_date"
+        class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
+      />
     </label>
 
-    <div class="dialog-actions">
-      <button type="button" (click)="cancel.emit()">Annuler</button>
-      <button type="submit" [disabled]="form.invalid">Créer</button>
+    <div class="mt-2 flex justify-end gap-2">
+      <button
+        type="button"
+        class="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+        (click)="cancel.emit()"
+      >
+        Annuler
+      </button>
+      <button
+        type="submit"
+        [disabled]="form.invalid"
+        class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Créer
+      </button>
     </div>
   </form>
 </div>

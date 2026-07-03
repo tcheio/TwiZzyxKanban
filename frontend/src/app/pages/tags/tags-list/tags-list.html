@@ -1,61 +1,92 @@
-<div class="tags-page">
-  <h1>Tags</h1>
-
-  @if (loading()) {
-    <p class="status">Chargement...</p>
-  }
-  @if (error()) {
-    <p class="status error">{{ error() }}</p>
-  }
-
-  @if (!loading() && tags().length === 0) {
-    <p class="status">Aucun tag pour le moment.</p>
-  }
-
-  <div class="tag-list">
-    @for (tag of tags(); track tag.id) {
-      <div class="tag-row" (click)="openTag(tag)">
-        @if (editingId() === tag.id) {
-          <form class="edit-form" (ngSubmit)="saveEdit(tag)" (click)="$event.stopPropagation()">
-            <input
-              type="text"
-              [ngModel]="editName()"
-              (ngModelChange)="editName.set($event)"
-              name="editName"
-              autofocus
-            />
-            <button type="submit">Enregistrer</button>
-            <button type="button" (click)="cancelEdit()">Annuler</button>
-          </form>
-        } @else {
-          <span class="tag-name">{{ tag.name }}</span>
-          <span class="ticket-count">{{ ticketCount(tag.id) }} ticket(s)</span>
-          @if (authService.isAdmin()) {
-            <div class="actions" (click)="$event.stopPropagation()">
-              <button type="button" (click)="startEdit(tag)">Renommer</button>
-              <button type="button" class="danger" (click)="deleteTag(tag)">Supprimer</button>
-            </div>
-          }
-        }
-      </div>
+<div class="mx-auto max-w-3xl px-4 py-6 sm:px-6">
+  <div class="mb-4 flex items-center justify-between">
+    <h1 class="text-xl font-bold text-gray-900">Tags</h1>
+    @if (authService.isAdmin() && !creating()) {
+      <button
+        type="button"
+        class="new-tag-btn rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+        (click)="creating.set(true)"
+      >
+        + Nouveau tag
+      </button>
     }
   </div>
 
-  @if (authService.isAdmin()) {
-    @if (creating()) {
-      <form class="create-form" (ngSubmit)="createTag()">
-        <input
-          type="text"
-          [ngModel]="newTagName()"
-          (ngModelChange)="newTagName.set($event)"
-          name="newTagName"
-          placeholder="Nom du tag"
-        />
-        <button type="submit">Créer</button>
-        <button type="button" (click)="creating.set(false)">Annuler</button>
-      </form>
-    } @else {
-      <button type="button" class="new-tag-btn" (click)="creating.set(true)">+ Nouveau tag</button>
-    }
+  @if (loading()) {
+    <p class="text-sm text-gray-500">Chargement...</p>
+  }
+  @if (error()) {
+    <p class="text-sm text-red-600">{{ error() }}</p>
+  }
+  @if (!loading() && tags().length === 0) {
+    <p class="text-sm text-gray-500">Aucun tag pour le moment.</p>
+  }
+
+  @if (authService.isAdmin() && creating()) {
+    <form class="create-form mb-4 flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-3" (ngSubmit)="createTag()">
+      <input
+        type="text"
+        class="flex-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-sm focus:border-blue-400 focus:outline-none"
+        [ngModel]="newTagName()"
+        (ngModelChange)="newTagName.set($event)"
+        name="newTagName"
+        placeholder="Nom du tag"
+        autofocus
+      />
+      <button type="submit" class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
+        Créer
+      </button>
+      <button
+        type="button"
+        class="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+        (click)="creating.set(false)"
+      >
+        Annuler
+      </button>
+    </form>
+  }
+
+  @if (tags().length > 0) {
+    <div class="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200 bg-white">
+      @for (tag of tags(); track tag.id) {
+        <div class="tag-row flex items-center gap-3 px-4 py-3 hover:bg-gray-50" (click)="openTag(tag)">
+          @if (editingId() === tag.id) {
+            <form class="edit-form flex flex-1 items-center gap-2" (ngSubmit)="saveEdit(tag)" (click)="$event.stopPropagation()">
+              <input
+                type="text"
+                class="flex-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-sm focus:border-blue-400 focus:outline-none"
+                [ngModel]="editName()"
+                (ngModelChange)="editName.set($event)"
+                name="editName"
+                autofocus
+              />
+              <button type="submit" class="rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700">
+                Enregistrer
+              </button>
+              <button
+                type="button"
+                class="rounded-md border border-gray-200 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                (click)="cancelEdit()"
+              >
+                Annuler
+              </button>
+            </form>
+          } @else {
+            <span class="tag-name rounded px-2 py-0.5 text-xs font-medium" [class]="tagClass(tag.id)">{{ tag.name }}</span>
+            <span class="ticket-count ml-auto shrink-0 text-xs text-gray-400">{{ ticketCount(tag.id) }} ticket(s)</span>
+            @if (authService.isAdmin()) {
+              <div class="actions flex shrink-0 items-center gap-1" (click)="$event.stopPropagation()">
+                <button type="button" class="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100" (click)="startEdit(tag)">
+                  Renommer
+                </button>
+                <button type="button" class="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50" (click)="deleteTag(tag)">
+                  Supprimer
+                </button>
+              </div>
+            }
+          }
+        </div>
+      }
+    </div>
   }
 </div>

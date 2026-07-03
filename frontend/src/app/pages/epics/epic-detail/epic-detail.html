@@ -1,52 +1,87 @@
-<div class="epic-page">
+<div class="mx-auto max-w-5xl px-4 py-6 sm:px-6">
   @if (loading()) {
-    <p class="status">Chargement...</p>
+    <p class="text-sm text-gray-500">Chargement...</p>
   }
   @if (error()) {
-    <p class="status error">{{ error() }}</p>
-    <a routerLink="/epics" class="back-link">← Retour aux EPICs</a>
+    <p class="text-sm text-red-600">{{ error() }}</p>
+    <a routerLink="/epics" class="back-link text-sm text-gray-500 hover:text-gray-700 hover:underline">← Retour aux EPICs</a>
   }
 
   @if (epic(); as e) {
-    <a routerLink="/epics" class="back-link">← Retour aux EPICs</a>
+    <a routerLink="/epics" class="back-link mb-3 inline-block text-sm text-gray-500 hover:text-gray-700 hover:underline">
+      ← Retour aux EPICs
+    </a>
 
-    <h1>{{ e.name }}</h1>
-    <p class="subtitle">{{ tickets().length }} ticket(s)</p>
+    <div class="mb-6 flex items-center gap-3">
+      <span class="inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-base font-semibold" [class]="epicClass()">
+        <span class="h-2 w-2 rounded-full" [class]="epicDot()"></span>
+        {{ e.name }}
+      </span>
+      <span class="text-sm text-gray-400">{{ tickets().length }} ticket(s)</span>
+    </div>
 
-    <div class="charts">
-      <div class="chart-card">
-        <h2>Répartition par statut</h2>
+    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div class="rounded-lg border border-gray-200 bg-white p-4">
+        <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Répartition par statut</h2>
         <app-chart type="bar" [labels]="statusChart().labels" [data]="statusChart().data" label="Tickets" />
       </div>
-      <div class="chart-card">
-        <h2>Répartition par priorité</h2>
+      <div class="rounded-lg border border-gray-200 bg-white p-4">
+        <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Répartition par priorité</h2>
         <app-chart type="doughnut" [labels]="priorityChart().labels" [data]="priorityChart().data" />
       </div>
     </div>
 
     @if (tickets().length === 0) {
-      <p class="status">Aucun ticket pour cette EPIC.</p>
+      <p class="text-sm text-gray-500">Aucun ticket pour cette EPIC.</p>
     } @else {
-      <table>
-        <thead>
-          <tr>
-            <th>Titre</th>
-            <th>Statut</th>
-            <th>Assigné</th>
-            <th>Priorité</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (ticket of tickets(); track ticket.id) {
-            <tr (click)="openTicket(ticket)">
-              <td>{{ ticket.title }}</td>
-              <td><span class="status-chip">{{ columnName(ticket.column_id) }}</span></td>
-              <td>{{ userName(ticket.assigned_user_id) }}</td>
-              <td><span class="priority priority-{{ ticket.priority }}">{{ ticket.priority }}</span></td>
+      <div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-100 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <th class="px-4 py-2.5">Titre</th>
+              <th class="px-4 py-2.5">Statut</th>
+              <th class="px-4 py-2.5">Assigné</th>
+              <th class="px-4 py-2.5">Priorité</th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            @for (ticket of tickets(); track ticket.id) {
+              <tr class="cursor-pointer hover:bg-gray-50" (click)="openTicket(ticket)">
+                <td class="px-4 py-2.5 font-medium text-gray-900">{{ ticket.title }}</td>
+                <td class="px-4 py-2.5">
+                  <span class="status-chip rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                    {{ columnName(ticket.column_id) }}
+                  </span>
+                </td>
+                <td class="px-4 py-2.5">
+                  @if (ticket.assigned_user_id) {
+                    <div class="flex items-center gap-1.5">
+                      <span
+                        class="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-500 text-[10px] font-semibold text-white"
+                      >
+                        @if (userAvatar(ticket.assigned_user_id); as avatar) {
+                          <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                        } @else {
+                          {{ userInitial(ticket.assigned_user_id) }}
+                        }
+                      </span>
+                      {{ userName(ticket.assigned_user_id) }}
+                    </div>
+                  } @else {
+                    <span class="text-gray-400">—</span>
+                  }
+                </td>
+                <td class="px-4 py-2.5">
+                  <span class="priority inline-flex items-center gap-1 text-xs font-medium capitalize text-gray-600">
+                    <span class="h-2 w-2 rounded-sm" [class]="priorityDotClass(ticket.priority)"></span>
+                    {{ ticket.priority }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     }
   }
 </div>
