@@ -35,7 +35,6 @@ describe('TicketsList', () => {
     {
       id: 10,
       title: 'Dans Publié',
-      channel: null,
       description: null,
       tag_id: 2,
       epic_id: null,
@@ -48,7 +47,6 @@ describe('TicketsList', () => {
     {
       id: 11,
       title: 'Dans Idée',
-      channel: null,
       description: null,
       tag_id: 1,
       epic_id: null,
@@ -61,7 +59,6 @@ describe('TicketsList', () => {
     {
       id: 12,
       title: 'Dans Script',
-      channel: null,
       description: null,
       tag_id: null,
       epic_id: null,
@@ -147,7 +144,6 @@ describe('TicketsList', () => {
 
     await component.createTicket({
       title: 'Nouveau',
-      channel: null,
       column_id: 1,
       tag_id: null,
       epic_id: null,

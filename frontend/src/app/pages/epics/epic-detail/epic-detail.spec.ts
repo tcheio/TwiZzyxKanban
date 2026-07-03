@@ -25,7 +25,6 @@ describe('EpicDetail', () => {
     {
       id: 10,
       title: 'Dans Publié',
-      channel: null,
       description: null,
       tag_id: null,
       epic_id: 1,
@@ -38,7 +37,6 @@ describe('EpicDetail', () => {
     {
       id: 11,
       title: 'Dans Idée',
-      channel: null,
       description: null,
       tag_id: null,
       epic_id: 1,
@@ -51,7 +49,6 @@ describe('EpicDetail', () => {
     {
       id: 12,
       title: 'Autre epic',
-      channel: null,
       description: null,
       tag_id: null,
       epic_id: 2,

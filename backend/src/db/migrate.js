@@ -95,6 +95,21 @@ function migrate() {
     }
   }
 
+  // L'EPIC remplace l'ancien champ libre "Chaîne YTB" : les cartes existantes dont le
+  // texte de channel correspond exactement au nom d'une EPIC sont rattachées à celle-ci
+  // avant que la colonne ne soit supprimée, pour ne pas perdre l'information.
+  if (cardColumns.some((col) => col.name === 'channel')) {
+    db.prepare(
+      `UPDATE cards SET epic_id = (SELECT id FROM epics WHERE epics.name = cards.channel)
+       WHERE epic_id IS NULL AND channel IS NOT NULL
+         AND EXISTS (SELECT 1 FROM epics WHERE epics.name = cards.channel)`
+    ).run();
+    db.exec('ALTER TABLE cards DROP COLUMN channel');
+    if (!silent) {
+      console.log('Colonne channel migrée vers epic_id puis supprimée.');
+    }
+  }
+
   if (!silent) {
     console.log('DB initialisée.');
   }

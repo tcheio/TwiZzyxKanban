@@ -18,11 +18,6 @@
 
     <div class="ticket-fields">
       <label>
-        Chaîne YTB
-        <input type="text" [value]="t.channel ?? ''" (change)="updateChannel($any($event.target).value)" />
-      </label>
-
-      <label>
         Statut
         <select [ngModel]="t.column_id" (ngModelChange)="updateStatus($event)" [disabled]="isPublished()">
           @for (column of columns(); track column.id) {

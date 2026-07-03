@@ -43,7 +43,6 @@ describe('TicketDetail', () => {
   const ticket: Card = {
     id: 5,
     title: 'Mon ticket',
-    channel: 'MaChaine',
     description: 'Notes existantes',
     tag_id: 1,
     epic_id: null,
@@ -122,14 +121,12 @@ describe('TicketDetail', () => {
     expect(cardsService.update).toHaveBeenCalledWith(5, { title: 'Nouveau titre' });
   });
 
-  it('updateChannel()/updatePriority()/updateAssignee() persistent le bon champ', async () => {
+  it('updatePriority()/updateAssignee() persistent le bon champ', async () => {
     await component.reload();
-    component.updateChannel('AutreChaine');
     component.updatePriority('high');
     component.updateAssignee(null);
     await Promise.resolve();
 
-    expect(cardsService.update).toHaveBeenCalledWith(5, { channel: 'AutreChaine' });
     expect(cardsService.update).toHaveBeenCalledWith(5, { priority: 'high' });
     expect(cardsService.update).toHaveBeenCalledWith(5, { assigned_user_id: null });
   });

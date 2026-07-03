@@ -84,7 +84,6 @@ export class TicketDetail implements OnInit {
 
   private async patch(partial: {
     title?: string;
-    channel?: string | null;
     assigned_user_id?: number | null;
     priority?: Priority;
     description?: string | null;
@@ -105,10 +104,6 @@ export class TicketDetail implements OnInit {
   updateTitle(value: string): void {
     if (!value.trim()) return;
     this.patch({ title: value.trim() });
-  }
-
-  updateChannel(value: string): void {
-    this.patch({ channel: value || null });
   }
 
   updatePriority(value: Priority): void {

@@ -27,7 +27,6 @@ describe('EpicsList', () => {
     {
       id: 10,
       title: 'Ticket A',
-      channel: null,
       description: null,
       tag_id: null,
       epic_id: 1,
@@ -40,7 +39,6 @@ describe('EpicsList', () => {
     {
       id: 11,
       title: 'Ticket B',
-      channel: null,
       description: null,
       tag_id: null,
       epic_id: 1,
@@ -53,7 +51,6 @@ describe('EpicsList', () => {
     {
       id: 12,
       title: 'Ticket C',
-      channel: null,
       description: null,
       tag_id: null,
       epic_id: 2,

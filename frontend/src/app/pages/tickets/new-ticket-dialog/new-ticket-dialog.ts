@@ -24,7 +24,6 @@ export class NewTicketDialog {
 
   readonly form = this.fb.group({
     title: ['', Validators.required],
-    channel: [''],
     column_id: [null as number | null, Validators.required],
     tag_id: [null as number | null],
     epic_id: [null as number | null],
@@ -38,7 +37,6 @@ export class NewTicketDialog {
     const raw = this.form.getRawValue();
     this.save.emit({
       title: raw.title!,
-      channel: raw.channel || null,
       column_id: raw.column_id!,
       tag_id: raw.tag_id ?? null,
       epic_id: raw.epic_id ?? null,

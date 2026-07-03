@@ -71,7 +71,6 @@
       <thead>
         <tr>
           <th>Titre</th>
-          <th>Chaîne YTB</th>
           <th>Tag</th>
           <th>EPIC</th>
           <th>Statut</th>
@@ -83,7 +82,6 @@
         @for (ticket of filteredTickets(); track ticket.id) {
           <tr (click)="openTicket(ticket)">
             <td>{{ ticket.title }}</td>
-            <td>{{ ticket.channel || '—' }}</td>
             <td><span class="tag-badge">{{ tagName(ticket.tag_id) }}</span></td>
             <td><span class="tag-badge">{{ epicName(ticket.epic_id) }}</span></td>
             <td><span class="status-chip">{{ columnName(ticket.column_id) }}</span></td>

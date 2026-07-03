@@ -42,10 +42,9 @@ test('POST /api/cards crée une carte', async () => {
   const res = await request(app)
     .post('/api/cards')
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ title: 'Vidéo A', channel: 'MaChaine', priority: 'high', column_id: columns[0].id });
+    .send({ title: 'Vidéo A', priority: 'high', column_id: columns[0].id });
   assert.equal(res.status, 201);
   assert.equal(res.body.title, 'Vidéo A');
-  assert.equal(res.body.channel, 'MaChaine');
   assert.equal(res.body.priority, 'high');
   assert.equal(res.body.position, 0);
 });

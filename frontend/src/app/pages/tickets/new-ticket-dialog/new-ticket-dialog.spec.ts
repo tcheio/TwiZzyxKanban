@@ -52,7 +52,6 @@ describe('NewTicketDialog', () => {
 
     component.form.setValue({
       title: 'Nouvelle vidéo',
-      channel: 'MaChaine',
       column_id: 2,
       tag_id: 1,
       epic_id: 1,
@@ -64,7 +63,6 @@ describe('NewTicketDialog', () => {
 
     expect(emitted).toEqual({
       title: 'Nouvelle vidéo',
-      channel: 'MaChaine',
       column_id: 2,
       tag_id: 1,
       epic_id: 1,
@@ -74,13 +72,12 @@ describe('NewTicketDialog', () => {
     });
   });
 
-  it("submit() convertit une chaîne vide en null pour channel/assigned_user_id/due_date, et accepte tag_id=null", () => {
+  it("submit() convertit une chaîne vide en null pour assigned_user_id/due_date, et accepte tag_id=null", () => {
     let emitted: CardInput | null = null;
     component.save.subscribe((value) => (emitted = value));
 
     component.form.setValue({
       title: 'X',
-      channel: '',
       column_id: 1,
       tag_id: null,
       epic_id: null,
@@ -90,7 +87,6 @@ describe('NewTicketDialog', () => {
     });
     component.submit();
 
-    expect(emitted!.channel).toBeNull();
     expect(emitted!.assigned_user_id).toBeNull();
     expect(emitted!.tag_id).toBeNull();
     expect(emitted!.epic_id).toBeNull();

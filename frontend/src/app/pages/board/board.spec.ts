@@ -35,7 +35,6 @@ describe('Board', () => {
     {
       id: 10,
       title: 'A',
-      channel: null,
       description: null,
       tag_id: 1,
       epic_id: null,
@@ -48,7 +47,6 @@ describe('Board', () => {
     {
       id: 11,
       title: 'B',
-      channel: null,
       description: null,
       tag_id: null,
       epic_id: null,
@@ -61,7 +59,6 @@ describe('Board', () => {
     {
       id: 12,
       title: 'C',
-      channel: null,
       description: null,
       tag_id: null,
       epic_id: null,

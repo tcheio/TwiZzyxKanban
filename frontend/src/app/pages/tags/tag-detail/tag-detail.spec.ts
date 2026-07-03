@@ -25,7 +25,6 @@ describe('TagDetail', () => {
     {
       id: 10,
       title: 'Dans Publié',
-      channel: null,
       description: null,
       tag_id: 1,
       epic_id: null,
@@ -38,7 +37,6 @@ describe('TagDetail', () => {
     {
       id: 11,
       title: 'Dans Idée',
-      channel: null,
       description: null,
       tag_id: 1,
       epic_id: null,
@@ -51,7 +49,6 @@ describe('TagDetail', () => {
     {
       id: 12,
       title: 'Autre tag',
-      channel: null,
       description: null,
       tag_id: 2,
       epic_id: null,
