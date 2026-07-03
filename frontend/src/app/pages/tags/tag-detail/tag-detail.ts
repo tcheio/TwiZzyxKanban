@@ -9,11 +9,18 @@ import { Card, Priority } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
 import { UserLite } from '../../../models/user.model';
 import { ChartComponent } from '../../../shared/chart/chart';
+import { tagBadgeClass } from '../../../shared/tag-colors';
 
 const PRIORITY_LABELS: Record<Priority, string> = {
   low: 'Basse',
   medium: 'Moyenne',
   high: 'Haute',
+};
+
+const PRIORITY_DOT_CLASSES: Record<Priority, string> = {
+  low: 'bg-gray-400',
+  medium: 'bg-amber-500',
+  high: 'bg-red-600',
 };
 
 @Component({
@@ -107,6 +114,24 @@ export class TagDetail implements OnInit {
   userName(id: number | null): string {
     if (!id) return '—';
     return this.users().find((u) => u.id === id)?.username ?? '—';
+  }
+
+  userInitial(id: number | null): string {
+    const name = this.userName(id);
+    return name === '—' ? '?' : name.charAt(0).toUpperCase();
+  }
+
+  userAvatar(id: number | null): string | null {
+    if (!id) return null;
+    return this.users().find((u) => u.id === id)?.avatar_url ?? null;
+  }
+
+  tagClass(): string {
+    return tagBadgeClass(this.tag()?.id ?? null);
+  }
+
+  priorityDotClass(priority: Priority): string {
+    return PRIORITY_DOT_CLASSES[priority];
   }
 
   openTicket(card: Card): void {

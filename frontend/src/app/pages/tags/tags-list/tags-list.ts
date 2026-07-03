@@ -6,6 +6,7 @@ import { CardsService } from '../../../services/cards.service';
 import { AuthService } from '../../../core/auth.service';
 import { Tag } from '../../../models/tag.model';
 import { Card } from '../../../models/card.model';
+import { tagBadgeClass } from '../../../shared/tag-colors';
 
 @Component({
   selector: 'app-tags-list',
@@ -50,6 +51,10 @@ export class TagsList implements OnInit {
 
   ticketCount(tagId: number): number {
     return this.cards().filter((c) => c.tag_id === tagId).length;
+  }
+
+  tagClass(tagId: number): string {
+    return tagBadgeClass(tagId);
   }
 
   openTag(tag: Tag): void {
