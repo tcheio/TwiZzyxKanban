@@ -17,6 +17,8 @@ describe('TicketDetail', () => {
   let fixture: ReturnType<typeof TestBed.createComponent<TicketDetail>>;
   let cardsService: {
     get: ReturnType<typeof vi.fn>;
+    list: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     move: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
@@ -46,6 +48,7 @@ describe('TicketDetail', () => {
     description: 'Notes existantes',
     tag_id: 1,
     epic_id: null,
+    cloned_from_id: null,
     assigned_user_id: 1,
     priority: 'medium',
     column_id: 1,
@@ -63,6 +66,8 @@ describe('TicketDetail', () => {
     isAdmin = vi.fn().mockReturnValue(false);
     cardsService = {
       get: vi.fn().mockResolvedValue({ ...ticket }),
+      list: vi.fn().mockResolvedValue([ticket]),
+      create: vi.fn().mockResolvedValue({ ...ticket, id: 99 }),
       update: vi.fn().mockImplementation((id, partial) => Promise.resolve({ ...ticket, ...partial })),
       move: vi.fn().mockResolvedValue({ ...ticket, column_id: 2 }),
       remove: vi.fn().mockResolvedValue(undefined),
@@ -271,5 +276,65 @@ describe('TicketDetail', () => {
 
     const button = (fixture.nativeElement as HTMLElement).querySelector('button.danger');
     expect(button).toBeTruthy();
+  });
+
+  it('clonedFrom() retourne null si le ticket ne provient pas d\'un clonage', async () => {
+    await component.reload();
+    expect(component.clonedFrom()).toBeNull();
+  });
+
+  it('clonedFrom() résout la carte source à partir de cloned_from_id', async () => {
+    const source = { ...ticket, id: 1, title: 'Source' };
+    cardsService.get.mockResolvedValue({ ...ticket, cloned_from_id: 1 });
+    cardsService.list.mockResolvedValue([source, { ...ticket, cloned_from_id: 1 }]);
+
+    await component.reload();
+
+    expect(component.clonedFrom()?.title).toBe('Source');
+  });
+
+  it('clones() retourne les cartes clonées à partir de ce ticket', async () => {
+    const cloneA = { ...ticket, id: 10, title: 'Clone A', cloned_from_id: 5 };
+    const cloneB = { ...ticket, id: 11, title: 'Clone B', cloned_from_id: 5 };
+    const unrelated = { ...ticket, id: 12, title: 'Autre', cloned_from_id: 999 };
+    cardsService.list.mockResolvedValue([ticket, cloneA, cloneB, unrelated]);
+
+    await component.reload();
+
+    expect(component.clones().map((c) => c.title)).toEqual(['Clone A', 'Clone B']);
+  });
+
+  it('cloneInitialValue() reprend les données du ticket sauf assigné et échéance', async () => {
+    await component.reload();
+
+    expect(component.cloneInitialValue()).toEqual({
+      title: 'COPIE - Mon ticket',
+      description: 'Notes existantes',
+      tag_id: 1,
+      epic_id: null,
+      priority: 'medium',
+      column_id: 1,
+    });
+  });
+
+  it('createClone() crée le ticket cloné, ferme le dialogue et navigue vers sa page', async () => {
+    await component.reload();
+    component.cloneDialogOpen.set(true);
+
+    await component.createClone({
+      title: 'COPIE - Mon ticket',
+      column_id: 1,
+      tag_id: 1,
+      epic_id: null,
+      cloned_from_id: 5,
+      assigned_user_id: null,
+      priority: 'medium',
+    });
+
+    expect(cardsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'COPIE - Mon ticket', cloned_from_id: 5 })
+    );
+    expect(component.cloneDialogOpen()).toBe(false);
+    expect(navigate).toHaveBeenCalledWith(['/tickets', 99]);
   });
 });

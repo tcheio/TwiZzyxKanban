@@ -9,7 +9,7 @@ import { CommentsService } from '../../../services/comments.service';
 import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
-import { Card, Priority } from '../../../models/card.model';
+import { Card, CardInput, Priority } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
 import { UserLite } from '../../../models/user.model';
 import { Comment } from '../../../models/comment.model';
@@ -18,6 +18,7 @@ import { Epic } from '../../../models/epic.model';
 import { epicBadgeClass, epicDotClass } from '../../../shared/epic-colors';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
+import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
 
 const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = [
   { id: 'low', label: 'Basse', dotClass: 'bg-gray-400' },
@@ -27,7 +28,7 @@ const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = [
 
 @Component({
   selector: 'app-ticket-detail',
-  imports: [RouterLink, FormsModule, SearchSelect],
+  imports: [RouterLink, FormsModule, SearchSelect, NewTicketDialog],
   templateUrl: './ticket-detail.html',
 })
 export class TicketDetail implements OnInit {
@@ -48,10 +49,12 @@ export class TicketDetail implements OnInit {
   readonly tags = signal<Tag[]>([]);
   readonly epics = signal<Epic[]>([]);
   readonly comments = signal<Comment[]>([]);
+  readonly cards = signal<Card[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly descriptionDraft = signal('');
   readonly newComment = signal('');
+  readonly cloneDialogOpen = signal(false);
 
   protected get ticketId(): number {
     return Number(this.route.snapshot.paramMap.get('id'));
@@ -65,13 +68,14 @@ export class TicketDetail implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [ticket, columns, users, tags, epics, comments] = await Promise.all([
+      const [ticket, columns, users, tags, epics, comments, cards] = await Promise.all([
         this.cardsService.get(this.ticketId),
         this.columnsService.list(),
         this.usersService.lite(),
         this.tagsService.list(),
         this.epicsService.list(),
         this.commentsService.list(this.ticketId),
+        this.cardsService.list(),
       ]);
       this.ticket.set(ticket);
       this.columns.set(columns);
@@ -79,6 +83,7 @@ export class TicketDetail implements OnInit {
       this.tags.set(tags);
       this.epics.set(epics);
       this.comments.set(comments);
+      this.cards.set(cards);
       this.descriptionDraft.set(ticket.description ?? '');
       this.titleService.setTitle(`${ticket.title} - TwiZzyxKanban`);
     } catch {
@@ -123,6 +128,41 @@ export class TicketDetail implements OnInit {
   }
 
   readonly priorityOptions = PRIORITY_OPTIONS;
+
+  clonedFrom(): Card | null {
+    const ticket = this.ticket();
+    if (!ticket?.cloned_from_id) return null;
+    return this.cards().find((c) => c.id === ticket.cloned_from_id) ?? null;
+  }
+
+  clones(): Card[] {
+    const ticket = this.ticket();
+    if (!ticket) return [];
+    return this.cards().filter((c) => c.cloned_from_id === ticket.id);
+  }
+
+  cloneInitialValue(): Partial<CardInput> | null {
+    const ticket = this.ticket();
+    if (!ticket) return null;
+    return {
+      title: `COPIE - ${ticket.title}`,
+      description: ticket.description,
+      tag_id: ticket.tag_id,
+      epic_id: ticket.epic_id,
+      priority: ticket.priority,
+      column_id: ticket.column_id,
+    };
+  }
+
+  async createClone(input: CardInput): Promise<void> {
+    try {
+      const created = await this.cardsService.create(input);
+      this.cloneDialogOpen.set(false);
+      this.router.navigate(['/tickets', created.id]);
+    } catch {
+      this.error.set('Échec de la création du clone.');
+    }
+  }
 
   formatDateTime(dateStr: string): string {
     const [datePart, timePart] = dateStr.split(' ');

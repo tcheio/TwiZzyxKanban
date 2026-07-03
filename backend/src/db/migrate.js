@@ -38,6 +38,9 @@ function migrate() {
   if (!cardColumns.some((col) => col.name === 'epic_id')) {
     db.exec('ALTER TABLE cards ADD COLUMN epic_id INTEGER REFERENCES epics(id) ON DELETE SET NULL');
   }
+  if (!cardColumns.some((col) => col.name === 'cloned_from_id')) {
+    db.exec('ALTER TABLE cards ADD COLUMN cloned_from_id INTEGER REFERENCES cards(id) ON DELETE SET NULL');
+  }
   if (!cardColumns.some((col) => col.name === 'due_date')) {
     db.exec('ALTER TABLE cards ADD COLUMN due_date TEXT');
   }

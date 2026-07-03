@@ -21,7 +21,8 @@ describe('NewTicketDialog', () => {
     { id: 2, name: 'Twitch', color: 'violet' },
   ];
 
-  beforeEach(() => {
+  function configure(): void {
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({ imports: [NewTicketDialog] });
     fixture = TestBed.createComponent(NewTicketDialog);
     component = fixture.componentInstance;
@@ -29,6 +30,10 @@ describe('NewTicketDialog', () => {
     component.users = users;
     component.tags = tags;
     component.epics = epics;
+  }
+
+  beforeEach(() => {
+    configure();
     fixture.detectChanges();
   });
 
@@ -52,6 +57,7 @@ describe('NewTicketDialog', () => {
 
     component.form.setValue({
       title: 'Nouvelle vidéo',
+      description: 'Quelques notes',
       column_id: 2,
       tag_id: 1,
       epic_id: 1,
@@ -63,21 +69,24 @@ describe('NewTicketDialog', () => {
 
     expect(emitted).toEqual({
       title: 'Nouvelle vidéo',
+      description: 'Quelques notes',
       column_id: 2,
       tag_id: 1,
       epic_id: 1,
+      cloned_from_id: null,
       assigned_user_id: 1,
       priority: 'high',
       due_date: '2026-07-15',
     });
   });
 
-  it("submit() convertit une chaîne vide en null pour assigned_user_id/due_date, et accepte tag_id=null", () => {
+  it("submit() convertit une chaîne vide en null pour description/assigned_user_id/due_date, et accepte tag_id=null", () => {
     let emitted: CardInput | null = null;
     component.save.subscribe((value) => (emitted = value));
 
     component.form.setValue({
       title: 'X',
+      description: '',
       column_id: 1,
       tag_id: null,
       epic_id: null,
@@ -87,9 +96,57 @@ describe('NewTicketDialog', () => {
     });
     component.submit();
 
+    expect(emitted!.description).toBeNull();
     expect(emitted!.assigned_user_id).toBeNull();
     expect(emitted!.tag_id).toBeNull();
     expect(emitted!.epic_id).toBeNull();
     expect(emitted!.due_date).toBeNull();
+  });
+
+  it('initialValue pré-remplit le formulaire (utilisé pour le clonage)', () => {
+    configure();
+    component.initialValue = {
+      title: 'COPIE - Original',
+      description: 'Notes reprises',
+      column_id: 2,
+      tag_id: 1,
+      epic_id: 1,
+      priority: 'high',
+    };
+    fixture.detectChanges();
+
+    expect(component.form.getRawValue()).toEqual({
+      title: 'COPIE - Original',
+      description: 'Notes reprises',
+      column_id: 2,
+      tag_id: 1,
+      epic_id: 1,
+      assigned_user_id: null,
+      priority: 'high',
+      due_date: '',
+    });
+  });
+
+  it('clonedFromId est inclus dans le CardInput émis', () => {
+    configure();
+    component.clonedFromId = 7;
+    fixture.detectChanges();
+
+    let emitted: CardInput | null = null;
+    component.save.subscribe((value) => (emitted = value));
+
+    component.form.setValue({
+      title: 'X',
+      description: '',
+      column_id: 1,
+      tag_id: null,
+      epic_id: null,
+      assigned_user_id: null,
+      priority: 'medium',
+      due_date: '',
+    });
+    component.submit();
+
+    expect(emitted!.cloned_from_id).toBe(7);
   });
 });

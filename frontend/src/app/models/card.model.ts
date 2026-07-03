@@ -6,6 +6,7 @@ export interface Card {
   description: string | null;
   tag_id: number | null;
   epic_id: number | null;
+  cloned_from_id: number | null;
   assigned_user_id: number | null;
   priority: Priority;
   column_id: number;
@@ -21,6 +22,7 @@ export interface CardInput {
   description?: string | null;
   tag_id?: number | null;
   epic_id?: number | null;
+  cloned_from_id?: number | null;
   assigned_user_id: number | null;
   priority: Priority;
   column_id: number;

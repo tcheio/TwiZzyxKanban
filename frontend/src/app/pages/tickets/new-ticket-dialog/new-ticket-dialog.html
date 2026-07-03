@@ -5,7 +5,7 @@
     (click)="$event.stopPropagation()"
     (ngSubmit)="submit()"
   >
-    <h2 class="m-0 mb-1 text-lg font-semibold text-gray-900">Nouveau ticket</h2>
+    <h2 class="m-0 mb-1 text-lg font-semibold text-gray-900">{{ heading }}</h2>
 
     <label class="flex flex-col gap-1 text-sm text-gray-700">
       Titre
@@ -15,6 +15,15 @@
         autofocus
         class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
       />
+    </label>
+
+    <label class="flex flex-col gap-1 text-sm text-gray-700">
+      Description
+      <textarea
+        formControlName="description"
+        rows="3"
+        class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
+      ></textarea>
     </label>
 
     <label class="flex flex-col gap-1 text-sm text-gray-700">
@@ -103,7 +112,7 @@
         [disabled]="form.invalid"
         class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        Créer
+        {{ submitLabel }}
       </button>
     </div>
   </form>

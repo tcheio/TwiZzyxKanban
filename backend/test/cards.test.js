@@ -437,3 +437,68 @@ test('PATCH /api/cards/:id/move réordonner au sein de Publié reste autorisé',
     .send({ columnId: publishedColumn.id, position: 1 });
   assert.equal(res.status, 200);
 });
+
+test('POST /api/cards avec un cloned_from_id persiste la filiation', async () => {
+  const original = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'Original', column_id: columns[0].id, description: 'Notes', tag_id: tags[0].id });
+
+  const clone = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      title: 'COPIE - Original',
+      description: 'Notes',
+      column_id: columns[0].id,
+      tag_id: tags[0].id,
+      cloned_from_id: original.body.id,
+    });
+  assert.equal(clone.status, 201);
+  assert.equal(clone.body.cloned_from_id, original.body.id);
+});
+
+test('POST /api/cards sans cloned_from_id le laisse à null', async () => {
+  const res = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.cloned_from_id, null);
+});
+
+test('POST /api/cards avec un cloned_from_id invalide retourne 400', async () => {
+  const res = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id, cloned_from_id: 9999 });
+  assert.equal(res.status, 400);
+});
+
+test('POST /api/cards avec une description persiste la description', async () => {
+  const res = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id, description: 'Une description' });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.description, 'Une description');
+});
+
+test('DELETE /api/cards/:id sur une carte source détache simplement ses clones (pas de blocage)', async () => {
+  const original = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'Original', column_id: columns[0].id });
+  const clone = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'Clone', column_id: columns[0].id, cloned_from_id: original.body.id });
+
+  const del = await request(app).delete(`/api/cards/${original.body.id}`).set('Authorization', `Bearer ${adminToken}`);
+  assert.equal(del.status, 204);
+
+  const refetched = await request(app)
+    .get(`/api/cards/${clone.body.id}`)
+    .set('Authorization', `Bearer ${adminToken}`);
+  assert.equal(refetched.body.cloned_from_id, null);
+});

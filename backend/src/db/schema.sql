@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS cards (
   description TEXT,
   tag_id INTEGER REFERENCES tags(id) ON DELETE SET NULL,
   epic_id INTEGER REFERENCES epics(id) ON DELETE SET NULL,
+  cloned_from_id INTEGER REFERENCES cards(id) ON DELETE SET NULL,
   assigned_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('low','medium','high')),
   column_id INTEGER NOT NULL REFERENCES columns(id) ON DELETE CASCADE,

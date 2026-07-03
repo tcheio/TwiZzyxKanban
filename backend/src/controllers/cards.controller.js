@@ -23,7 +23,8 @@ function getOne(req, res) {
 }
 
 function create(req, res) {
-  const { title, assigned_user_id, priority, column_id, tag_id, epic_id, due_date } = req.body || {};
+  const { title, description, assigned_user_id, priority, column_id, tag_id, epic_id, due_date, cloned_from_id } =
+    req.body || {};
 
   if (!title || !column_id) {
     return res.status(400).json({ error: 'title et column_id requis' });
@@ -48,6 +49,12 @@ function create(req, res) {
       return res.status(400).json({ error: 'epic_id invalide' });
     }
   }
+  if (cloned_from_id) {
+    const source = db.prepare('SELECT id FROM cards WHERE id = ?').get(cloned_from_id);
+    if (!source) {
+      return res.status(400).json({ error: 'cloned_from_id invalide' });
+    }
+  }
 
   const maxPosition = db
     .prepare('SELECT COALESCE(MAX(position), -1) AS maxPos FROM cards WHERE column_id = ?')
@@ -57,16 +64,18 @@ function create(req, res) {
 
   const result = db
     .prepare(
-      `INSERT INTO cards (title, assigned_user_id, priority, column_id, tag_id, epic_id, position, due_date, published_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO cards (title, description, assigned_user_id, priority, column_id, tag_id, epic_id, cloned_from_id, position, due_date, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       title,
+      description || null,
       assigned_user_id || null,
       priority || 'medium',
       column_id,
       tag_id || null,
       epic_id || null,
+      cloned_from_id || null,
       maxPosition + 1,
       due_date || null,
       publishedAt
