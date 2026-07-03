@@ -14,10 +14,19 @@ import { UserLite } from '../../../models/user.model';
 import { Comment } from '../../../models/comment.model';
 import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
+import { epicBadgeClass, epicDotClass } from '../../../shared/epic-colors';
+import { tagBadgeClass } from '../../../shared/tag-colors';
+import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
+
+const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = [
+  { id: 'low', label: 'Basse', dotClass: 'bg-gray-400' },
+  { id: 'medium', label: 'Moyenne', dotClass: 'bg-amber-500' },
+  { id: 'high', label: 'Haute', dotClass: 'bg-red-600' },
+];
 
 @Component({
   selector: 'app-ticket-detail',
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, SearchSelect],
   templateUrl: './ticket-detail.html',
   styleUrl: './ticket-detail.css',
 })
@@ -77,9 +86,48 @@ export class TicketDetail implements OnInit {
     }
   }
 
-  userName(id: number | null): string {
-    if (!id) return '—';
-    return this.users().find((u) => u.id === id)?.username ?? '—';
+  epicName(epicId: number | null): string | null {
+    if (!epicId) return null;
+    return this.epics().find((e) => e.id === epicId)?.name ?? null;
+  }
+
+  epicClass(epicId: number | null): string {
+    if (!epicId) return '';
+    const color = this.epics().find((e) => e.id === epicId)?.color;
+    return epicBadgeClass(color);
+  }
+
+  epicDot(epicId: number | null): string {
+    if (!epicId) return '';
+    const color = this.epics().find((e) => e.id === epicId)?.color;
+    return epicDotClass(color);
+  }
+
+  assigneeOptions(): SearchSelectOption<number>[] {
+    return this.users().map((u) => ({
+      id: u.id,
+      label: u.username,
+      avatarUrl: u.avatar_url ?? null,
+      avatarInitial: u.username.charAt(0).toUpperCase(),
+    }));
+  }
+
+  tagOptions(): SearchSelectOption<number>[] {
+    return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.id) }));
+  }
+
+  epicOptions(): SearchSelectOption<number>[] {
+    return this.epics().map((e) => ({ id: e.id, label: e.name, badgeClass: epicBadgeClass(e.color) }));
+  }
+
+  readonly priorityOptions = PRIORITY_OPTIONS;
+
+  formatDateTime(dateStr: string): string {
+    const [datePart, timePart] = dateStr.split(' ');
+    if (!datePart) return dateStr;
+    const [year, month, day] = datePart.split('-');
+    const time = timePart ? timePart.slice(0, 5) : '';
+    return time ? `${day}-${month}-${year} à ${time}` : `${day}-${month}-${year}`;
   }
 
   private async patch(partial: {
@@ -106,7 +154,8 @@ export class TicketDetail implements OnInit {
     this.patch({ title: value.trim() });
   }
 
-  updatePriority(value: Priority): void {
+  updatePriority(value: Priority | null): void {
+    if (!value) return;
     this.patch({ priority: value });
   }
 

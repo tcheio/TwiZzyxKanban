@@ -102,10 +102,10 @@ describe('TicketDetail', () => {
     expect(component.descriptionDraft()).toBe('Notes existantes');
   });
 
-  it('userName() résout le username ou un tiret', async () => {
+  it('assigneeOptions()/tagOptions() exposent les libellés pour le search-select', async () => {
     await component.reload();
-    expect(component.userName(1)).toBe('alice');
-    expect(component.userName(null)).toBe('—');
+    expect(component.assigneeOptions()).toEqual([{ id: 1, label: 'alice', avatarUrl: null, avatarInitial: 'A' }]);
+    expect(component.tagOptions().map((o) => o.label)).toEqual(['Minecraft', 'Pokémon']);
   });
 
   it('updateTitle() ignore une valeur vide', async () => {

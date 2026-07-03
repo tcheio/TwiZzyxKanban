@@ -19,6 +19,7 @@ import { UserLite } from '../../models/user.model';
 import { Tag } from '../../models/tag.model';
 import { Epic } from '../../models/epic.model';
 import { epicBadgeClass } from '../../shared/epic-colors';
+import { tagBadgeClass } from '../../shared/tag-colors';
 
 interface ColumnGroup {
   column: Column;
@@ -36,15 +37,6 @@ const PRIORITY_CLASSES: Record<Priority, string> = {
   medium: 'bg-amber-500',
   high: 'bg-red-600',
 };
-
-const TAG_CLASSES = [
-  'bg-sky-50 text-sky-700',
-  'bg-emerald-50 text-emerald-700',
-  'bg-violet-50 text-violet-700',
-  'bg-amber-50 text-amber-700',
-  'bg-rose-50 text-rose-700',
-  'bg-indigo-50 text-indigo-700',
-];
 
 @Component({
   selector: 'app-board',
@@ -148,8 +140,7 @@ export class Board implements OnInit {
   }
 
   tagClass(tagId: number | null): string {
-    if (!tagId) return '';
-    return TAG_CLASSES[tagId % TAG_CLASSES.length];
+    return tagBadgeClass(tagId);
   }
 
   epicName(epicId: number | null): string | null {
