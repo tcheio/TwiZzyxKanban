@@ -242,17 +242,17 @@
 
       <aside class="w-full max-w-[320px] lg:sticky lg:top-4 lg:self-start">
         <div class="mb-3 flex flex-col gap-2">
-          <select
-            class="w-full rounded-full border px-3 py-1.5 text-sm font-semibold focus:outline-none"
-            [class]="isPublished() ? 'border-gray-200 bg-gray-100 text-gray-500' : 'border-blue-200 bg-blue-50 text-blue-700'"
-            [ngModel]="t.column_id"
-            (ngModelChange)="updateStatus($event)"
+          <app-search-select
+            [options]="statusOptions()"
+            [value]="t.column_id"
+            [allowNull]="false"
             [disabled]="isPublished()"
-          >
-            @for (column of columns(); track column.id) {
-              <option [ngValue]="column.id">{{ column.name }}</option>
-            }
-          </select>
+            [fullWidth]="true"
+            [triggerClass]="statusTriggerClass()"
+            panelClass="w-full"
+            searchPlaceholder="Rechercher un statut..."
+            (valueChange)="updateStatus($event)"
+          />
           @if (authService.isAdmin()) {
             <div class="flex flex-wrap gap-2">
               <button

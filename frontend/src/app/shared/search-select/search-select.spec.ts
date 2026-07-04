@@ -78,6 +78,12 @@ describe('SearchSelect', () => {
     expect(emitted).toEqual([null]);
   });
 
+  it('toggle() ne fait rien si disabled est vrai', () => {
+    component.disabled = true;
+    component.toggle();
+    expect(component.open()).toBe(false);
+  });
+
   it('onEscape() ferme le panneau', () => {
     component.toggle();
     expect(component.open()).toBe(true);

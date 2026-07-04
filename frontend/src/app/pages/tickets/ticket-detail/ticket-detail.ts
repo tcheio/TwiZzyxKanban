@@ -293,9 +293,20 @@ export class TicketDetail implements OnInit {
     return this.columns().find((c) => c.id === ticket.column_id)?.name === '✅Publié';
   }
 
-  async updateStatus(columnId: number): Promise<void> {
+  statusOptions(): SearchSelectOption<number>[] {
+    return this.columns().map((c) => ({ id: c.id, label: c.name }));
+  }
+
+  statusTriggerClass(): string {
+    const base = 'w-full justify-between rounded-full border px-3 py-1.5 font-semibold';
+    return this.isPublished()
+      ? `${base} border-gray-200 bg-gray-100 text-gray-500`
+      : `${base} border-blue-200 bg-blue-50 text-blue-700`;
+  }
+
+  async updateStatus(columnId: number | null): Promise<void> {
     const ticket = this.ticket();
-    if (!ticket || columnId === ticket.column_id || this.isPublished()) return;
+    if (!ticket || columnId === null || columnId === ticket.column_id || this.isPublished()) return;
     try {
       const moved = await this.cardsService.move(ticket.id, columnId);
       this.ticket.set(moved);

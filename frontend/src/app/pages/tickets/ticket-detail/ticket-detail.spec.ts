@@ -192,6 +192,12 @@ describe('TicketDetail', () => {
     expect(cardsService.move).not.toHaveBeenCalled();
   });
 
+  it('updateStatus() ne fait rien si columnId est null', async () => {
+    await component.reload();
+    await component.updateStatus(null);
+    expect(cardsService.move).not.toHaveBeenCalled();
+  });
+
   it('updateStatus() ne fait rien si la colonne est inchangée', async () => {
     await component.reload();
     await component.updateStatus(1);

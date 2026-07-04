@@ -41,8 +41,14 @@ export class SearchSelect<T extends string | number> {
   @Input() value: T | null = null;
   @Input() nullLabel = '— Aucun —';
   @Input() allowNull = true;
+  @Input() disabled = false;
+  @Input() fullWidth = false;
   @Input() searchPlaceholder = 'Rechercher...';
+  @Input() triggerClass?: string;
+  @Input() panelClass = 'w-56';
   @Output() valueChange = new EventEmitter<T | null>();
+
+  readonly defaultTriggerClass = 'max-w-full rounded px-1.5 py-1 text-gray-800 hover:bg-gray-100';
 
   @ViewChild('searchInput') private searchInputRef?: ElementRef<HTMLInputElement>;
 
@@ -65,6 +71,7 @@ export class SearchSelect<T extends string | number> {
   }
 
   toggle(): void {
+    if (this.disabled) return;
     if (this.open()) {
       this.close();
       return;
