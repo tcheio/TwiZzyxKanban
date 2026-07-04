@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -73,11 +73,11 @@ export class TicketDetail implements OnInit {
   // binding [innerHTML] ne réinitialise pas le curseur à chaque frappe.
   readonly descriptionHtml = signal('');
   readonly descriptionDraftHtml = signal('');
-  readonly newCommentHtml = signal('');
   readonly newCommentDraftHtml = signal('');
   readonly cloneDialogOpen = signal(false);
   readonly newLinkTargetId = signal<number | null>(null);
   readonly newLinkType = signal<CardLinkType>('before');
+  readonly viewingImageUrl = signal<string | null>(null);
 
   protected get ticketId(): number {
     return Number(this.route.snapshot.paramMap.get('id'));
@@ -380,11 +380,38 @@ export class TicketDetail implements OnInit {
     if (!this.hasCommentContent()) return;
     try {
       await this.commentsService.create(this.ticketId, this.newCommentDraftHtml());
-      this.newCommentHtml.set('');
       this.newCommentDraftHtml.set('');
+      // La zone de commentaire est un contenteditable "non contrôlé" : son contenu (texte
+      // et images insérées) vit hors du binding Angular, donc on le vide directement dans
+      // le DOM plutôt que de compter sur un re-rendu déclenché par un signal.
+      if (this.commentEditorRef) {
+        this.commentEditorRef.nativeElement.innerHTML = '';
+      }
       this.comments.set(await this.commentsService.list(this.ticketId));
     } catch {
       this.error.set("Échec de l'ajout du commentaire.");
+    }
+  }
+
+  onCommentContentClick(event: Event): void {
+    const target = event.target as HTMLElement;
+    if (target instanceof HTMLImageElement) {
+      this.openImageViewer(target.src);
+    }
+  }
+
+  openImageViewer(url: string): void {
+    this.viewingImageUrl.set(url);
+  }
+
+  closeImageViewer(): void {
+    this.viewingImageUrl.set(null);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.viewingImageUrl()) {
+      this.closeImageViewer();
     }
   }
 

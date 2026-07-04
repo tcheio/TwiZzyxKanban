@@ -270,8 +270,26 @@ describe('TicketDetail', () => {
     component.newCommentDraftHtml.set('Un avis');
     await component.addComment();
     expect(commentsService.create).toHaveBeenCalledWith(5, 'Un avis');
-    expect(component.newCommentHtml()).toBe('');
     expect(component.newCommentDraftHtml()).toBe('');
+  });
+
+  it("addComment() vide aussi le contenu réellement affiché (y compris une image insérée)", async () => {
+    await component.reload();
+    fixture.detectChanges();
+
+    const file = new File(['x'], 'shot.png', { type: 'image/png' });
+    const input = document.createElement('input');
+    input.type = 'file';
+    Object.defineProperty(input, 'files', { value: [file] });
+    await component.onCommentImageSelected({ target: input } as unknown as Event);
+
+    // La description est le premier contenteditable de la page, la zone de commentaire le second.
+    const editor = (fixture.nativeElement as HTMLElement).querySelectorAll('[contenteditable]')[1] as HTMLElement;
+    expect(editor.innerHTML).toContain('data-card-image-id');
+
+    await component.addComment();
+
+    expect(editor.innerHTML).toBe('');
   });
 
   it("canDeleteComment() autorise l'auteur", async () => {
@@ -584,5 +602,47 @@ describe('TicketDetail', () => {
     await component.reload();
     await component.removeImage(3);
     expect(cardImagesService.remove).toHaveBeenCalledWith(5, 3);
+  });
+
+  it('openImageViewer()/closeImageViewer() pilotent le visualiseur', () => {
+    expect(component.viewingImageUrl()).toBeNull();
+    component.openImageViewer('data:image/jpeg;base64,AAA');
+    expect(component.viewingImageUrl()).toBe('data:image/jpeg;base64,AAA');
+    component.closeImageViewer();
+    expect(component.viewingImageUrl()).toBeNull();
+  });
+
+  it('onEscapeKey() ferme le visualiseur uniquement s\'il est ouvert', () => {
+    component.onEscapeKey();
+    expect(component.viewingImageUrl()).toBeNull();
+
+    component.openImageViewer('data:image/jpeg;base64,AAA');
+    component.onEscapeKey();
+    expect(component.viewingImageUrl()).toBeNull();
+  });
+
+  it('onCommentContentClick() ouvre le visualiseur seulement en cliquant une image', () => {
+    const img = document.createElement('img');
+    img.src = 'data:image/jpeg;base64,AAA';
+    component.onCommentContentClick({ target: img } as unknown as Event);
+    expect(component.viewingImageUrl()).toBe(img.src);
+
+    component.closeImageViewer();
+    const span = document.createElement('span');
+    component.onCommentContentClick({ target: span } as unknown as Event);
+    expect(component.viewingImageUrl()).toBeNull();
+  });
+
+  it('le clic sur une vignette de la galerie ouvre le visualiseur', async () => {
+    cardImagesService.list.mockResolvedValue([{ id: 4, card_id: 5, data_url: 'data:image/jpeg;base64,ZZZ' }]);
+    await component.reload();
+    fixture.detectChanges();
+
+    const thumbnailButton = (fixture.nativeElement as HTMLElement).querySelector(
+      'img[src="data:image/jpeg;base64,ZZZ"]'
+    )?.parentElement as HTMLButtonElement;
+    thumbnailButton.click();
+
+    expect(component.viewingImageUrl()).toBe('data:image/jpeg;base64,ZZZ');
   });
 });
