@@ -6,6 +6,7 @@ import { CardsService } from '../../../services/cards.service';
 import { ColumnsService } from '../../../services/columns.service';
 import { UsersService } from '../../../services/users.service';
 import { CommentsService } from '../../../services/comments.service';
+import { CardLinksService } from '../../../services/card-links.service';
 import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
@@ -24,6 +25,11 @@ describe('TicketDetail', () => {
     remove: ReturnType<typeof vi.fn>;
   };
   let commentsService: {
+    list: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
+  };
+  let cardLinksService: {
     list: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
@@ -77,6 +83,11 @@ describe('TicketDetail', () => {
       create: vi.fn().mockResolvedValue({}),
       remove: vi.fn().mockResolvedValue(undefined),
     };
+    cardLinksService = {
+      list: vi.fn().mockResolvedValue([]),
+      create: vi.fn().mockResolvedValue({}),
+      remove: vi.fn().mockResolvedValue(undefined),
+    };
     columnsService = { list: vi.fn().mockResolvedValue(columns) };
 
     TestBed.configureTestingModule({
@@ -87,6 +98,7 @@ describe('TicketDetail', () => {
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: CommentsService, useValue: commentsService },
+        { provide: CardLinksService, useValue: cardLinksService },
         { provide: AuthService, useValue: { currentUser, isAdmin } },
         { provide: Router, useValue: { navigate } },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '5' } } } },
@@ -336,5 +348,61 @@ describe('TicketDetail', () => {
     );
     expect(component.cloneDialogOpen()).toBe(false);
     expect(navigate).toHaveBeenCalledWith(['/tickets', 99]);
+  });
+
+  it('linkedBefore() liste les tickets à faire avant', async () => {
+    const other = { ...ticket, id: 20, title: 'Autre ticket' };
+    cardsService.list.mockResolvedValue([ticket, other]);
+    cardLinksService.list.mockResolvedValue([
+      { id: 1, card_id: 5, linked_card_id: 20, type: 'before' },
+    ]);
+
+    await component.reload();
+
+    expect(component.linkedBefore()).toEqual([{ linkId: 1, card: other }]);
+    expect(component.linkedAfter()).toEqual([]);
+  });
+
+  it('linkedAfter() inverse le sens quand le ticket est la cible du lien', async () => {
+    const other = { ...ticket, id: 20, title: 'Autre ticket' };
+    cardsService.list.mockResolvedValue([ticket, other]);
+    cardLinksService.list.mockResolvedValue([
+      { id: 1, card_id: 20, linked_card_id: 5, type: 'before' },
+    ]);
+
+    await component.reload();
+
+    expect(component.linkedAfter()).toEqual([{ linkId: 1, card: other }]);
+    expect(component.linkedBefore()).toEqual([]);
+  });
+
+  it('addLink() ignore une cible non choisie', async () => {
+    await component.reload();
+    await component.addLink();
+    expect(cardLinksService.create).not.toHaveBeenCalled();
+  });
+
+  it('addLink() crée le lien, réinitialise la cible et recharge la liste', async () => {
+    await component.reload();
+    component.newLinkTargetId.set(20);
+    component.newLinkType.set('after');
+    await component.addLink();
+
+    expect(cardLinksService.create).toHaveBeenCalledWith(5, 20, 'after');
+    expect(component.newLinkTargetId()).toBeNull();
+  });
+
+  it("removeLink() n'agit pas si l'utilisateur annule", async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await component.reload();
+    await component.removeLink(1);
+    expect(cardLinksService.remove).not.toHaveBeenCalled();
+  });
+
+  it('removeLink() supprime après confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await component.reload();
+    await component.removeLink(1);
+    expect(cardLinksService.remove).toHaveBeenCalledWith(5, 1);
   });
 });

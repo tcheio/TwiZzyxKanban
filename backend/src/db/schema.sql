@@ -55,3 +55,14 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 
 CREATE INDEX IF NOT EXISTS idx_comments_card ON comments(card_id);
+
+CREATE TABLE IF NOT EXISTS card_links (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  linked_card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK(type IN ('before','after')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_links_card ON card_links(card_id);
+CREATE INDEX IF NOT EXISTS idx_card_links_linked ON card_links(linked_card_id);
