@@ -3,6 +3,7 @@ const requireAdmin = require('../middleware/requireAdmin');
 const { list, getOne, create, update, remove, move } = require('../controllers/cards.controller');
 const commentsRoutes = require('./comments.routes');
 const cardLinksRoutes = require('./cardLinks.routes');
+const cardImagesRoutes = require('./cardImages.routes');
 
 const router = express.Router();
 
@@ -15,5 +16,6 @@ router.delete('/:id', requireAdmin, remove);
 
 router.use('/:id/comments', commentsRoutes);
 router.use('/:id/links', cardLinksRoutes);
+router.use('/:id/images', cardImagesRoutes);
 
 module.exports = router;

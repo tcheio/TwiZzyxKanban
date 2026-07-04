@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -7,6 +7,7 @@ import { ColumnsService } from '../../../services/columns.service';
 import { UsersService } from '../../../services/users.service';
 import { CommentsService } from '../../../services/comments.service';
 import { CardLinksService } from '../../../services/card-links.service';
+import { CardImagesService } from '../../../services/card-images.service';
 import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
@@ -15,10 +16,12 @@ import { Column } from '../../../models/column.model';
 import { UserLite } from '../../../models/user.model';
 import { Comment } from '../../../models/comment.model';
 import { CardLink, CardLinkType } from '../../../models/card-link.model';
+import { CardImage } from '../../../models/card-image.model';
 import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
 import { epicBadgeClass, epicDotClass } from '../../../shared/epic-colors';
 import { tagBadgeClass } from '../../../shared/tag-colors';
+import { stripCardImageSrc, hydrateCardImages } from '../../../shared/card-image-html';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
 
@@ -47,9 +50,13 @@ export class TicketDetail implements OnInit {
   private usersService = inject(UsersService);
   private commentsService = inject(CommentsService);
   private cardLinksService = inject(CardLinksService);
+  private cardImagesService = inject(CardImagesService);
   private tagsService = inject(TagsService);
   private epicsService = inject(EpicsService);
   protected authService = inject(AuthService);
+
+  @ViewChild('commentEditor') private commentEditorRef?: ElementRef<HTMLDivElement>;
+  @ViewChild('galleryFileInput') private galleryFileInputRef?: ElementRef<HTMLInputElement>;
 
   readonly ticket = signal<Card | null>(null);
   readonly columns = signal<Column[]>([]);
@@ -58,11 +65,16 @@ export class TicketDetail implements OnInit {
   readonly epics = signal<Epic[]>([]);
   readonly comments = signal<Comment[]>([]);
   readonly links = signal<CardLink[]>([]);
+  readonly images = signal<CardImage[]>([]);
   readonly cards = signal<Card[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  readonly descriptionDraft = signal('');
-  readonly newComment = signal('');
+  // descriptionHtml n'est modifié que par reload() (jamais par la saisie) pour que le
+  // binding [innerHTML] ne réinitialise pas le curseur à chaque frappe.
+  readonly descriptionHtml = signal('');
+  readonly descriptionDraftHtml = signal('');
+  readonly newCommentHtml = signal('');
+  readonly newCommentDraftHtml = signal('');
   readonly cloneDialogOpen = signal(false);
   readonly newLinkTargetId = signal<number | null>(null);
   readonly newLinkType = signal<CardLinkType>('before');
@@ -79,7 +91,7 @@ export class TicketDetail implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [ticket, columns, users, tags, epics, comments, links, cards] = await Promise.all([
+      const [ticket, columns, users, tags, epics, comments, links, images, cards] = await Promise.all([
         this.cardsService.get(this.ticketId),
         this.columnsService.list(),
         this.usersService.lite(),
@@ -87,6 +99,7 @@ export class TicketDetail implements OnInit {
         this.epicsService.list(),
         this.commentsService.list(this.ticketId),
         this.cardLinksService.list(this.ticketId),
+        this.cardImagesService.list(this.ticketId),
         this.cardsService.list(),
       ]);
       this.ticket.set(ticket);
@@ -96,8 +109,11 @@ export class TicketDetail implements OnInit {
       this.epics.set(epics);
       this.comments.set(comments);
       this.links.set(links);
+      this.images.set(images);
       this.cards.set(cards);
-      this.descriptionDraft.set(ticket.description ?? '');
+      const hydratedDescription = hydrateCardImages(ticket.description ?? '', images);
+      this.descriptionHtml.set(hydratedDescription);
+      this.descriptionDraftHtml.set(hydratedDescription);
       this.titleService.setTitle(`${ticket.title} - TwiZzyxKanban`);
     } catch {
       this.error.set('Ticket introuvable.');
@@ -315,19 +331,109 @@ export class TicketDetail implements OnInit {
     }
   }
 
+  onDescriptionInput(event: Event): void {
+    this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
+  }
+
+  async onDescriptionPaste(event: ClipboardEvent): Promise<void> {
+    await this.handleImagePaste(event, () => {
+      this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
+    });
+  }
+
   saveDescription(): void {
-    this.patch({ description: this.descriptionDraft() || null });
+    this.patch({ description: stripCardImageSrc(this.descriptionDraftHtml()) || null });
+  }
+
+  hasCommentContent(): boolean {
+    const html = this.newCommentDraftHtml();
+    if (/<img[\s>]/i.test(html)) return true;
+    return html.replace(/<[^>]*>/g, '').trim().length > 0;
+  }
+
+  onCommentInput(event: Event): void {
+    this.newCommentDraftHtml.set((event.target as HTMLElement).innerHTML);
+  }
+
+  async onCommentPaste(event: ClipboardEvent): Promise<void> {
+    await this.handleImagePaste(event, () => {
+      this.newCommentDraftHtml.set((event.target as HTMLElement).innerHTML);
+    });
+  }
+
+  async onCommentImageSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    try {
+      const image = await this.cardImagesService.upload(this.ticketId, file);
+      this.commentEditorRef?.nativeElement.insertAdjacentHTML('beforeend', this.imageTag(image));
+      this.newCommentDraftHtml.set(this.commentEditorRef?.nativeElement.innerHTML ?? '');
+      this.images.set(await this.cardImagesService.list(this.ticketId));
+    } catch {
+      this.error.set("Échec de l'ajout de l'image.");
+    }
   }
 
   async addComment(): Promise<void> {
-    const body = this.newComment().trim();
-    if (!body) return;
+    if (!this.hasCommentContent()) return;
     try {
-      await this.commentsService.create(this.ticketId, body);
-      this.newComment.set('');
+      await this.commentsService.create(this.ticketId, this.newCommentDraftHtml());
+      this.newCommentHtml.set('');
+      this.newCommentDraftHtml.set('');
       this.comments.set(await this.commentsService.list(this.ticketId));
     } catch {
       this.error.set("Échec de l'ajout du commentaire.");
+    }
+  }
+
+  triggerGalleryUpload(): void {
+    this.galleryFileInputRef?.nativeElement.click();
+  }
+
+  async onGalleryImageSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    try {
+      await this.cardImagesService.upload(this.ticketId, file);
+      this.images.set(await this.cardImagesService.list(this.ticketId));
+    } catch {
+      this.error.set("Échec de l'ajout de l'image.");
+    }
+  }
+
+  async removeImage(imageId: number): Promise<void> {
+    if (!confirm('Supprimer cette image ?')) return;
+    try {
+      await this.cardImagesService.remove(this.ticketId, imageId);
+      this.images.set(await this.cardImagesService.list(this.ticketId));
+    } catch {
+      this.error.set("Échec de la suppression de l'image.");
+    }
+  }
+
+  private imageTag(image: CardImage): string {
+    return `<img src="${image.data_url}" data-card-image-id="${image.id}" alt="" class="max-w-full rounded">`;
+  }
+
+  private async handleImagePaste(event: ClipboardEvent, onInsert: () => void): Promise<void> {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+    const imageItem = Array.from(items).find((item) => item.type.startsWith('image/'));
+    if (!imageItem) return;
+    const file = imageItem.getAsFile();
+    if (!file) return;
+    event.preventDefault();
+    try {
+      const image = await this.cardImagesService.upload(this.ticketId, file);
+      document.execCommand('insertHTML', false, this.imageTag(image));
+      onInsert();
+      this.images.set(await this.cardImagesService.list(this.ticketId));
+    } catch {
+      this.error.set("Échec de l'ajout de l'image.");
     }
   }
 

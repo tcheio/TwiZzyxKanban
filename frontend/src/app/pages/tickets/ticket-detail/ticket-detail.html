@@ -33,12 +33,13 @@
 
         <section class="mt-4 rounded-lg border border-gray-200 bg-white p-4">
           <h2 class="mb-2 text-sm font-semibold text-gray-700">Description</h2>
-          <textarea
-            rows="6"
-            class="w-full rounded-md border border-gray-200 p-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
-            [value]="descriptionDraft()"
-            (input)="descriptionDraft.set($any($event.target).value)"
-          ></textarea>
+          <div
+            contenteditable="true"
+            class="min-h-[8rem] w-full rounded-md border border-gray-200 p-2 text-sm whitespace-pre-wrap text-gray-800 focus:border-blue-400 focus:outline-none"
+            [innerHTML]="descriptionHtml()"
+            (input)="onDescriptionInput($event)"
+            (paste)="onDescriptionPaste($event)"
+          ></div>
           <button
             type="button"
             class="mt-2 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
@@ -189,6 +190,47 @@
         </section>
 
         <section class="mt-4 rounded-lg border border-gray-200 bg-white p-4">
+          <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-gray-700">Images ({{ images().length }})</h2>
+            <button
+              type="button"
+              class="rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+              (click)="triggerGalleryUpload()"
+            >
+              + Ajouter une image
+            </button>
+            <input
+              #galleryFileInput
+              type="file"
+              accept="image/*"
+              class="hidden"
+              (change)="onGalleryImageSelected($event)"
+            />
+          </div>
+
+          @if (images().length > 0) {
+            <div class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+              @for (image of images(); track image.id) {
+                <div class="group relative aspect-square overflow-hidden rounded-md border border-gray-200 bg-gray-50">
+                  <a [href]="image.data_url" target="_blank" rel="noopener">
+                    <img [src]="image.data_url" class="h-full w-full object-cover" alt="" />
+                  </a>
+                  <button
+                    type="button"
+                    class="absolute top-1 right-1 hidden h-5 w-5 items-center justify-center rounded-full bg-white/90 text-xs text-gray-500 hover:text-red-600 group-hover:flex"
+                    (click)="removeImage(image.id)"
+                  >
+                    ✕
+                  </button>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="text-sm text-gray-500">Aucune image pour le moment.</p>
+          }
+        </section>
+
+        <section class="mt-4 rounded-lg border border-gray-200 bg-white p-4">
           <h2 class="mb-3 text-sm font-semibold text-gray-700">Commentaires ({{ comments().length }})</h2>
 
           @for (comment of comments(); track comment.id) {
@@ -212,7 +254,7 @@
                     </button>
                   }
                 </div>
-                <p class="mt-1 whitespace-pre-wrap text-sm text-gray-800">{{ comment.body }}</p>
+                <div class="mt-1 whitespace-pre-wrap text-sm text-gray-800" [innerHTML]="comment.body"></div>
               </div>
             </div>
           }
@@ -221,21 +263,45 @@
           }
 
           <div class="mt-3 flex flex-col gap-2">
-            <textarea
-              rows="3"
-              placeholder="Ajouter un commentaire..."
-              class="w-full rounded-md border border-gray-200 p-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
-              [value]="newComment()"
-              (input)="newComment.set($any($event.target).value)"
-            ></textarea>
-            <button
-              type="button"
-              class="self-end rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-              [disabled]="!newComment().trim()"
-              (click)="addComment()"
-            >
-              Commenter
-            </button>
+            <div class="relative">
+              @if (!hasCommentContent()) {
+                <span class="pointer-events-none absolute top-2 left-2 text-sm text-gray-400">
+                  Ajouter un commentaire...
+                </span>
+              }
+              <div
+                #commentEditor
+                contenteditable="true"
+                class="min-h-[4.5rem] w-full rounded-md border border-gray-200 p-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
+                [innerHTML]="newCommentHtml()"
+                (input)="onCommentInput($event)"
+                (paste)="onCommentPaste($event)"
+              ></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <button
+                type="button"
+                class="rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                (click)="commentImageInput.click()"
+              >
+                + Image
+              </button>
+              <input
+                #commentImageInput
+                type="file"
+                accept="image/*"
+                class="hidden"
+                (change)="onCommentImageSelected($event)"
+              />
+              <button
+                type="button"
+                class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                [disabled]="!hasCommentContent()"
+                (click)="addComment()"
+              >
+                Commenter
+              </button>
+            </div>
           </div>
         </section>
       </div>
