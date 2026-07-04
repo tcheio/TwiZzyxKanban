@@ -7,6 +7,7 @@ import { ColumnsService } from '../../../services/columns.service';
 import { UsersService } from '../../../services/users.service';
 import { CommentsService } from '../../../services/comments.service';
 import { CardLinksService } from '../../../services/card-links.service';
+import { CardImagesService } from '../../../services/card-images.service';
 import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
@@ -32,6 +33,11 @@ describe('TicketDetail', () => {
   let cardLinksService: {
     list: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
+  };
+  let cardImagesService: {
+    list: ReturnType<typeof vi.fn>;
+    upload: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
   };
   let columnsService: { list: ReturnType<typeof vi.fn> };
@@ -88,6 +94,11 @@ describe('TicketDetail', () => {
       create: vi.fn().mockResolvedValue({}),
       remove: vi.fn().mockResolvedValue(undefined),
     };
+    cardImagesService = {
+      list: vi.fn().mockResolvedValue([]),
+      upload: vi.fn().mockResolvedValue({ id: 1, card_id: 5, data_url: 'data:image/jpeg;base64,AAA' }),
+      remove: vi.fn().mockResolvedValue(undefined),
+    };
     columnsService = { list: vi.fn().mockResolvedValue(columns) };
 
     TestBed.configureTestingModule({
@@ -99,6 +110,7 @@ describe('TicketDetail', () => {
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: CommentsService, useValue: commentsService },
         { provide: CardLinksService, useValue: cardLinksService },
+        { provide: CardImagesService, useValue: cardImagesService },
         { provide: AuthService, useValue: { currentUser, isAdmin } },
         { provide: Router, useValue: { navigate } },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '5' } } } },
@@ -116,7 +128,8 @@ describe('TicketDetail', () => {
     expect(component.columns()).toEqual(columns);
     expect(component.tags()).toEqual(tags);
     expect(component.comments()).toEqual(comments);
-    expect(component.descriptionDraft()).toBe('Notes existantes');
+    expect(component.descriptionHtml()).toBe('Notes existantes');
+    expect(component.descriptionDraftHtml()).toBe('Notes existantes');
   });
 
   it('assigneeOptions()/tagOptions() exposent les libellés pour le search-select', async () => {
@@ -213,25 +226,70 @@ describe('TicketDetail', () => {
 
   it('saveDescription() persiste le brouillon courant', async () => {
     await component.reload();
-    component.descriptionDraft.set('Nouvelle description');
+    component.descriptionDraftHtml.set('Nouvelle description');
     component.saveDescription();
     await Promise.resolve();
     expect(cardsService.update).toHaveBeenCalledWith(5, { description: 'Nouvelle description' });
   });
 
+  it('saveDescription() retire le src des images avant sauvegarde', async () => {
+    await component.reload();
+    component.descriptionDraftHtml.set(
+      '<p>Texte</p><img src="data:image/jpeg;base64,AAA" data-card-image-id="1" alt="" class="max-w-full rounded">'
+    );
+    component.saveDescription();
+    await Promise.resolve();
+    expect(cardsService.update).toHaveBeenCalledWith(5, {
+      description: '<p>Texte</p><img data-card-image-id="1" alt="">',
+    });
+  });
+
+  it('hasCommentContent() est faux quand vide, vrai avec du texte ou une image', () => {
+    component.newCommentDraftHtml.set('');
+    expect(component.hasCommentContent()).toBe(false);
+
+    component.newCommentDraftHtml.set('   <br>');
+    expect(component.hasCommentContent()).toBe(false);
+
+    component.newCommentDraftHtml.set('<p>Un avis</p>');
+    expect(component.hasCommentContent()).toBe(true);
+
+    component.newCommentDraftHtml.set('<img src="data:image/jpeg;base64,AAA" data-card-image-id="1">');
+    expect(component.hasCommentContent()).toBe(true);
+  });
+
   it("addComment() ignore un commentaire vide", async () => {
     await component.reload();
-    component.newComment.set('   ');
+    component.newCommentDraftHtml.set('   ');
     await component.addComment();
     expect(commentsService.create).not.toHaveBeenCalled();
   });
 
   it('addComment() crée le commentaire, vide le champ et recharge la liste', async () => {
     await component.reload();
-    component.newComment.set('Un avis');
+    component.newCommentDraftHtml.set('Un avis');
     await component.addComment();
     expect(commentsService.create).toHaveBeenCalledWith(5, 'Un avis');
-    expect(component.newComment()).toBe('');
+    expect(component.newCommentDraftHtml()).toBe('');
+  });
+
+  it("addComment() vide aussi le contenu réellement affiché (y compris une image insérée)", async () => {
+    await component.reload();
+    fixture.detectChanges();
+
+    const file = new File(['x'], 'shot.png', { type: 'image/png' });
+    const input = document.createElement('input');
+    input.type = 'file';
+    Object.defineProperty(input, 'files', { value: [file] });
+    await component.onCommentImageSelected({ target: input } as unknown as Event);
+
+    // La description est le premier contenteditable de la page, la zone de commentaire le second.
+    const editor = (fixture.nativeElement as HTMLElement).querySelectorAll('[contenteditable]')[1] as HTMLElement;
+    expect(editor.innerHTML).toContain('data-card-image-id');
+
+    await component.addComment();
+
+    expect(editor.innerHTML).toBe('');
   });
 
   it("canDeleteComment() autorise l'auteur", async () => {
@@ -410,5 +468,181 @@ describe('TicketDetail', () => {
     await component.reload();
     await component.removeLink(1);
     expect(cardLinksService.remove).toHaveBeenCalledWith(5, 1);
+  });
+
+  function fakeImagePasteEvent(target: HTMLElement, file: File): ClipboardEvent {
+    return {
+      clipboardData: { items: [{ type: file.type, getAsFile: () => file }] },
+      preventDefault: vi.fn(),
+      target,
+    } as unknown as ClipboardEvent;
+  }
+
+  it('onDescriptionPaste() uploade une image collée et l\'insère via execCommand', async () => {
+    await component.reload();
+    const editor = document.createElement('div');
+    editor.innerHTML = 'contenu';
+    const file = new File(['x'], 'shot.png', { type: 'image/png' });
+    const event = fakeImagePasteEvent(editor, file);
+    const execSpy = ((document as unknown as { execCommand: typeof vi.fn }).execCommand = vi
+      .fn()
+      .mockReturnValue(true));
+
+    await component.onDescriptionPaste(event);
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(cardImagesService.upload).toHaveBeenCalledWith(5, file);
+    expect(execSpy).toHaveBeenCalledWith(
+      'insertHTML',
+      false,
+      '<img src="data:image/jpeg;base64,AAA" data-card-image-id="1" alt="" class="max-w-full rounded">'
+    );
+    expect(component.descriptionDraftHtml()).toBe('contenu');
+  });
+
+  it('onDescriptionPaste() laisse passer un collage de texte normal', async () => {
+    await component.reload();
+    const editor = document.createElement('div');
+    const event = {
+      clipboardData: { items: [{ type: 'text/plain', getAsFile: () => null }] },
+      preventDefault: vi.fn(),
+      target: editor,
+    } as unknown as ClipboardEvent;
+
+    await component.onDescriptionPaste(event);
+
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(cardImagesService.upload).not.toHaveBeenCalled();
+  });
+
+  it('onCommentPaste() uploade une image collée dans le commentaire', async () => {
+    await component.reload();
+    const editor = document.createElement('div');
+    editor.innerHTML = 'brouillon';
+    const file = new File(['x'], 'shot.png', { type: 'image/png' });
+    const event = fakeImagePasteEvent(editor, file);
+    (document as unknown as { execCommand: typeof vi.fn }).execCommand = vi.fn().mockReturnValue(true);
+
+    await component.onCommentPaste(event);
+
+    expect(cardImagesService.upload).toHaveBeenCalledWith(5, file);
+    expect(component.newCommentDraftHtml()).toBe('brouillon');
+  });
+
+  it("onCommentImageSelected() ajoute l'image à la fin de la zone de commentaire", async () => {
+    await component.reload();
+    fixture.detectChanges();
+
+    const file = new File(['x'], 'shot.png', { type: 'image/png' });
+    const input = document.createElement('input');
+    input.type = 'file';
+    Object.defineProperty(input, 'files', { value: [file] });
+
+    await component.onCommentImageSelected({ target: input } as unknown as Event);
+
+    expect(cardImagesService.upload).toHaveBeenCalledWith(5, file);
+    expect(component.newCommentDraftHtml()).toContain('data-card-image-id="1"');
+  });
+
+  it("onCommentImageSelected() ne fait rien sans fichier sélectionné", async () => {
+    await component.reload();
+    fixture.detectChanges();
+    const input = document.createElement('input');
+    input.type = 'file';
+
+    await component.onCommentImageSelected({ target: input } as unknown as Event);
+
+    expect(cardImagesService.upload).not.toHaveBeenCalled();
+  });
+
+  it('triggerGalleryUpload() déclenche le clic sur le input file caché', async () => {
+    await component.reload();
+    fixture.detectChanges();
+    const input = (fixture.nativeElement as HTMLElement).querySelector('input[type="file"]') as HTMLInputElement;
+    const clickSpy = vi.spyOn(input, 'click');
+
+    component.triggerGalleryUpload();
+
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it('onGalleryImageSelected() uploade le fichier et recharge les images', async () => {
+    await component.reload();
+    const file = new File(['x'], 'shot.png', { type: 'image/png' });
+    const input = document.createElement('input');
+    input.type = 'file';
+    Object.defineProperty(input, 'files', { value: [file] });
+    cardImagesService.list.mockResolvedValue([{ id: 1, card_id: 5, data_url: 'data:image/jpeg;base64,AAA' }]);
+
+    await component.onGalleryImageSelected({ target: input } as unknown as Event);
+
+    expect(cardImagesService.upload).toHaveBeenCalledWith(5, file);
+    expect(component.images()).toEqual([{ id: 1, card_id: 5, data_url: 'data:image/jpeg;base64,AAA' }]);
+  });
+
+  it('onGalleryImageSelected() ne fait rien sans fichier sélectionné', async () => {
+    await component.reload();
+    const input = document.createElement('input');
+    input.type = 'file';
+
+    await component.onGalleryImageSelected({ target: input } as unknown as Event);
+
+    expect(cardImagesService.upload).not.toHaveBeenCalled();
+  });
+
+  it("removeImage() n'agit pas si l'utilisateur annule", async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await component.reload();
+    await component.removeImage(3);
+    expect(cardImagesService.remove).not.toHaveBeenCalled();
+  });
+
+  it('removeImage() supprime après confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await component.reload();
+    await component.removeImage(3);
+    expect(cardImagesService.remove).toHaveBeenCalledWith(5, 3);
+  });
+
+  it('openImageViewer()/closeImageViewer() pilotent le visualiseur', () => {
+    expect(component.viewingImageUrl()).toBeNull();
+    component.openImageViewer('data:image/jpeg;base64,AAA');
+    expect(component.viewingImageUrl()).toBe('data:image/jpeg;base64,AAA');
+    component.closeImageViewer();
+    expect(component.viewingImageUrl()).toBeNull();
+  });
+
+  it('onEscapeKey() ferme le visualiseur uniquement s\'il est ouvert', () => {
+    component.onEscapeKey();
+    expect(component.viewingImageUrl()).toBeNull();
+
+    component.openImageViewer('data:image/jpeg;base64,AAA');
+    component.onEscapeKey();
+    expect(component.viewingImageUrl()).toBeNull();
+  });
+
+  it('onCommentContentClick() ouvre le visualiseur seulement en cliquant une image', () => {
+    const img = document.createElement('img');
+    img.src = 'data:image/jpeg;base64,AAA';
+    component.onCommentContentClick({ target: img } as unknown as Event);
+    expect(component.viewingImageUrl()).toBe(img.src);
+
+    component.closeImageViewer();
+    const span = document.createElement('span');
+    component.onCommentContentClick({ target: span } as unknown as Event);
+    expect(component.viewingImageUrl()).toBeNull();
+  });
+
+  it('le clic sur une vignette de la galerie ouvre le visualiseur', async () => {
+    cardImagesService.list.mockResolvedValue([{ id: 4, card_id: 5, data_url: 'data:image/jpeg;base64,ZZZ' }]);
+    await component.reload();
+    fixture.detectChanges();
+
+    const thumbnailButton = (fixture.nativeElement as HTMLElement).querySelector(
+      'img[src="data:image/jpeg;base64,ZZZ"]'
+    )?.parentElement as HTMLButtonElement;
+    thumbnailButton.click();
+
+    expect(component.viewingImageUrl()).toBe('data:image/jpeg;base64,ZZZ');
   });
 });
