@@ -6,6 +6,7 @@ import { CardsService } from '../../../services/cards.service';
 import { ColumnsService } from '../../../services/columns.service';
 import { UsersService } from '../../../services/users.service';
 import { CommentsService } from '../../../services/comments.service';
+import { CardLinksService } from '../../../services/card-links.service';
 import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
@@ -17,11 +18,18 @@ describe('TicketDetail', () => {
   let fixture: ReturnType<typeof TestBed.createComponent<TicketDetail>>;
   let cardsService: {
     get: ReturnType<typeof vi.fn>;
+    list: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     move: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
   };
   let commentsService: {
+    list: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
+  };
+  let cardLinksService: {
     list: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
@@ -46,6 +54,7 @@ describe('TicketDetail', () => {
     description: 'Notes existantes',
     tag_id: 1,
     epic_id: null,
+    cloned_from_id: null,
     assigned_user_id: 1,
     priority: 'medium',
     column_id: 1,
@@ -63,12 +72,19 @@ describe('TicketDetail', () => {
     isAdmin = vi.fn().mockReturnValue(false);
     cardsService = {
       get: vi.fn().mockResolvedValue({ ...ticket }),
+      list: vi.fn().mockResolvedValue([ticket]),
+      create: vi.fn().mockResolvedValue({ ...ticket, id: 99 }),
       update: vi.fn().mockImplementation((id, partial) => Promise.resolve({ ...ticket, ...partial })),
       move: vi.fn().mockResolvedValue({ ...ticket, column_id: 2 }),
       remove: vi.fn().mockResolvedValue(undefined),
     };
     commentsService = {
       list: vi.fn().mockResolvedValue(comments),
+      create: vi.fn().mockResolvedValue({}),
+      remove: vi.fn().mockResolvedValue(undefined),
+    };
+    cardLinksService = {
+      list: vi.fn().mockResolvedValue([]),
       create: vi.fn().mockResolvedValue({}),
       remove: vi.fn().mockResolvedValue(undefined),
     };
@@ -82,6 +98,7 @@ describe('TicketDetail', () => {
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: CommentsService, useValue: commentsService },
+        { provide: CardLinksService, useValue: cardLinksService },
         { provide: AuthService, useValue: { currentUser, isAdmin } },
         { provide: Router, useValue: { navigate } },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '5' } } } },
@@ -172,6 +189,12 @@ describe('TicketDetail', () => {
 
     await component.updateStatus(1);
 
+    expect(cardsService.move).not.toHaveBeenCalled();
+  });
+
+  it('updateStatus() ne fait rien si columnId est null', async () => {
+    await component.reload();
+    await component.updateStatus(null);
     expect(cardsService.move).not.toHaveBeenCalled();
   });
 
@@ -271,5 +294,121 @@ describe('TicketDetail', () => {
 
     const button = (fixture.nativeElement as HTMLElement).querySelector('button.danger');
     expect(button).toBeTruthy();
+  });
+
+  it('clonedFrom() retourne null si le ticket ne provient pas d\'un clonage', async () => {
+    await component.reload();
+    expect(component.clonedFrom()).toBeNull();
+  });
+
+  it('clonedFrom() résout la carte source à partir de cloned_from_id', async () => {
+    const source = { ...ticket, id: 1, title: 'Source' };
+    cardsService.get.mockResolvedValue({ ...ticket, cloned_from_id: 1 });
+    cardsService.list.mockResolvedValue([source, { ...ticket, cloned_from_id: 1 }]);
+
+    await component.reload();
+
+    expect(component.clonedFrom()?.title).toBe('Source');
+  });
+
+  it('clones() retourne les cartes clonées à partir de ce ticket', async () => {
+    const cloneA = { ...ticket, id: 10, title: 'Clone A', cloned_from_id: 5 };
+    const cloneB = { ...ticket, id: 11, title: 'Clone B', cloned_from_id: 5 };
+    const unrelated = { ...ticket, id: 12, title: 'Autre', cloned_from_id: 999 };
+    cardsService.list.mockResolvedValue([ticket, cloneA, cloneB, unrelated]);
+
+    await component.reload();
+
+    expect(component.clones().map((c) => c.title)).toEqual(['Clone A', 'Clone B']);
+  });
+
+  it('cloneInitialValue() reprend les données du ticket sauf assigné et échéance', async () => {
+    await component.reload();
+
+    expect(component.cloneInitialValue()).toEqual({
+      title: 'COPIE - Mon ticket',
+      description: 'Notes existantes',
+      tag_id: 1,
+      epic_id: null,
+      priority: 'medium',
+      column_id: 1,
+    });
+  });
+
+  it('createClone() crée le ticket cloné, ferme le dialogue et navigue vers sa page', async () => {
+    await component.reload();
+    component.cloneDialogOpen.set(true);
+
+    await component.createClone({
+      title: 'COPIE - Mon ticket',
+      column_id: 1,
+      tag_id: 1,
+      epic_id: null,
+      cloned_from_id: 5,
+      assigned_user_id: null,
+      priority: 'medium',
+    });
+
+    expect(cardsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'COPIE - Mon ticket', cloned_from_id: 5 })
+    );
+    expect(component.cloneDialogOpen()).toBe(false);
+    expect(navigate).toHaveBeenCalledWith(['/tickets', 99]);
+  });
+
+  it('linkedBefore() liste les tickets à faire avant', async () => {
+    const other = { ...ticket, id: 20, title: 'Autre ticket' };
+    cardsService.list.mockResolvedValue([ticket, other]);
+    cardLinksService.list.mockResolvedValue([
+      { id: 1, card_id: 5, linked_card_id: 20, type: 'before' },
+    ]);
+
+    await component.reload();
+
+    expect(component.linkedBefore()).toEqual([{ linkId: 1, card: other }]);
+    expect(component.linkedAfter()).toEqual([]);
+  });
+
+  it('linkedAfter() inverse le sens quand le ticket est la cible du lien', async () => {
+    const other = { ...ticket, id: 20, title: 'Autre ticket' };
+    cardsService.list.mockResolvedValue([ticket, other]);
+    cardLinksService.list.mockResolvedValue([
+      { id: 1, card_id: 20, linked_card_id: 5, type: 'before' },
+    ]);
+
+    await component.reload();
+
+    expect(component.linkedAfter()).toEqual([{ linkId: 1, card: other }]);
+    expect(component.linkedBefore()).toEqual([]);
+  });
+
+  it('addLink() ignore une cible non choisie', async () => {
+    await component.reload();
+    await component.addLink();
+    expect(cardLinksService.create).not.toHaveBeenCalled();
+  });
+
+  it('addLink() crée le lien, réinitialise la cible et recharge la liste', async () => {
+    await component.reload();
+    component.newLinkTargetId.set(20);
+    component.newLinkType.set('after');
+    await component.addLink();
+
+    expect(cardLinksService.create).toHaveBeenCalledWith(5, 20, 'after');
+    expect(component.newLinkTargetId()).toBeNull();
+  });
+
+  it("removeLink() n'agit pas si l'utilisateur annule", async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await component.reload();
+    await component.removeLink(1);
+    expect(cardLinksService.remove).not.toHaveBeenCalled();
+  });
+
+  it('removeLink() supprime après confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await component.reload();
+    await component.removeLink(1);
+    expect(cardLinksService.remove).toHaveBeenCalledWith(5, 1);
   });
 });
