@@ -5,7 +5,7 @@ import { Epic } from '../models/epic.model';
 
 @Injectable({ providedIn: 'root' })
 export class EpicsService {
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   list(): Promise<Epic[]> {
     return firstValueFrom(this.http.get<Epic[]>('/api/epics'));

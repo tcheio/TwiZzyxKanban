@@ -42,18 +42,18 @@ export interface LinkedTicket {
   templateUrl: './ticket-detail.html',
 })
 export class TicketDetail implements OnInit {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private titleService = inject(Title);
-  private cardsService = inject(CardsService);
-  private columnsService = inject(ColumnsService);
-  private usersService = inject(UsersService);
-  private commentsService = inject(CommentsService);
-  private cardLinksService = inject(CardLinksService);
-  private cardImagesService = inject(CardImagesService);
-  private tagsService = inject(TagsService);
-  private epicsService = inject(EpicsService);
-  protected authService = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly titleService = inject(Title);
+  private readonly cardsService = inject(CardsService);
+  private readonly columnsService = inject(ColumnsService);
+  private readonly usersService = inject(UsersService);
+  private readonly commentsService = inject(CommentsService);
+  private readonly cardLinksService = inject(CardLinksService);
+  private readonly cardImagesService = inject(CardImagesService);
+  private readonly tagsService = inject(TagsService);
+  private readonly epicsService = inject(EpicsService);
+  protected readonly authService = inject(AuthService);
 
   @ViewChild('commentEditor') private commentEditorRef?: ElementRef<HTMLDivElement>;
   @ViewChild('galleryFileInput') private galleryFileInputRef?: ElementRef<HTMLInputElement>;

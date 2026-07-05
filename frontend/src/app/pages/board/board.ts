@@ -44,7 +44,7 @@ const PRIORITY_CLASSES: Record<Priority, string> = {
   templateUrl: './board.html',
 })
 export class Board implements OnInit {
-  private router = inject(Router);
+  private readonly router = inject(Router);
 
   readonly groups = signal<ColumnGroup[]>([]);
   readonly users = signal<UserLite[]>([]);
@@ -60,11 +60,11 @@ export class Board implements OnInit {
   readonly selectedAssigneeId = signal<number | null>(null);
 
   constructor(
-    private columnsService: ColumnsService,
-    private cardsService: CardsService,
-    private usersService: UsersService,
-    private tagsService: TagsService,
-    private epicsService: EpicsService
+    private readonly columnsService: ColumnsService,
+    private readonly cardsService: CardsService,
+    private readonly usersService: UsersService,
+    private readonly tagsService: TagsService,
+    private readonly epicsService: EpicsService
   ) {}
 
   async ngOnInit(): Promise<void> {

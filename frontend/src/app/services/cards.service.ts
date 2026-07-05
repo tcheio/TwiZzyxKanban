@@ -5,7 +5,7 @@ import { Card, CardInput } from '../models/card.model';
 
 @Injectable({ providedIn: 'root' })
 export class CardsService {
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   list(): Promise<Card[]> {
     return firstValueFrom(this.http.get<Card[]>('/api/cards'));

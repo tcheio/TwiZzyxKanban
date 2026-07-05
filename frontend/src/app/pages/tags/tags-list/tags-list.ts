@@ -14,10 +14,10 @@ import { tagBadgeClass } from '../../../shared/tag-colors';
   templateUrl: './tags-list.html',
 })
 export class TagsList implements OnInit {
-  private tagsService = inject(TagsService);
-  private cardsService = inject(CardsService);
-  private router = inject(Router);
-  protected authService = inject(AuthService);
+  private readonly tagsService = inject(TagsService);
+  private readonly cardsService = inject(CardsService);
+  private readonly router = inject(Router);
+  protected readonly authService = inject(AuthService);
 
   readonly tags = signal<Tag[]>([]);
   readonly cards = signal<Card[]>([]);

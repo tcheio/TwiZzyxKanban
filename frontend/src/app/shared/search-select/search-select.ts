@@ -35,7 +35,7 @@ interface SearchSelectEntry<T> {
   templateUrl: './search-select.html',
 })
 export class SearchSelect<T extends string | number> {
-  private elementRef = inject(ElementRef<HTMLElement>);
+  private readonly elementRef = inject(ElementRef<HTMLElement>);
 
   @Input() options: SearchSelectOption<T>[] = [];
   @Input() value: T | null = null;

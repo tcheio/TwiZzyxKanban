@@ -24,7 +24,9 @@
 
   @if (authService.isAdmin() && creating()) {
     <form class="create-form mb-4 flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3" (ngSubmit)="createEpic()">
+      <label for="new-epic-name" class="sr-only">Nom de l'EPIC</label>
       <input
+        id="new-epic-name"
         type="text"
         class="flex-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-sm focus:border-blue-400 focus:outline-none"
         [ngModel]="newEpicName()"
@@ -66,7 +68,9 @@
         <div class="epic-row flex items-center gap-3 px-4 py-3 hover:bg-gray-50" (click)="openEpic(epic)">
           @if (editingId() === epic.id) {
             <form class="edit-form flex flex-1 items-center gap-3" (ngSubmit)="saveEdit(epic)" (click)="$event.stopPropagation()">
+              <label for="edit-epic-name-{{ epic.id }}" class="sr-only">Nom de l'EPIC</label>
               <input
+                id="edit-epic-name-{{ epic.id }}"
                 type="text"
                 class="flex-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-sm focus:border-blue-400 focus:outline-none"
                 [ngModel]="editName()"

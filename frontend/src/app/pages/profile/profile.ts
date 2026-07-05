@@ -10,8 +10,8 @@ import { resizeImageToDataUrl } from '../../shared/image-to-data-url';
   templateUrl: './profile.html',
 })
 export class Profile implements OnInit {
-  private profileService = inject(ProfileService);
-  protected authService = inject(AuthService);
+  private readonly profileService = inject(ProfileService);
+  protected readonly authService = inject(AuthService);
 
   readonly loading = signal(true);
   readonly avatarUrl = signal<string | null>(null);

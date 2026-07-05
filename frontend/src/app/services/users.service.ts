@@ -11,7 +11,7 @@ export interface UserInput {
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   list(): Promise<User[]> {
     return firstValueFrom(this.http.get<User[]>('/api/users'));

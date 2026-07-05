@@ -5,7 +5,7 @@ import { Comment } from '../models/comment.model';
 
 @Injectable({ providedIn: 'root' })
 export class CommentsService {
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   list(cardId: number): Promise<Comment[]> {
     return firstValueFrom(this.http.get<Comment[]>(`/api/cards/${cardId}/comments`));

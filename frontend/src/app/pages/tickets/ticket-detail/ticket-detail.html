@@ -25,7 +25,9 @@
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       <div class="min-w-0">
+        <label for="ticket-title" class="sr-only">Titre du ticket</label>
         <input
+          id="ticket-title"
           class="w-full rounded-md border border-transparent px-1 py-1 text-2xl font-bold text-gray-900 focus:border-gray-300 focus:outline-none"
           [value]="t.title"
           (change)="updateTitle($any($event.target).value)"
@@ -170,7 +172,9 @@
                 (valueChange)="newLinkTargetId.set($event)"
               />
             </div>
+            <label for="new-link-type" class="sr-only">Type de lien</label>
             <select
+              id="new-link-type"
               class="rounded-md border border-gray-200 px-2 py-1.5 text-sm text-gray-700 focus:border-indigo-400 focus:outline-none"
               [ngModel]="newLinkType()"
               (ngModelChange)="newLinkType.set($event)"
@@ -199,7 +203,9 @@
             >
               + Ajouter une image
             </button>
+            <label for="gallery-file-input" class="sr-only">Ajouter une image</label>
             <input
+              id="gallery-file-input"
               #galleryFileInput
               type="file"
               accept="image/*"
@@ -293,7 +299,9 @@
               >
                 + Image
               </button>
+              <label for="comment-image-input" class="sr-only">Ajouter une image au commentaire</label>
               <input
+                id="comment-image-input"
                 #commentImageInput
                 type="file"
                 accept="image/*"
@@ -408,7 +416,9 @@
             <div class="flex items-center justify-between gap-2">
               <dt class="text-gray-500">Échéance</dt>
               <dd>
+                <label for="ticket-due-date" class="sr-only">Échéance</label>
                 <input
+                  id="ticket-due-date"
                   type="date"
                   class="rounded border border-transparent bg-transparent py-0.5 text-right text-sm text-gray-800 hover:border-gray-200 focus:border-gray-300 focus:outline-none"
                   [value]="t.due_date ?? ''"
