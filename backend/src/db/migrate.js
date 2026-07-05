@@ -24,50 +24,41 @@ const LEGACY_COLUMN_RENAMES = {
   Publié: '✅Publié',
 };
 
-function migrate() {
-  const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-  db.exec(schema);
+function addMissingCardColumns(cardColumns) {
+  const columnsToAdd = [
+    ['description', 'TEXT'],
+    ['tag_id', 'INTEGER REFERENCES tags(id) ON DELETE SET NULL'],
+    ['epic_id', 'INTEGER REFERENCES epics(id) ON DELETE SET NULL'],
+    ['cloned_from_id', 'INTEGER REFERENCES cards(id) ON DELETE SET NULL'],
+    ['due_date', 'TEXT'],
+    ['published_at', 'TEXT'],
+  ];
+  const existingNames = new Set(cardColumns.map((col) => col.name));
+  columnsToAdd
+    .filter(([name]) => !existingNames.has(name))
+    .forEach(([name, definition]) => db.exec(`ALTER TABLE cards ADD COLUMN ${name} ${definition}`));
+}
 
-  const cardColumns = db.prepare('PRAGMA table_info(cards)').all();
-  if (!cardColumns.some((col) => col.name === 'description')) {
-    db.exec('ALTER TABLE cards ADD COLUMN description TEXT');
-  }
-  if (!cardColumns.some((col) => col.name === 'tag_id')) {
-    db.exec('ALTER TABLE cards ADD COLUMN tag_id INTEGER REFERENCES tags(id) ON DELETE SET NULL');
-  }
-  if (!cardColumns.some((col) => col.name === 'epic_id')) {
-    db.exec('ALTER TABLE cards ADD COLUMN epic_id INTEGER REFERENCES epics(id) ON DELETE SET NULL');
-  }
-  if (!cardColumns.some((col) => col.name === 'cloned_from_id')) {
-    db.exec('ALTER TABLE cards ADD COLUMN cloned_from_id INTEGER REFERENCES cards(id) ON DELETE SET NULL');
-  }
-  if (!cardColumns.some((col) => col.name === 'due_date')) {
-    db.exec('ALTER TABLE cards ADD COLUMN due_date TEXT');
-  }
-  if (!cardColumns.some((col) => col.name === 'published_at')) {
-    db.exec('ALTER TABLE cards ADD COLUMN published_at TEXT');
-  }
-
-  const userColumns = db.prepare('PRAGMA table_info(users)').all();
+function addMissingUserColumns(userColumns) {
   if (!userColumns.some((col) => col.name === 'avatar_url')) {
     db.exec('ALTER TABLE users ADD COLUMN avatar_url TEXT');
   }
+}
 
+function ensureDefaultAdmin() {
   const userCount = db.prepare('SELECT COUNT(*) AS count FROM users').get().count;
-  if (userCount === 0) {
-    const username = process.env.DEFAULT_ADMIN_USERNAME || 'admin';
-    const password = process.env.DEFAULT_ADMIN_PASSWORD || 'admin123';
-    const passwordHash = bcrypt.hashSync(password, 10);
-    db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run(
-      username,
-      passwordHash,
-      'admin'
-    );
-    if (!silent) {
-      console.log(`Admin par défaut créé (username: ${username}, password: ${password}) — pensez à changer ce mot de passe.`);
-    }
-  }
+  if (userCount > 0) return;
 
+  const username = process.env.DEFAULT_ADMIN_USERNAME || 'admin';
+  const password = process.env.DEFAULT_ADMIN_PASSWORD || 'admin123';
+  const passwordHash = bcrypt.hashSync(password, 10);
+  db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)').run(username, passwordHash, 'admin');
+  if (!silent) {
+    console.log(`Admin par défaut créé (username: ${username}, password: ${password}) — pensez à changer ce mot de passe.`);
+  }
+}
+
+function ensureDefaultColumns() {
   const columnCount = db.prepare('SELECT COUNT(*) AS count FROM columns').get().count;
   if (columnCount === 0) {
     const insertColumn = db.prepare('INSERT INTO columns (name, position) VALUES (?, ?)');
@@ -75,11 +66,14 @@ function migrate() {
     if (!silent) {
       console.log('Colonnes par défaut créées.');
     }
-  } else {
-    const renameColumn = db.prepare('UPDATE columns SET name = ? WHERE name = ?');
-    Object.entries(LEGACY_COLUMN_RENAMES).forEach(([oldName, newName]) => renameColumn.run(newName, oldName));
+    return;
   }
 
+  const renameColumn = db.prepare('UPDATE columns SET name = ? WHERE name = ?');
+  Object.entries(LEGACY_COLUMN_RENAMES).forEach(([oldName, newName]) => renameColumn.run(newName, oldName));
+}
+
+function ensureDefaultTags() {
   const tagCount = db.prepare('SELECT COUNT(*) AS count FROM tags').get().count;
   if (tagCount === 0) {
     const insertTag = db.prepare('INSERT INTO tags (name) VALUES (?)');
@@ -88,7 +82,9 @@ function migrate() {
       console.log('Tags par défaut créés.');
     }
   }
+}
 
+function ensureDefaultEpics() {
   const epicCount = db.prepare('SELECT COUNT(*) AS count FROM epics').get().count;
   if (epicCount === 0) {
     const insertEpic = db.prepare('INSERT INTO epics (name, color) VALUES (?, ?)');
@@ -97,21 +93,40 @@ function migrate() {
       console.log('Epics par défaut créées.');
     }
   }
+}
 
-  // L'EPIC remplace l'ancien champ libre "Chaîne YTB" : les cartes existantes dont le
-  // texte de channel correspond exactement au nom d'une EPIC sont rattachées à celle-ci
-  // avant que la colonne ne soit supprimée, pour ne pas perdre l'information.
-  if (cardColumns.some((col) => col.name === 'channel')) {
-    db.prepare(
-      `UPDATE cards SET epic_id = (SELECT id FROM epics WHERE epics.name = cards.channel)
-       WHERE epic_id IS NULL AND channel IS NOT NULL
-         AND EXISTS (SELECT 1 FROM epics WHERE epics.name = cards.channel)`
-    ).run();
-    db.exec('ALTER TABLE cards DROP COLUMN channel');
-    if (!silent) {
-      console.log('Colonne channel migrée vers epic_id puis supprimée.');
-    }
+// L'EPIC remplace l'ancien champ libre "Chaîne YTB" : les cartes existantes dont le
+// texte de channel correspond exactement au nom d'une EPIC sont rattachées à celle-ci
+// avant que la colonne ne soit supprimée, pour ne pas perdre l'information.
+function migrateChannelToEpic(cardColumns) {
+  if (!cardColumns.some((col) => col.name === 'channel')) return;
+
+  db.prepare(
+    `UPDATE cards SET epic_id = (SELECT id FROM epics WHERE epics.name = cards.channel)
+     WHERE epic_id IS NULL AND channel IS NOT NULL
+       AND EXISTS (SELECT 1 FROM epics WHERE epics.name = cards.channel)`
+  ).run();
+  db.exec('ALTER TABLE cards DROP COLUMN channel');
+  if (!silent) {
+    console.log('Colonne channel migrée vers epic_id puis supprimée.');
   }
+}
+
+function migrate() {
+  const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+  db.exec(schema);
+
+  const cardColumns = db.prepare('PRAGMA table_info(cards)').all();
+  addMissingCardColumns(cardColumns);
+
+  const userColumns = db.prepare('PRAGMA table_info(users)').all();
+  addMissingUserColumns(userColumns);
+
+  ensureDefaultAdmin();
+  ensureDefaultColumns();
+  ensureDefaultTags();
+  ensureDefaultEpics();
+  migrateChannelToEpic(cardColumns);
 
   if (!silent) {
     console.log('DB initialisée.');

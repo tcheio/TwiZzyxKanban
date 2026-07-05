@@ -23,7 +23,7 @@ export class NewTicketDialog implements OnInit {
   @Input() heading = 'Nouveau ticket';
   @Input() submitLabel = 'Créer';
   @Output() save = new EventEmitter<CardInput>();
-  @Output() cancel = new EventEmitter<void>();
+  @Output() cancelled = new EventEmitter<void>();
 
   readonly form = this.fb.group({
     title: ['', Validators.required],
