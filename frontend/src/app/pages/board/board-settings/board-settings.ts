@@ -9,7 +9,7 @@ import { Column } from '../../../models/column.model';
   templateUrl: './board-settings.html',
 })
 export class BoardSettings implements OnInit {
-  private columnsService = inject(ColumnsService);
+  private readonly columnsService = inject(ColumnsService);
 
   readonly columns = signal<Column[]>([]);
   readonly loading = signal(true);

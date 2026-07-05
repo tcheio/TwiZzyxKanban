@@ -7,7 +7,7 @@ function list(req, res) {
 
 function create(req, res) {
   const { name } = req.body || {};
-  if (!name || !name.trim()) {
+  if (!name?.trim()) {
     return res.status(400).json({ error: 'name requis' });
   }
 
@@ -24,7 +24,7 @@ function update(req, res) {
   if (!tag) {
     return res.status(404).json({ error: 'Tag introuvable' });
   }
-  if (!name || !name.trim()) {
+  if (!name?.trim()) {
     return res.status(400).json({ error: 'name requis' });
   }
 

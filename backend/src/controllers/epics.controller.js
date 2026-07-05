@@ -9,7 +9,7 @@ function list(req, res) {
 
 function create(req, res) {
   const { name, color } = req.body || {};
-  if (!name || !name.trim()) {
+  if (!name?.trim()) {
     return res.status(400).json({ error: 'name requis' });
   }
   if (color && !ALLOWED_COLORS.includes(color)) {

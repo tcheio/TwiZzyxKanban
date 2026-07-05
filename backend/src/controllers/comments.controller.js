@@ -28,7 +28,7 @@ function create(req, res) {
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
-  if (!body || !body.trim()) {
+  if (!body?.trim()) {
     return res.status(400).json({ error: 'body requis' });
   }
 

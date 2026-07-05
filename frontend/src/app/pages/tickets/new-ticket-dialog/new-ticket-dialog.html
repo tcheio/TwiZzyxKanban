@@ -1,4 +1,4 @@
-<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" (click)="cancel.emit()">
+<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" (click)="cancelled.emit()">
   <form
     class="flex w-[360px] flex-col gap-3 rounded-lg bg-white p-6"
     [formGroup]="form"
@@ -103,7 +103,7 @@
       <button
         type="button"
         class="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-        (click)="cancel.emit()"
+        (click)="cancelled.emit()"
       >
         Annuler
       </button>
