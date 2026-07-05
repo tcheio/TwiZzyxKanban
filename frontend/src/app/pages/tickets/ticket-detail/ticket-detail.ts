@@ -180,7 +180,8 @@ export class TicketDetail implements OnInit {
         const card = this.cards().find((c) => c.id === otherId);
         if (!card) return null;
         // Depuis le ticket qui n'est pas à l'origine du lien, la relation est inversée
-        const effectiveType: CardLinkType = isSource ? link.type : link.type === 'before' ? 'after' : 'before';
+        const invertedType: CardLinkType = link.type === 'before' ? 'after' : 'before';
+        const effectiveType: CardLinkType = isSource ? link.type : invertedType;
         return { linkId: link.id, card, effectiveType };
       })
       .filter((entry): entry is LinkedTicket & { effectiveType: CardLinkType } => entry !== null);
@@ -348,7 +349,9 @@ export class TicketDetail implements OnInit {
   hasCommentContent(): boolean {
     const html = this.newCommentDraftHtml();
     if (/<img[\s>]/i.test(html)) return true;
-    return html.replace(/<[^>]*>/g, '').trim().length > 0;
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    return (container.textContent ?? '').trim().length > 0;
   }
 
   onCommentInput(event: Event): void {

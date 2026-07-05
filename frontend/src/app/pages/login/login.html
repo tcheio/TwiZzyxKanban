@@ -7,9 +7,10 @@
     <h1 class="m-0 text-2xl font-bold text-gray-900">TwiZzyxKanban</h1>
     <p class="mb-2 text-sm text-gray-500">Connecte-toi pour accéder au tableau</p>
 
-    <label class="flex flex-col gap-1 text-sm text-gray-700">
+    <label for="login-username" class="flex flex-col gap-1 text-sm text-gray-700">
       Nom d'utilisateur
       <input
+        id="login-username"
         type="text"
         formControlName="username"
         autocomplete="username"
@@ -17,9 +18,10 @@
       />
     </label>
 
-    <label class="flex flex-col gap-1 text-sm text-gray-700">
+    <label for="login-password" class="flex flex-col gap-1 text-sm text-gray-700">
       Mot de passe
       <input
+        id="login-password"
         type="password"
         formControlName="password"
         autocomplete="current-password"

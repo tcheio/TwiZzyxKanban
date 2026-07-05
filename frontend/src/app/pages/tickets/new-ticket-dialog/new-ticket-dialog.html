@@ -7,9 +7,10 @@
   >
     <h2 class="m-0 mb-1 text-lg font-semibold text-gray-900">{{ heading }}</h2>
 
-    <label class="flex flex-col gap-1 text-sm text-gray-700">
+    <label for="new-ticket-title" class="flex flex-col gap-1 text-sm text-gray-700">
       Titre
       <input
+        id="new-ticket-title"
         type="text"
         formControlName="title"
         autofocus
@@ -17,18 +18,20 @@
       />
     </label>
 
-    <label class="flex flex-col gap-1 text-sm text-gray-700">
+    <label for="new-ticket-description" class="flex flex-col gap-1 text-sm text-gray-700">
       Description
       <textarea
+        id="new-ticket-description"
         formControlName="description"
         rows="3"
         class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
       ></textarea>
     </label>
 
-    <label class="flex flex-col gap-1 text-sm text-gray-700">
+    <label for="new-ticket-column" class="flex flex-col gap-1 text-sm text-gray-700">
       Colonne
       <select
+        id="new-ticket-column"
         formControlName="column_id"
         class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
       >
@@ -39,9 +42,10 @@
       </select>
     </label>
 
-    <label class="flex flex-col gap-1 text-sm text-gray-700">
+    <label for="new-ticket-tag" class="flex flex-col gap-1 text-sm text-gray-700">
       Tag
       <select
+        id="new-ticket-tag"
         formControlName="tag_id"
         class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
       >
@@ -52,9 +56,10 @@
       </select>
     </label>
 
-    <label class="flex flex-col gap-1 text-sm text-gray-700">
+    <label for="new-ticket-epic" class="flex flex-col gap-1 text-sm text-gray-700">
       EPIC
       <select
+        id="new-ticket-epic"
         formControlName="epic_id"
         class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
       >
@@ -65,9 +70,10 @@
       </select>
     </label>
 
-    <label class="flex flex-col gap-1 text-sm text-gray-700">
+    <label for="new-ticket-assignee" class="flex flex-col gap-1 text-sm text-gray-700">
       Assigné à
       <select
+        id="new-ticket-assignee"
         formControlName="assigned_user_id"
         class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
       >
@@ -78,9 +84,10 @@
       </select>
     </label>
 
-    <label class="flex flex-col gap-1 text-sm text-gray-700">
+    <label for="new-ticket-priority" class="flex flex-col gap-1 text-sm text-gray-700">
       Priorité
       <select
+        id="new-ticket-priority"
         formControlName="priority"
         class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
       >
@@ -90,9 +97,10 @@
       </select>
     </label>
 
-    <label class="flex flex-col gap-1 text-sm text-gray-700">
+    <label for="new-ticket-due-date" class="flex flex-col gap-1 text-sm text-gray-700">
       Date d'échéance
       <input
+        id="new-ticket-due-date"
         type="date"
         formControlName="due_date"
         class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"

@@ -15,7 +15,7 @@ export class App {
   readonly epicDotClass = epicDotClass;
 
   constructor(
-    protected authService: AuthService,
+    protected readonly authService: AuthService,
     private readonly router: Router,
     private readonly epicsService: EpicsService
   ) {

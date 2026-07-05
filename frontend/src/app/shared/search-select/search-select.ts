@@ -29,6 +29,8 @@ interface SearchSelectEntry<T> {
   avatarInitial?: string;
 }
 
+let nextInstanceId = 0;
+
 @Component({
   selector: 'app-search-select',
   imports: [FormsModule],
@@ -36,6 +38,7 @@ interface SearchSelectEntry<T> {
 })
 export class SearchSelect<T extends string | number> {
   private readonly elementRef = inject(ElementRef<HTMLElement>);
+  readonly searchInputId = `search-select-${nextInstanceId++}`;
 
   @Input() options: SearchSelectOption<T>[] = [];
   @Input() value: T | null = null;
@@ -50,7 +53,7 @@ export class SearchSelect<T extends string | number> {
 
   readonly defaultTriggerClass = 'max-w-full rounded px-1.5 py-1 text-gray-800 hover:bg-gray-100';
 
-  @ViewChild('searchInput') private searchInputRef?: ElementRef<HTMLInputElement>;
+  @ViewChild('searchInput') private readonly searchInputRef?: ElementRef<HTMLInputElement>;
 
   readonly open = signal(false);
   readonly query = signal('');
