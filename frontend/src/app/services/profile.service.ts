@@ -12,7 +12,7 @@ export interface ProfileUpdateInput {
 
 @Injectable({ providedIn: 'root' })
 export class ProfileService {
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   me(): Promise<User> {
     return firstValueFrom(this.http.get<User>('/api/auth/me'));

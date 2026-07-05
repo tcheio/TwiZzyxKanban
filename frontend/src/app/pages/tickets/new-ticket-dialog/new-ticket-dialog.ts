@@ -12,7 +12,7 @@ import { Epic } from '../../../models/epic.model';
   templateUrl: './new-ticket-dialog.html',
 })
 export class NewTicketDialog implements OnInit {
-  private fb = inject(FormBuilder);
+  private readonly fb = inject(FormBuilder);
 
   @Input({ required: true }) columns: Column[] = [];
   @Input({ required: true }) users: UserLite[] = [];

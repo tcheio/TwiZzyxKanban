@@ -6,7 +6,7 @@ import { resizeImageToDataUrl } from '../shared/image-to-data-url';
 
 @Injectable({ providedIn: 'root' })
 export class CardImagesService {
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   list(cardId: number): Promise<CardImage[]> {
     return firstValueFrom(this.http.get<CardImage[]>(`/api/cards/${cardId}/images`));

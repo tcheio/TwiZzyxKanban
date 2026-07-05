@@ -9,9 +9,9 @@ import { AuthService } from '../../core/auth.service';
   templateUrl: './login.html',
 })
 export class Login {
-  private fb = inject(FormBuilder);
-  private authService = inject(AuthService);
-  private router = inject(Router);
+  private readonly fb = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
   readonly error = signal<string | null>(null);
   readonly loading = signal(false);

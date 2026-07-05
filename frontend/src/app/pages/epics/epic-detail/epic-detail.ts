@@ -30,13 +30,13 @@ const PRIORITY_DOT_CLASSES: Record<Priority, string> = {
   templateUrl: './epic-detail.html',
 })
 export class EpicDetail implements OnInit {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private titleService = inject(Title);
-  private epicsService = inject(EpicsService);
-  private cardsService = inject(CardsService);
-  private columnsService = inject(ColumnsService);
-  private usersService = inject(UsersService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly titleService = inject(Title);
+  private readonly epicsService = inject(EpicsService);
+  private readonly cardsService = inject(CardsService);
+  private readonly columnsService = inject(ColumnsService);
+  private readonly usersService = inject(UsersService);
 
   readonly epic = signal<Epic | null>(null);
   readonly columns = signal<Column[]>([]);

@@ -42,18 +42,18 @@ export interface LinkedTicket {
   templateUrl: './ticket-detail.html',
 })
 export class TicketDetail implements OnInit {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private titleService = inject(Title);
-  private cardsService = inject(CardsService);
-  private columnsService = inject(ColumnsService);
-  private usersService = inject(UsersService);
-  private commentsService = inject(CommentsService);
-  private cardLinksService = inject(CardLinksService);
-  private cardImagesService = inject(CardImagesService);
-  private tagsService = inject(TagsService);
-  private epicsService = inject(EpicsService);
-  protected authService = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly titleService = inject(Title);
+  private readonly cardsService = inject(CardsService);
+  private readonly columnsService = inject(ColumnsService);
+  private readonly usersService = inject(UsersService);
+  private readonly commentsService = inject(CommentsService);
+  private readonly cardLinksService = inject(CardLinksService);
+  private readonly cardImagesService = inject(CardImagesService);
+  private readonly tagsService = inject(TagsService);
+  private readonly epicsService = inject(EpicsService);
+  protected readonly authService = inject(AuthService);
 
   @ViewChild('commentEditor') private commentEditorRef?: ElementRef<HTMLDivElement>;
   @ViewChild('galleryFileInput') private galleryFileInputRef?: ElementRef<HTMLInputElement>;
@@ -180,7 +180,8 @@ export class TicketDetail implements OnInit {
         const card = this.cards().find((c) => c.id === otherId);
         if (!card) return null;
         // Depuis le ticket qui n'est pas à l'origine du lien, la relation est inversée
-        const effectiveType: CardLinkType = isSource ? link.type : link.type === 'before' ? 'after' : 'before';
+        const invertedType: CardLinkType = link.type === 'before' ? 'after' : 'before';
+        const effectiveType: CardLinkType = isSource ? link.type : invertedType;
         return { linkId: link.id, card, effectiveType };
       })
       .filter((entry): entry is LinkedTicket & { effectiveType: CardLinkType } => entry !== null);
@@ -348,7 +349,9 @@ export class TicketDetail implements OnInit {
   hasCommentContent(): boolean {
     const html = this.newCommentDraftHtml();
     if (/<img[\s>]/i.test(html)) return true;
-    return html.replace(/<[^>]*>/g, '').trim().length > 0;
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    return (container.textContent ?? '').trim().length > 0;
   }
 
   onCommentInput(event: Event): void {

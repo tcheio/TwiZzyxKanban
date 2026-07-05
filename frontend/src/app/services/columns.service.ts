@@ -5,7 +5,7 @@ import { Column } from '../models/column.model';
 
 @Injectable({ providedIn: 'root' })
 export class ColumnsService {
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   list(): Promise<Column[]> {
     return firstValueFrom(this.http.get<Column[]>('/api/columns'));

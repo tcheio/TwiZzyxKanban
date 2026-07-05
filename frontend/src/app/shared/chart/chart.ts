@@ -26,7 +26,7 @@ export class ChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input({ required: true }) data: number[] = [];
   @Input() label = '';
 
-  @ViewChild('canvas') private canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('canvas') private readonly canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private chart: Chart | null = null;
   private viewReady = false;

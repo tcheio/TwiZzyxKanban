@@ -14,10 +14,10 @@ import { EPIC_COLORS, epicDotClass } from '../../../shared/epic-colors';
   templateUrl: './epics-list.html',
 })
 export class EpicsList implements OnInit {
-  private epicsService = inject(EpicsService);
-  private cardsService = inject(CardsService);
-  private router = inject(Router);
-  protected authService = inject(AuthService);
+  private readonly epicsService = inject(EpicsService);
+  private readonly cardsService = inject(CardsService);
+  private readonly router = inject(Router);
+  protected readonly authService = inject(AuthService);
 
   readonly epicColors = EPIC_COLORS;
   readonly epicDotClass = epicDotClass;

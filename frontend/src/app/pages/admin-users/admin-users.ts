@@ -12,7 +12,7 @@ import { AuthService } from '../../core/auth.service';
 export class AdminUsers implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly usersService = inject(UsersService);
-  protected authService = inject(AuthService);
+  protected readonly authService = inject(AuthService);
 
   readonly users = signal<User[]>([]);
   readonly error = signal<string | null>(null);

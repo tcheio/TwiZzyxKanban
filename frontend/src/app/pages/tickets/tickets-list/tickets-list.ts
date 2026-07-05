@@ -29,13 +29,13 @@ const PRIORITY_DOT_CLASSES: Record<string, string> = {
   templateUrl: './tickets-list.html',
 })
 export class TicketsList implements OnInit {
-  private columnsService = inject(ColumnsService);
-  private cardsService = inject(CardsService);
-  private usersService = inject(UsersService);
-  private tagsService = inject(TagsService);
-  private epicsService = inject(EpicsService);
-  private router = inject(Router);
-  protected authService = inject(AuthService);
+  private readonly columnsService = inject(ColumnsService);
+  private readonly cardsService = inject(CardsService);
+  private readonly usersService = inject(UsersService);
+  private readonly tagsService = inject(TagsService);
+  private readonly epicsService = inject(EpicsService);
+  private readonly router = inject(Router);
+  protected readonly authService = inject(AuthService);
 
   readonly columns = signal<Column[]>([]);
   readonly tickets = signal<Card[]>([]);

@@ -5,7 +5,7 @@ import { Tag } from '../models/tag.model';
 
 @Injectable({ providedIn: 'root' })
 export class TagsService {
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   list(): Promise<Tag[]> {
     return firstValueFrom(this.http.get<Tag[]>('/api/tags'));

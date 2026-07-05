@@ -112,25 +112,28 @@
       (ngSubmit)="createUser()"
     >
       <h2 class="text-sm font-semibold text-gray-700">Nouveau compte</h2>
-      <label class="flex flex-col gap-1 text-xs text-gray-500">
+      <label for="new-user-username" class="flex flex-col gap-1 text-xs text-gray-500">
         Nom d'utilisateur
         <input
+          id="new-user-username"
           type="text"
           formControlName="username"
           class="rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
         />
       </label>
-      <label class="flex flex-col gap-1 text-xs text-gray-500">
+      <label for="new-user-password" class="flex flex-col gap-1 text-xs text-gray-500">
         Mot de passe
         <input
+          id="new-user-password"
           type="password"
           formControlName="password"
           class="rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
         />
       </label>
-      <label class="flex flex-col gap-1 text-xs text-gray-500">
+      <label for="new-user-role" class="flex flex-col gap-1 text-xs text-gray-500">
         Rôle
         <select
+          id="new-user-role"
           formControlName="role"
           class="rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
         >

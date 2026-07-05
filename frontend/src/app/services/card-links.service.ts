@@ -5,7 +5,7 @@ import { CardLink, CardLinkType } from '../models/card-link.model';
 
 @Injectable({ providedIn: 'root' })
 export class CardLinksService {
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   list(cardId: number): Promise<CardLink[]> {
     return firstValueFrom(this.http.get<CardLink[]>(`/api/cards/${cardId}/links`));

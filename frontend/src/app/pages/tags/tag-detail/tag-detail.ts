@@ -30,13 +30,13 @@ const PRIORITY_DOT_CLASSES: Record<Priority, string> = {
   templateUrl: './tag-detail.html',
 })
 export class TagDetail implements OnInit {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private titleService = inject(Title);
-  private tagsService = inject(TagsService);
-  private cardsService = inject(CardsService);
-  private columnsService = inject(ColumnsService);
-  private usersService = inject(UsersService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly titleService = inject(Title);
+  private readonly tagsService = inject(TagsService);
+  private readonly cardsService = inject(CardsService);
+  private readonly columnsService = inject(ColumnsService);
+  private readonly usersService = inject(UsersService);
 
   readonly tag = signal<Tag | null>(null);
   readonly columns = signal<Column[]>([]);
