@@ -16,8 +16,8 @@ export class App {
 
   constructor(
     protected authService: AuthService,
-    private router: Router,
-    private epicsService: EpicsService
+    private readonly router: Router,
+    private readonly epicsService: EpicsService
   ) {
     effect(() => {
       if (this.authService.isLoggedIn()) {

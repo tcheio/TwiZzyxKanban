@@ -19,7 +19,7 @@ export class AuthService {
   readonly isLoggedIn = computed(() => this.currentUserSignal() !== null);
   readonly isAdmin = computed(() => this.currentUserSignal()?.role === 'admin');
 
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
   async login(username: string, password: string): Promise<void> {
     const response = await firstValueFrom(

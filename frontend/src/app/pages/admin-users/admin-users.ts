@@ -10,8 +10,8 @@ import { AuthService } from '../../core/auth.service';
   templateUrl: './admin-users.html',
 })
 export class AdminUsers implements OnInit {
-  private fb = inject(FormBuilder);
-  private usersService = inject(UsersService);
+  private readonly fb = inject(FormBuilder);
+  private readonly usersService = inject(UsersService);
   protected authService = inject(AuthService);
 
   readonly users = signal<User[]>([]);
