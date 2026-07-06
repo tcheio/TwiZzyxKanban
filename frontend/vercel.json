@@ -1,0 +1,8 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/frontend/browser",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://REMPLACE-PAR-TON-BACKEND.up.railway.app/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
