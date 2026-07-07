@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS cards (
   position INTEGER NOT NULL,
   due_date TEXT,
   published_at TEXT,
+  cancelled_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

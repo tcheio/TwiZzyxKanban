@@ -23,6 +23,10 @@ const PRIORITY_DOT_CLASSES: Record<string, string> = {
   high: 'bg-red-600',
 };
 
+// Statut synthétique (pas une vraie colonne) qui permet de filtrer/afficher les tickets
+// annulés au même titre qu'un statut de colonne.
+const CANCELLED_STATUS_ID = -1;
+
 @Component({
   selector: 'app-tickets-list',
   imports: [FormsModule, NewTicketDialog, SearchSelect],
@@ -68,7 +72,8 @@ export class TicketsList implements OnInit {
       if (tagId !== null && ticket.tag_id !== tagId) return false;
       if (epicId !== null && ticket.epic_id !== epicId) return false;
       if (assigneeId !== null && ticket.assigned_user_id !== assigneeId) return false;
-      if (columnId !== null && ticket.column_id !== columnId) return false;
+      if (columnId === CANCELLED_STATUS_ID) return !!ticket.cancelled_at;
+      if (columnId !== null && (ticket.cancelled_at || ticket.column_id !== columnId)) return false;
       return true;
     });
   });
@@ -115,6 +120,10 @@ export class TicketsList implements OnInit {
 
   columnName(columnId: number): string {
     return this.columns().find((c) => c.id === columnId)?.name ?? '—';
+  }
+
+  statusLabel(ticket: Card): string {
+    return ticket.cancelled_at ? '🚫 Annulé' : this.columnName(ticket.column_id);
   }
 
   userName(id: number | null): string {
@@ -174,7 +183,10 @@ export class TicketsList implements OnInit {
   }
 
   statusFilterOptions(): SearchSelectOption<number>[] {
-    return this.columns().map((c) => ({ id: c.id, label: c.name }));
+    return [
+      ...this.columns().map((c) => ({ id: c.id, label: c.name })),
+      { id: CANCELLED_STATUS_ID, label: '🚫 Annulé' },
+    ];
   }
 
   openTicket(card: Card): void {

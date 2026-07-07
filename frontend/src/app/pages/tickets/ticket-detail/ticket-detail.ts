@@ -31,6 +31,10 @@ const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = [
   { id: 'high', label: 'Haute', dotClass: 'bg-red-600' },
 ];
 
+// Statut synthétique (pas une vraie colonne) proposé dans le même sélecteur que les
+// colonnes : il permet d'annuler/réactiver un ticket comme n'importe quel changement de statut.
+const CANCELLED_STATUS_ID = -1;
+
 export interface LinkedTicket {
   linkId: number;
   card: Card;
@@ -311,22 +315,41 @@ export class TicketDetail implements OnInit {
   }
 
   statusOptions(): SearchSelectOption<number>[] {
-    return this.columns().map((c) => ({ id: c.id, label: c.name }));
+    return [
+      ...this.columns().map((c) => ({ id: c.id, label: c.name })),
+      { id: CANCELLED_STATUS_ID, label: '🚫 Annulé', dotClass: 'bg-red-600' },
+    ];
+  }
+
+  statusValue(): number {
+    const ticket = this.ticket();
+    if (!ticket) return CANCELLED_STATUS_ID;
+    return this.isCancelled() ? CANCELLED_STATUS_ID : ticket.column_id;
   }
 
   statusTriggerClass(): string {
     const base = 'w-full justify-between rounded-full border px-3 py-1.5 font-semibold';
-    return this.isPublished()
-      ? `${base} border-gray-200 bg-gray-100 text-gray-500`
-      : `${base} border-blue-200 bg-blue-50 text-blue-700`;
+    if (this.isPublished()) return `${base} border-gray-200 bg-gray-100 text-gray-500`;
+    if (this.isCancelled()) return `${base} border-red-200 bg-red-50 text-red-700`;
+    return `${base} border-blue-200 bg-blue-50 text-blue-700`;
   }
 
-  async updateStatus(columnId: number | null): Promise<void> {
+  async updateStatus(value: number | null): Promise<void> {
     const ticket = this.ticket();
-    if (!ticket || columnId === null || columnId === ticket.column_id || this.isPublished()) return;
+    if (!ticket || value === null || this.isPublished() || value === this.statusValue()) return;
     try {
-      const moved = await this.cardsService.move(ticket.id, columnId);
-      this.ticket.set(moved);
+      let current = ticket;
+      if (value === CANCELLED_STATUS_ID) {
+        current = await this.cardsService.cancel(ticket.id);
+      } else {
+        if (this.isCancelled()) {
+          current = await this.cardsService.restore(ticket.id);
+        }
+        if (value !== current.column_id) {
+          current = await this.cardsService.move(current.id, value);
+        }
+      }
+      this.ticket.set(current);
     } catch {
       this.error.set('Échec du changement de statut.');
     }
@@ -481,6 +504,10 @@ export class TicketDetail implements OnInit {
     } catch {
       this.error.set('Échec de la suppression du commentaire.');
     }
+  }
+
+  isCancelled(): boolean {
+    return !!this.ticket()?.cancelled_at;
   }
 
   async deleteTicket(): Promise<void> {

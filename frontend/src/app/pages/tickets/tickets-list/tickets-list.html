@@ -95,7 +95,13 @@
         <tbody class="divide-y divide-gray-100">
           @for (ticket of filteredTickets(); track ticket.id) {
             <tr class="cursor-pointer hover:bg-gray-50" (click)="openTicket(ticket)">
-              <td class="px-4 py-2.5 font-medium text-gray-900">{{ ticket.title }}</td>
+              <td
+                class="px-4 py-2.5 font-medium text-gray-900"
+                [class.line-through]="ticket.cancelled_at"
+                [class.text-gray-400]="ticket.cancelled_at"
+              >
+                {{ ticket.title }}
+              </td>
               <td class="px-4 py-2.5">
                 @if (ticket.tag_id) {
                   <span class="tag-badge rounded px-1.5 py-0.5 text-xs font-medium" [class]="tagClass(ticket.tag_id)">
@@ -115,8 +121,11 @@
                 }
               </td>
               <td class="px-4 py-2.5">
-                <span class="status-chip rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                  {{ columnName(ticket.column_id) }}
+                <span
+                  class="status-chip rounded-full px-2 py-0.5 text-xs"
+                  [class]="ticket.cancelled_at ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-600'"
+                >
+                  {{ statusLabel(ticket) }}
                 </span>
               </td>
               <td class="px-4 py-2.5">

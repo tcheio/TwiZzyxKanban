@@ -32,6 +32,7 @@ function addMissingCardColumns(cardColumns) {
     ['cloned_from_id', 'INTEGER REFERENCES cards(id) ON DELETE SET NULL'],
     ['due_date', 'TEXT'],
     ['published_at', 'TEXT'],
+    ['cancelled_at', 'TEXT'],
   ];
   const existingNames = new Set(cardColumns.map((col) => col.name));
   columnsToAdd

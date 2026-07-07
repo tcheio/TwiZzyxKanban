@@ -90,6 +90,7 @@ export class Board implements OnInit {
           column,
           cards: cards
             .filter((c) => c.column_id === column.id)
+            .filter((c) => !c.cancelled_at)
             .filter((c) => this.isVisibleInColumn(c, column))
             .sort((a, b) => a.position - b.position),
         }))

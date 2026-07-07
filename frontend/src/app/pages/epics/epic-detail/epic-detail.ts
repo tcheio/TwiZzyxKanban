@@ -113,6 +113,10 @@ export class EpicDetail implements OnInit {
     return this.columns().find((c) => c.id === columnId)?.name ?? '—';
   }
 
+  statusLabel(ticket: Card): string {
+    return ticket.cancelled_at ? '🚫 Annulé' : this.columnName(ticket.column_id);
+  }
+
   userName(id: number | null): string {
     if (!id) return '—';
     return this.users().find((u) => u.id === id)?.username ?? '—';
