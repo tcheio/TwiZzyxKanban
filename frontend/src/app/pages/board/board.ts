@@ -151,7 +151,7 @@ export class Board implements OnInit {
   }
 
   tagClass(tagId: number | null): string {
-    return tagBadgeClass(tagId);
+    return tagBadgeClass(tagId, this.tagName(tagId));
   }
 
   epicName(epicId: number | null): string | null {

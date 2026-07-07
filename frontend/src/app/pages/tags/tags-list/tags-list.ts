@@ -52,8 +52,8 @@ export class TagsList implements OnInit {
     return this.cards().filter((c) => c.tag_id === tagId).length;
   }
 
-  tagClass(tagId: number): string {
-    return tagBadgeClass(tagId);
+  tagClass(tag: Tag): string {
+    return tagBadgeClass(tag.id, tag.name);
   }
 
   openTag(tag: Tag): void {

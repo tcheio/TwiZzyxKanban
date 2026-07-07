@@ -153,7 +153,7 @@ export class TicketsList implements OnInit {
   }
 
   tagClass(tagId: number | null): string {
-    return tagBadgeClass(tagId);
+    return tagBadgeClass(tagId, this.tagName(tagId));
   }
 
   epicClass(epicId: number | null): string {
@@ -167,7 +167,7 @@ export class TicketsList implements OnInit {
   }
 
   tagFilterOptions(): SearchSelectOption<number>[] {
-    return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.id) }));
+    return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.id, t.name) }));
   }
 
   epicFilterOptions(): SearchSelectOption<number>[] {

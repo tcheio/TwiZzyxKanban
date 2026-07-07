@@ -160,7 +160,7 @@ export class TicketDetail implements OnInit {
   }
 
   tagOptions(): SearchSelectOption<number>[] {
-    return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.id) }));
+    return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.id, t.name) }));
   }
 
   epicOptions(): SearchSelectOption<number>[] {
