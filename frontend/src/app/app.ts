@@ -13,6 +13,7 @@ import { epicDotClass } from './shared/epic-colors';
 export class App {
   readonly epics = signal<Epic[]>([]);
   readonly epicDotClass = epicDotClass;
+  readonly sidebarCollapsed = signal(false);
 
   constructor(
     protected readonly authService: AuthService,
@@ -24,6 +25,10 @@ export class App {
         this.epicsService.list().then((epics) => this.epics.set(epics));
       }
     });
+  }
+
+  toggleSidebar(): void {
+    this.sidebarCollapsed.update((collapsed) => !collapsed);
   }
 
   logout(): void {
