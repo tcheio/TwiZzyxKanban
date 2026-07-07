@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   CdkDropList,
@@ -20,6 +20,7 @@ import { Tag } from '../../models/tag.model';
 import { Epic } from '../../models/epic.model';
 import { epicBadgeClass } from '../../shared/epic-colors';
 import { tagBadgeClass } from '../../shared/tag-colors';
+import { startAutoRefresh } from '../../shared/auto-refresh';
 
 interface ColumnGroup {
   column: Column;
@@ -45,6 +46,7 @@ const PRIORITY_CLASSES: Record<Priority, string> = {
 })
 export class Board implements OnInit {
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly groups = signal<ColumnGroup[]>([]);
   readonly users = signal<UserLite[]>([]);
@@ -56,6 +58,7 @@ export class Board implements OnInit {
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
   private blockedDragAttempt = false;
+  private dragInProgress = false;
 
   readonly selectedAssigneeId = signal<number | null>(null);
 
@@ -69,10 +72,17 @@ export class Board implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.reload();
+    startAutoRefresh(this.destroyRef, () => {
+      if (!this.dragInProgress) {
+        this.reload({ silent: true });
+      }
+    });
   }
 
-  async reload(): Promise<void> {
-    this.loading.set(true);
+  async reload(options: { silent?: boolean } = {}): Promise<void> {
+    if (!options.silent) {
+      this.loading.set(true);
+    }
     this.error.set(null);
     try {
       const [columns, cards, users, tags, epics] = await Promise.all([
@@ -187,9 +197,11 @@ export class Board implements OnInit {
 
   onDragStarted(): void {
     this.blockedDragAttempt = false;
+    this.dragInProgress = true;
   }
 
   onDragEnded(): void {
+    this.dragInProgress = false;
     if (this.blockedDragAttempt) {
       this.showToast('Un ticket publié ne peut plus être déplacé vers une autre colonne.');
       this.blockedDragAttempt = false;

@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ColumnsService } from '../../../services/columns.service';
@@ -18,6 +18,7 @@ import { tagBadgeClass } from '../../../shared/tag-colors';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
 import { StatusChip } from '../../../shared/status-chip/status-chip';
 import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from '../../../shared/ticket-status';
+import { startAutoRefresh } from '../../../shared/auto-refresh';
 
 const PRIORITY_DOT_CLASSES: Record<string, string> = {
   low: 'bg-gray-400',
@@ -37,6 +38,7 @@ export class TicketsList implements OnInit {
   private readonly tagsService = inject(TagsService);
   private readonly epicsService = inject(EpicsService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly authService = inject(AuthService);
 
   readonly columns = signal<Column[]>([]);
@@ -78,10 +80,13 @@ export class TicketsList implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.reload();
+    startAutoRefresh(this.destroyRef, () => this.reload({ silent: true }));
   }
 
-  async reload(): Promise<void> {
-    this.loading.set(true);
+  async reload(options: { silent?: boolean } = {}): Promise<void> {
+    if (!options.silent) {
+      this.loading.set(true);
+    }
     this.error.set(null);
     try {
       const [columns, cards, users, tags, epics] = await Promise.all([

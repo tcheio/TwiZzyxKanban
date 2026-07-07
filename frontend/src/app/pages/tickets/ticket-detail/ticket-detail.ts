@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, HostListener, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -25,6 +25,7 @@ import { stripCardImageSrc, hydrateCardImages } from '../../../shared/card-image
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
 import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from '../../../shared/ticket-status';
+import { startAutoRefresh } from '../../../shared/auto-refresh';
 
 const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = [
   { id: 'low', label: 'Basse', dotClass: 'bg-gray-400' },
@@ -54,6 +55,7 @@ export class TicketDetail implements OnInit {
   private readonly cardImagesService = inject(CardImagesService);
   private readonly tagsService = inject(TagsService);
   private readonly epicsService = inject(EpicsService);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly authService = inject(AuthService);
 
   @ViewChild('commentEditor') private commentEditorRef?: ElementRef<HTMLDivElement>;
@@ -86,11 +88,17 @@ export class TicketDetail implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.reload();
+    startAutoRefresh(this.destroyRef, () => this.reload({ silent: true }));
   }
 
-  async reload(): Promise<void> {
-    this.loading.set(true);
+  async reload(options: { silent?: boolean } = {}): Promise<void> {
+    if (!options.silent) {
+      this.loading.set(true);
+    }
     this.error.set(null);
+    // En rafraîchissement silencieux, si une description a été modifiée mais pas encore
+    // enregistrée, on ne veut pas écraser la saisie de l'utilisateur.
+    const hasUnsavedDescription = options.silent && this.descriptionDraftHtml() !== this.descriptionHtml();
     try {
       const [ticket, columns, users, tags, epics, comments, links, images, cards] = await Promise.all([
         this.cardsService.get(this.ticketId),
@@ -114,7 +122,9 @@ export class TicketDetail implements OnInit {
       this.cards.set(cards);
       const hydratedDescription = hydrateCardImages(ticket.description ?? '', images);
       this.descriptionHtml.set(hydratedDescription);
-      this.descriptionDraftHtml.set(hydratedDescription);
+      if (!hasUnsavedDescription) {
+        this.descriptionDraftHtml.set(hydratedDescription);
+      }
       this.titleService.setTitle(`${ticket.title} - TwiZzyxKanban`);
     } catch {
       this.error.set('Ticket introuvable.');

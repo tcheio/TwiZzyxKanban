@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { TagsService } from '../../../services/tags.service';
@@ -13,6 +13,7 @@ import { ChartComponent } from '../../../shared/chart/chart';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { StatusChip } from '../../../shared/status-chip/status-chip';
 import { cancelledTitleClass } from '../../../shared/ticket-status';
+import { startAutoRefresh } from '../../../shared/auto-refresh';
 
 const PRIORITY_LABELS: Record<Priority, string> = {
   low: 'Basse',
@@ -39,6 +40,7 @@ export class TagDetail implements OnInit {
   private readonly cardsService = inject(CardsService);
   private readonly columnsService = inject(ColumnsService);
   private readonly usersService = inject(UsersService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly tag = signal<Tag | null>(null);
   readonly columns = signal<Column[]>([]);
@@ -72,10 +74,13 @@ export class TagDetail implements OnInit {
       this.tagId = Number(params.get('id'));
       this.reload();
     });
+    startAutoRefresh(this.destroyRef, () => this.reload({ silent: true }));
   }
 
-  async reload(): Promise<void> {
-    this.loading.set(true);
+  async reload(options: { silent?: boolean } = {}): Promise<void> {
+    if (!options.silent) {
+      this.loading.set(true);
+    }
     this.error.set(null);
     try {
       const [tags, cards, columns, users] = await Promise.all([
