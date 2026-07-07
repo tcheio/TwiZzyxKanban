@@ -76,7 +76,7 @@
               </button>
             </form>
           } @else {
-            <span class="tag-name rounded px-2 py-0.5 text-xs font-medium" [class]="tagClass(tag.id)">{{ tag.name }}</span>
+            <span class="tag-name rounded px-2 py-0.5 text-xs font-medium" [class]="tagClass(tag)">{{ tag.name }}</span>
             <span class="ticket-count ml-auto shrink-0 text-xs text-gray-400">{{ ticketCount(tag.id) }} ticket(s)</span>
             @if (authService.isAdmin()) {
               <div class="actions flex shrink-0 items-center gap-1" (click)="$event.stopPropagation()">
