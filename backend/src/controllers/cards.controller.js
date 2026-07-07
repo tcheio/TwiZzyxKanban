@@ -209,26 +209,24 @@ function move(req, res) {
   res.json(moved);
 }
 
-function cancel(req, res) {
+function setCancelled(req, res, isCancelled) {
   const id = Number(req.params.id);
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
 
-  db.prepare(`UPDATE cards SET cancelled_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`).run(id);
+  const cancelledAtExpr = isCancelled ? "datetime('now')" : 'NULL';
+  db.prepare(`UPDATE cards SET cancelled_at = ${cancelledAtExpr}, updated_at = datetime('now') WHERE id = ?`).run(id);
   res.json(db.prepare('SELECT * FROM cards WHERE id = ?').get(id));
 }
 
-function restore(req, res) {
-  const id = Number(req.params.id);
-  const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
-  if (!card) {
-    return res.status(404).json({ error: 'Carte introuvable' });
-  }
+function cancel(req, res) {
+  setCancelled(req, res, true);
+}
 
-  db.prepare(`UPDATE cards SET cancelled_at = NULL, updated_at = datetime('now') WHERE id = ?`).run(id);
-  res.json(db.prepare('SELECT * FROM cards WHERE id = ?').get(id));
+function restore(req, res) {
+  setCancelled(req, res, false);
 }
 
 module.exports = { list, getOne, create, update, remove, move, cancel, restore };

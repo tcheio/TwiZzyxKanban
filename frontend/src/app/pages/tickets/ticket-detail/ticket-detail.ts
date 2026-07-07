@@ -24,16 +24,13 @@ import { tagBadgeClass } from '../../../shared/tag-colors';
 import { stripCardImageSrc, hydrateCardImages } from '../../../shared/card-image-html';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
+import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from '../../../shared/ticket-status';
 
 const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = [
   { id: 'low', label: 'Basse', dotClass: 'bg-gray-400' },
   { id: 'medium', label: 'Moyenne', dotClass: 'bg-amber-500' },
   { id: 'high', label: 'Haute', dotClass: 'bg-red-600' },
 ];
-
-// Statut synthétique (pas une vraie colonne) proposé dans le même sélecteur que les
-// colonnes : il permet d'annuler/réactiver un ticket comme n'importe quel changement de statut.
-const CANCELLED_STATUS_ID = -1;
 
 export interface LinkedTicket {
   linkId: number;
@@ -314,10 +311,12 @@ export class TicketDetail implements OnInit {
     return this.columns().find((c) => c.id === ticket.column_id)?.name === '✅Publié';
   }
 
+  readonly cancelledTitleClass = cancelledTitleClass;
+
   statusOptions(): SearchSelectOption<number>[] {
     return [
       ...this.columns().map((c) => ({ id: c.id, label: c.name })),
-      { id: CANCELLED_STATUS_ID, label: '🚫 Annulé', dotClass: 'bg-red-600' },
+      { id: CANCELLED_STATUS_ID, label: CANCELLED_STATUS_LABEL, dotClass: 'bg-red-600' },
     ];
   }
 
