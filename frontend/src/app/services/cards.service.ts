@@ -34,4 +34,12 @@ export class CardsService {
     }
     return firstValueFrom(this.http.patch<Card>(`/api/cards/${id}/move`, body));
   }
+
+  cancel(id: number): Promise<Card> {
+    return firstValueFrom(this.http.patch<Card>(`/api/cards/${id}/cancel`, {}));
+  }
+
+  restore(id: number): Promise<Card> {
+    return firstValueFrom(this.http.patch<Card>(`/api/cards/${id}/restore`, {}));
+  }
 }

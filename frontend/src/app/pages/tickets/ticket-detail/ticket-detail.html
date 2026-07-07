@@ -21,6 +21,9 @@
       }
       <span class="text-gray-300">/</span>
       <span class="text-gray-400">Ticket #{{ t.id }}</span>
+      @if (isCancelled()) {
+        <span class="rounded px-1.5 py-0.5 text-xs font-medium text-red-700 bg-red-50">Annulé</span>
+      }
     </nav>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
@@ -28,7 +31,8 @@
         <label for="ticket-title" class="sr-only">Titre du ticket</label>
         <input
           id="ticket-title"
-          class="w-full rounded-md border border-transparent px-1 py-1 text-2xl font-bold text-gray-900 focus:border-gray-300 focus:outline-none"
+          class="w-full rounded-md border border-transparent px-1 py-1 text-2xl font-bold focus:border-gray-300 focus:outline-none"
+          [class]="cancelledTitleClass(t.cancelled_at)"
           [value]="t.title"
           (change)="updateTitle($any($event.target).value)"
         />
@@ -69,7 +73,9 @@
                     />
                   </svg>
                   <span class="shrink-0 text-gray-500">Cloné depuis</span>
-                  <span class="truncate font-medium text-gray-900">{{ source.title }}</span>
+                  <span class="truncate font-medium" [class]="cancelledTitleClass(source.cancelled_at)">
+                    {{ source.title }}
+                  </span>
                 </a>
               }
               @for (clone of clones(); track clone.id) {
@@ -86,7 +92,9 @@
                     />
                   </svg>
                   <span class="shrink-0 text-gray-500">Cloné vers</span>
-                  <span class="truncate font-medium text-gray-900">{{ clone.title }}</span>
+                  <span class="truncate font-medium" [class]="cancelledTitleClass(clone.cancelled_at)">
+                    {{ clone.title }}
+                  </span>
                 </a>
               }
             </div>
@@ -112,7 +120,9 @@
                             d="M3 10a1 1 0 011-1h9.586l-2.293-2.293a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L13.586 11H4a1 1 0 01-1-1z"
                           />
                         </svg>
-                        <span class="truncate font-medium text-gray-900">{{ entry.card.title }}</span>
+                        <span class="truncate font-medium" [class]="cancelledTitleClass(entry.card.cancelled_at)">
+                          {{ entry.card.title }}
+                        </span>
                       </a>
                       <button
                         type="button"
@@ -144,7 +154,9 @@
                             d="M17 10a1 1 0 01-1 1H6.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 111.414 1.414L6.414 9H16a1 1 0 011 1z"
                           />
                         </svg>
-                        <span class="truncate font-medium text-gray-900">{{ entry.card.title }}</span>
+                        <span class="truncate font-medium" [class]="cancelledTitleClass(entry.card.cancelled_at)">
+                          {{ entry.card.title }}
+                        </span>
                       </a>
                       <button
                         type="button"
@@ -325,7 +337,7 @@
         <div class="mb-3 flex flex-col gap-2">
           <app-search-select
             [options]="statusOptions()"
-            [value]="t.column_id"
+            [value]="statusValue()"
             [allowNull]="false"
             [disabled]="isPublished()"
             [fullWidth]="true"

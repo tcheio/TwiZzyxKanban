@@ -11,6 +11,8 @@ import { Column } from '../../../models/column.model';
 import { UserLite } from '../../../models/user.model';
 import { ChartComponent } from '../../../shared/chart/chart';
 import { tagBadgeClass } from '../../../shared/tag-colors';
+import { StatusChip } from '../../../shared/status-chip/status-chip';
+import { cancelledTitleClass } from '../../../shared/ticket-status';
 
 const PRIORITY_LABELS: Record<Priority, string> = {
   low: 'Basse',
@@ -26,7 +28,7 @@ const PRIORITY_DOT_CLASSES: Record<Priority, string> = {
 
 @Component({
   selector: 'app-tag-detail',
-  imports: [RouterLink, ChartComponent],
+  imports: [RouterLink, ChartComponent, StatusChip],
   templateUrl: './tag-detail.html',
 })
 export class TagDetail implements OnInit {
@@ -112,6 +114,8 @@ export class TagDetail implements OnInit {
   columnName(columnId: number): string {
     return this.columns().find((c) => c.id === columnId)?.name ?? '—';
   }
+
+  readonly cancelledTitleClass = cancelledTitleClass;
 
   userName(id: number | null): string {
     if (!id) return '—';

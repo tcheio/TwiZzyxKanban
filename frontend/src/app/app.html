@@ -1,7 +1,12 @@
 @if (authService.isLoggedIn()) {
   <div class="app-shell flex h-screen flex-col bg-white text-gray-800">
     <header class="flex h-12 shrink-0 items-center gap-3 border-b border-gray-200 bg-violet-300 px-4">
-      <button type="button" class="rounded p-1.5 hover:bg-gray-100" title="Applications">
+      <button
+        type="button"
+        class="rounded p-1.5 hover:bg-gray-100"
+        title="Replier / déplier la barre latérale"
+        (click)="toggleSidebar()"
+      >
         <svg viewBox="0 0 20 20" class="h-5 w-5 fill-gray-500">
           <circle cx="4" cy="4" r="1.5" /><circle cx="10" cy="4" r="1.5" /><circle cx="16" cy="4" r="1.5" />
           <circle cx="4" cy="10" r="1.5" /><circle cx="10" cy="10" r="1.5" /><circle cx="16" cy="10" r="1.5" />
@@ -52,8 +57,12 @@
     </header>
 
     <div class="flex min-h-0 flex-1">
-      <aside class="flex w-56 shrink-0 flex-col border-r border-gray-200 px-3 py-4">
-        <div class="mb-4 flex items-center gap-2 px-1">
+      <aside
+        class="flex shrink-0 flex-col overflow-hidden border-gray-200 transition-all duration-200"
+        [class]="sidebarCollapsed() ? 'w-0 border-r-0' : 'w-56 border-r'"
+      >
+      <div class="flex h-full w-56 shrink-0 flex-col px-3 py-4">
+        <div class="mb-4 flex items-center gap-2 px-1 whitespace-nowrap">
           <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-sm font-bold text-white">
             TK
           </span>
@@ -145,6 +154,7 @@
             </a>
           </div>
         }
+      </div>
       </aside>
 
       <main class="min-w-0 flex-1 overflow-y-auto">

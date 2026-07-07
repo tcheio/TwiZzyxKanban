@@ -44,11 +44,11 @@
           <tbody class="divide-y divide-gray-100">
             @for (ticket of tickets(); track ticket.id) {
               <tr class="cursor-pointer hover:bg-gray-50" (click)="openTicket(ticket)">
-                <td class="px-4 py-2.5 font-medium text-gray-900">{{ ticket.title }}</td>
+                <td class="px-4 py-2.5 font-medium" [class]="cancelledTitleClass(ticket.cancelled_at)">
+                  {{ ticket.title }}
+                </td>
                 <td class="px-4 py-2.5">
-                  <span class="status-chip rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                    {{ columnName(ticket.column_id) }}
-                  </span>
+                  <app-status-chip [ticket]="ticket" [columns]="columns()" />
                 </td>
                 <td class="px-4 py-2.5">
                   @if (ticket.assigned_user_id) {

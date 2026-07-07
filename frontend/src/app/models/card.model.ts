@@ -13,6 +13,7 @@ export interface Card {
   position: number;
   due_date: string | null;
   published_at?: string | null;
+  cancelled_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }

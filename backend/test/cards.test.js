@@ -484,6 +484,68 @@ test('POST /api/cards avec une description persiste la description', async () =>
   assert.equal(res.body.description, 'Une description');
 });
 
+test('PATCH /api/cards/:id/cancel annule une carte', async () => {
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  const res = await request(app)
+    .patch(`/api/cards/${created.body.id}/cancel`)
+    .set('Authorization', `Bearer ${adminToken}`);
+  assert.equal(res.status, 200);
+  assert.ok(res.body.cancelled_at);
+});
+
+test('PATCH /api/cards/:id/cancel par un utilisateur non-admin fonctionne (statut ouvert à tous)', async () => {
+  await request(app)
+    .post('/api/users')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ username: 'alice', password: 'alice123', role: 'user' });
+  const aliceToken = await loginAs('alice', 'alice123');
+
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  const res = await request(app)
+    .patch(`/api/cards/${created.body.id}/cancel`)
+    .set('Authorization', `Bearer ${aliceToken}`);
+  assert.equal(res.status, 200);
+  assert.ok(res.body.cancelled_at);
+});
+
+test('PATCH /api/cards/:id/cancel sur une carte inexistante retourne 404', async () => {
+  const res = await request(app)
+    .patch('/api/cards/9999/cancel')
+    .set('Authorization', `Bearer ${adminToken}`);
+  assert.equal(res.status, 404);
+});
+
+test('PATCH /api/cards/:id/restore réactive une carte annulée', async () => {
+  const created = await request(app)
+    .post('/api/cards')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+  await request(app)
+    .patch(`/api/cards/${created.body.id}/cancel`)
+    .set('Authorization', `Bearer ${adminToken}`);
+
+  const res = await request(app)
+    .patch(`/api/cards/${created.body.id}/restore`)
+    .set('Authorization', `Bearer ${adminToken}`);
+  assert.equal(res.status, 200);
+  assert.equal(res.body.cancelled_at, null);
+});
+
+test('PATCH /api/cards/:id/restore sur une carte inexistante retourne 404', async () => {
+  const res = await request(app)
+    .patch('/api/cards/9999/restore')
+    .set('Authorization', `Bearer ${adminToken}`);
+  assert.equal(res.status, 404);
+});
+
 test('DELETE /api/cards/:id sur une carte source détache simplement ses clones (pas de blocage)', async () => {
   const original = await request(app)
     .post('/api/cards')

@@ -16,6 +16,8 @@ import { AuthService } from '../../../core/auth.service';
 import { epicBadgeClass } from '../../../shared/epic-colors';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
+import { StatusChip } from '../../../shared/status-chip/status-chip';
+import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from '../../../shared/ticket-status';
 
 const PRIORITY_DOT_CLASSES: Record<string, string> = {
   low: 'bg-gray-400',
@@ -25,7 +27,7 @@ const PRIORITY_DOT_CLASSES: Record<string, string> = {
 
 @Component({
   selector: 'app-tickets-list',
-  imports: [FormsModule, NewTicketDialog, SearchSelect],
+  imports: [FormsModule, NewTicketDialog, SearchSelect, StatusChip],
   templateUrl: './tickets-list.html',
 })
 export class TicketsList implements OnInit {
@@ -68,7 +70,8 @@ export class TicketsList implements OnInit {
       if (tagId !== null && ticket.tag_id !== tagId) return false;
       if (epicId !== null && ticket.epic_id !== epicId) return false;
       if (assigneeId !== null && ticket.assigned_user_id !== assigneeId) return false;
-      if (columnId !== null && ticket.column_id !== columnId) return false;
+      if (columnId === CANCELLED_STATUS_ID) return !!ticket.cancelled_at;
+      if (columnId !== null && (ticket.cancelled_at || ticket.column_id !== columnId)) return false;
       return true;
     });
   });
@@ -116,6 +119,8 @@ export class TicketsList implements OnInit {
   columnName(columnId: number): string {
     return this.columns().find((c) => c.id === columnId)?.name ?? '—';
   }
+
+  readonly cancelledTitleClass = cancelledTitleClass;
 
   userName(id: number | null): string {
     if (!id) return '—';
@@ -174,7 +179,10 @@ export class TicketsList implements OnInit {
   }
 
   statusFilterOptions(): SearchSelectOption<number>[] {
-    return this.columns().map((c) => ({ id: c.id, label: c.name }));
+    return [
+      ...this.columns().map((c) => ({ id: c.id, label: c.name })),
+      { id: CANCELLED_STATUS_ID, label: CANCELLED_STATUS_LABEL },
+    ];
   }
 
   openTicket(card: Card): void {
