@@ -1,7 +1,12 @@
 const KANBAN_TEMPLATES = {
   video: {
     columns: ['💡Idées', '📝Préparation/Écriture', '🎥Tournage', '🎬Montage', '🖼️Miniature', '✅Publié'],
-    tags: ['Minecraft', 'Pokémon', 'Ykw Watch', 'Inazuma Eleven'],
+    tags: [
+      { name: 'Minecraft', color: 'emerald' },
+      { name: 'Pokémon', color: 'red' },
+      { name: 'Ykw Watch', color: 'amber' },
+      { name: 'Inazuma Eleven', color: 'sky' },
+    ],
     epics: [
       { name: 'TwiZzyx', color: 'red' },
       { name: 'TwiZzyxPasSympa', color: 'orange' },

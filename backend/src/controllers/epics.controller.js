@@ -1,6 +1,5 @@
 const db = require('../db/connection');
-
-const ALLOWED_COLORS = ['red', 'orange', 'amber', 'emerald', 'sky', 'violet', 'rose', 'indigo', 'gray'];
+const { ALLOWED_COLORS } = require('../constants/colors');
 
 function list(req, res) {
   const epics = db.prepare('SELECT * FROM epics WHERE kanban_id = ? ORDER BY name').all(req.kanbanId);

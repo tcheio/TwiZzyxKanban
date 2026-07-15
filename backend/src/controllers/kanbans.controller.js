@@ -9,8 +9,8 @@ function seedKanbanContent(kanbanId, templateName) {
   const insertColumn = db.prepare('INSERT INTO columns (kanban_id, name, position) VALUES (?, ?, ?)');
   template.columns.forEach((name, index) => insertColumn.run(kanbanId, name, index));
 
-  const insertTag = db.prepare('INSERT INTO tags (kanban_id, name) VALUES (?, ?)');
-  template.tags.forEach((name) => insertTag.run(kanbanId, name));
+  const insertTag = db.prepare('INSERT INTO tags (kanban_id, name, color) VALUES (?, ?, ?)');
+  template.tags.forEach(({ name, color }) => insertTag.run(kanbanId, name, color));
 
   const insertEpic = db.prepare('INSERT INTO epics (kanban_id, name, color) VALUES (?, ?, ?)');
   template.epics.forEach(({ name, color }) => insertEpic.run(kanbanId, name, color));

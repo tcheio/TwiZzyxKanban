@@ -7,7 +7,7 @@ import { AuthService } from '../../../core/auth.service';
 import { Tag } from '../../../models/tag.model';
 import { Card } from '../../../models/card.model';
 import { Kanban } from '../../../models/kanban.model';
-import { tagBadgeClass } from '../../../shared/tag-colors';
+import { TAG_COLORS, tagBadgeClass, tagDotClass } from '../../../shared/tag-colors';
 
 @Component({
   selector: 'app-tags-list',
@@ -23,6 +23,9 @@ export class TagsList implements OnInit {
   private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
   private readonly kanbanId = this.kanban.id;
 
+  readonly tagColors = TAG_COLORS;
+  readonly tagDotClass = tagDotClass;
+
   readonly tags = signal<Tag[]>([]);
   readonly cards = signal<Card[]>([]);
   readonly loading = signal(true);
@@ -30,9 +33,11 @@ export class TagsList implements OnInit {
 
   readonly creating = signal(false);
   readonly newTagName = signal('');
+  readonly newTagColor = signal(TAG_COLORS[0]);
 
   readonly editingId = signal<number | null>(null);
   readonly editName = signal('');
+  readonly editColor = signal('');
 
   async ngOnInit(): Promise<void> {
     await this.reload();
@@ -60,7 +65,7 @@ export class TagsList implements OnInit {
   }
 
   tagClass(tag: Tag): string {
-    return tagBadgeClass(tag.id, tag.name);
+    return tagBadgeClass(tag.color);
   }
 
   openTag(tag: Tag): void {
@@ -71,8 +76,9 @@ export class TagsList implements OnInit {
     const name = this.newTagName().trim();
     if (!name) return;
     try {
-      await this.tagsService.create(this.kanbanId, name);
+      await this.tagsService.create(this.kanbanId, name, this.newTagColor());
       this.newTagName.set('');
+      this.newTagColor.set(TAG_COLORS[0]);
       this.creating.set(false);
       await this.reload();
     } catch {
@@ -83,6 +89,7 @@ export class TagsList implements OnInit {
   startEdit(tag: Tag): void {
     this.editingId.set(tag.id);
     this.editName.set(tag.name);
+    this.editColor.set(tag.color);
   }
 
   cancelEdit(): void {
@@ -91,10 +98,11 @@ export class TagsList implements OnInit {
 
   async saveEdit(tag: Tag): Promise<void> {
     const trimmed = this.editName().trim();
+    const color = this.editColor();
     this.editingId.set(null);
-    if (!trimmed || trimmed === tag.name) return;
+    if (!trimmed || (trimmed === tag.name && color === tag.color)) return;
     try {
-      await this.tagsService.rename(this.kanbanId, tag.id, trimmed);
+      await this.tagsService.update(this.kanbanId, tag.id, { name: trimmed, color });
       await this.reload();
     } catch {
       this.error.set('Échec du renommage du tag.');

@@ -28,22 +28,36 @@ test('GET /api/kanbans/:id/tags sans token retourne 401', async () => {
   assert.equal(res.status, 401);
 });
 
-test('GET retourne les 4 tags par défaut triés par nom', async () => {
+test('GET retourne les 4 tags par défaut avec leurs couleurs', async () => {
   const res = await request(app).get(`/api/kanbans/${kanbanId}/tags`).set('Authorization', `Bearer ${adminToken}`);
   assert.equal(res.status, 200);
   assert.deepEqual(
     res.body.map((t) => t.name).sort(),
     ['Inazuma Eleven', 'Minecraft', 'Pokémon', 'Ykw Watch'].sort()
   );
+  const minecraft = res.body.find((t) => t.name === 'Minecraft');
+  const inazuma = res.body.find((t) => t.name === 'Inazuma Eleven');
+  assert.equal(minecraft.color, 'emerald');
+  assert.equal(inazuma.color, 'sky');
 });
 
-test('POST crée un tag', async () => {
+test('POST crée un tag avec une couleur valide', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/tags`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'One Piece', color: 'rose' });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.name, 'One Piece');
+  assert.equal(res.body.color, 'rose');
+});
+
+test('POST sans couleur utilise gray par défaut', async () => {
   const res = await request(app)
     .post(`/api/kanbans/${kanbanId}/tags`)
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ name: 'One Piece' });
   assert.equal(res.status, 201);
-  assert.equal(res.body.name, 'One Piece');
+  assert.equal(res.body.color, 'gray');
 });
 
 test('POST sans nom retourne 400', async () => {
@@ -51,15 +65,46 @@ test('POST sans nom retourne 400', async () => {
   assert.equal(res.status, 400);
 });
 
-test('PATCH renomme le tag', async () => {
+test('POST avec une couleur invalide retourne 400', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/tags`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'One Piece', color: 'not-a-color' });
+  assert.equal(res.status, 400);
+});
+
+test('PATCH renomme le tag et change sa couleur', async () => {
   const list = await request(app).get(`/api/kanbans/${kanbanId}/tags`).set('Authorization', `Bearer ${adminToken}`);
   const id = list.body[0].id;
   const res = await request(app)
     .patch(`/api/kanbans/${kanbanId}/tags/${id}`)
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ name: 'Renommé' });
+    .send({ name: 'Renommé', color: 'violet' });
   assert.equal(res.status, 200);
   assert.equal(res.body.name, 'Renommé');
+  assert.equal(res.body.color, 'violet');
+});
+
+test('PATCH ne change que la couleur si le nom est omis', async () => {
+  const list = await request(app).get(`/api/kanbans/${kanbanId}/tags`).set('Authorization', `Bearer ${adminToken}`);
+  const tag = list.body[0];
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/tags/${tag.id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ color: 'indigo' });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.name, tag.name);
+  assert.equal(res.body.color, 'indigo');
+});
+
+test('PATCH avec une couleur invalide retourne 400', async () => {
+  const list = await request(app).get(`/api/kanbans/${kanbanId}/tags`).set('Authorization', `Bearer ${adminToken}`);
+  const id = list.body[0].id;
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/tags/${id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ color: 'not-a-color' });
+  assert.equal(res.status, 400);
 });
 
 test('PATCH sur un tag inexistant retourne 404', async () => {

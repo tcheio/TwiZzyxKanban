@@ -51,8 +51,8 @@ describe('TicketDetail', () => {
   ];
   const users = [{ id: 1, username: 'alice' }];
   const tags = [
-    { id: 1, name: 'Minecraft' },
-    { id: 2, name: 'Pokémon' },
+    { id: 1, name: 'Minecraft', color: 'emerald' },
+    { id: 2, name: 'Pokémon', color: 'red' },
   ];
   const ticket: Card = {
     id: 5,

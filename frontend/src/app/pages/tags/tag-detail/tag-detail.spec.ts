@@ -15,8 +15,8 @@ describe('TagDetail', () => {
   let paramMap$: Subject<{ get: (key: string) => string | null }>;
 
   const tags = [
-    { id: 1, name: 'Minecraft' },
-    { id: 2, name: 'Pokémon' },
+    { id: 1, name: 'Minecraft', color: 'emerald' },
+    { id: 2, name: 'Pokémon', color: 'red' },
   ];
   const columns = [
     { id: 1, name: 'Idée', position: 0 },

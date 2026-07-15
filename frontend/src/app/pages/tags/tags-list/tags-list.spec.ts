@@ -13,15 +13,15 @@ describe('TagsList', () => {
   let tagsService: {
     list: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
-    rename: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
   };
   let navigate: ReturnType<typeof vi.fn>;
   let isAdmin: ReturnType<typeof vi.fn>;
 
   const tags = [
-    { id: 1, name: 'Minecraft' },
-    { id: 2, name: 'Pokémon' },
+    { id: 1, name: 'Minecraft', color: 'emerald' },
+    { id: 2, name: 'Pokémon', color: 'red' },
   ];
   const cards: Card[] = [
     {
@@ -71,7 +71,7 @@ describe('TagsList', () => {
     tagsService = {
       list: vi.fn().mockResolvedValue(tags),
       create: vi.fn().mockResolvedValue({}),
-      rename: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
       remove: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -130,11 +130,12 @@ describe('TagsList', () => {
 
   it('createTag() crée un tag et réinitialise le formulaire', async () => {
     component.newTagName.set('One Piece');
+    component.newTagColor.set('sky');
     component.creating.set(true);
 
     await component.createTag();
 
-    expect(tagsService.create).toHaveBeenCalledWith(1, 'One Piece');
+    expect(tagsService.create).toHaveBeenCalledWith(1, 'One Piece', 'sky');
     expect(component.newTagName()).toBe('');
     expect(component.creating()).toBe(false);
   });
@@ -151,27 +152,29 @@ describe('TagsList', () => {
     component.startEdit(tags[0]);
     expect(component.editingId()).toBe(1);
     expect(component.editName()).toBe('Minecraft');
+    expect(component.editColor()).toBe('emerald');
 
     component.cancelEdit();
     expect(component.editingId()).toBeNull();
   });
 
-  it('saveEdit() ne fait rien si le nom est inchangé', async () => {
+  it('saveEdit() ne fait rien si rien n\'a changé', async () => {
     component.startEdit(tags[0]);
     component.editName.set('Minecraft');
+    component.editColor.set('emerald');
 
     await component.saveEdit(tags[0]);
 
-    expect(tagsService.rename).not.toHaveBeenCalled();
+    expect(tagsService.update).not.toHaveBeenCalled();
   });
 
-  it('saveEdit() appelle le service si le nom change', async () => {
+  it('saveEdit() appelle le service si le nom ou la couleur change', async () => {
     component.startEdit(tags[0]);
     component.editName.set('Minecraft Vanilla');
 
     await component.saveEdit(tags[0]);
 
-    expect(tagsService.rename).toHaveBeenCalledWith(1, 1, 'Minecraft Vanilla');
+    expect(tagsService.update).toHaveBeenCalledWith(1, 1, { name: 'Minecraft Vanilla', color: 'emerald' });
   });
 
   it('deleteTag() supprime après confirmation', async () => {
