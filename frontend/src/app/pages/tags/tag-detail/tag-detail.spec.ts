@@ -78,7 +78,13 @@ describe('TagDetail', () => {
         { provide: Router, useValue: { navigate } },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: { get: () => id } }, paramMap: paramMap$.asObservable() },
+          useValue: {
+            snapshot: {
+              data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } },
+              paramMap: { get: () => id },
+            },
+            paramMap: paramMap$.asObservable(),
+          },
         },
       ],
     });
@@ -134,7 +140,7 @@ describe('TagDetail', () => {
 
     component.openTicket(cards[0]);
 
-    expect(navigate).toHaveBeenCalledWith(['/kanbans', `1-${cards[0].id}`]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', `TK-TEST-${cards[0].id}`]);
   });
 
   it('ngOnInit() recharge le tag à chaque changement de paramètre de route (navigation directe entre tags)', async () => {

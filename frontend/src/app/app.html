@@ -77,10 +77,10 @@
           </div>
         </button>
 
-        @if (currentKanbanId(); as kanbanId) {
+        @if (currentKanban(); as kanban) {
           <nav class="flex flex-1 flex-col gap-0.5">
             <a
-              [routerLink]="['/kanbans', kanbanId]"
+              [routerLink]="['/kanbans', kanban.code]"
               routerLinkActive="bg-blue-50 text-blue-700"
               [routerLinkActiveOptions]="{ exact: true }"
               class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
@@ -93,7 +93,7 @@
               Tableau
             </a>
             <a
-              [routerLink]="['/kanbans', kanbanId, 'tickets']"
+              [routerLink]="['/kanbans', kanban.code, 'tickets']"
               routerLinkActive="bg-blue-50 text-blue-700"
               class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
             >
@@ -105,7 +105,7 @@
               Tickets
             </a>
             <a
-              [routerLink]="['/kanbans', kanbanId, 'tags']"
+              [routerLink]="['/kanbans', kanban.code, 'tags']"
               routerLinkActive="bg-blue-50 text-blue-700"
               class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
             >
@@ -124,7 +124,7 @@
               <div class="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">EPICs</div>
               @for (epic of epics(); track epic.id) {
                 <a
-                  [routerLink]="['/kanbans', kanbanId, 'epics', epic.id]"
+                  [routerLink]="['/kanbans', kanban.code, 'epics', epic.id]"
                   routerLinkActive="bg-blue-50 text-blue-700"
                   class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
                 >
@@ -135,7 +135,7 @@
             </div>
           }
 
-          @if (authService.isAdmin() || currentKanban()?.is_moderator) {
+          @if (authService.isAdmin() || kanban.is_moderator) {
             <div class="mt-auto flex flex-col gap-0.5 border-t border-gray-100 pt-3">
               @if (authService.isAdmin()) {
                 <a
@@ -153,7 +153,7 @@
                 </a>
               }
               <a
-                [routerLink]="['/kanbans', kanbanId, 'members']"
+                [routerLink]="['/kanbans', kanban.code, 'members']"
                 routerLinkActive="bg-blue-50 text-blue-700"
                 class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
               >
@@ -161,7 +161,7 @@
                 Membres
               </a>
               <a
-                [routerLink]="['/kanbans', kanbanId, 'settings']"
+                [routerLink]="['/kanbans', kanban.code, 'settings']"
                 routerLinkActive="bg-blue-50 text-blue-700"
                 class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
               >

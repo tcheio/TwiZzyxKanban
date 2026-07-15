@@ -41,7 +41,7 @@ export class KanbansList implements OnInit {
   }
 
   openKanban(kanban: Kanban): void {
-    this.router.navigate(['/kanbans', kanban.id]);
+    this.router.navigate(['/kanbans', kanban.code]);
   }
 
   async createKanban(): Promise<void> {
@@ -57,7 +57,7 @@ export class KanbansList implements OnInit {
       this.newName.set('');
       this.newCode.set('');
       this.newTemplate.set('video');
-      this.router.navigate(['/kanbans', kanban.id]);
+      this.router.navigate(['/kanbans', kanban.code]);
     } catch (err: unknown) {
       const message = (err as { error?: { error?: string } })?.error?.error;
       this.error.set(message ?? 'Échec de la création du kanban.');

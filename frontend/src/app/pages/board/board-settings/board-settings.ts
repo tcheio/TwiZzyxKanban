@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ColumnsService } from '../../../services/columns.service';
 import { Column } from '../../../models/column.model';
+import { Kanban } from '../../../models/kanban.model';
 
 @Component({
   selector: 'app-board-settings',
@@ -11,7 +12,9 @@ import { Column } from '../../../models/column.model';
 export class BoardSettings implements OnInit {
   private readonly columnsService = inject(ColumnsService);
   private readonly route = inject(ActivatedRoute);
-  readonly kanbanId = Number(this.route.snapshot.paramMap.get('kanbanId'));
+  private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
+  readonly kanbanId = this.kanban.id;
+  readonly kanbanCode = this.kanban.code;
 
   readonly columns = signal<Column[]>([]);
   readonly loading = signal(true);

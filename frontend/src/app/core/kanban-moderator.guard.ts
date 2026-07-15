@@ -5,16 +5,16 @@ import { KanbansService } from '../services/kanbans.service';
 export const kanbanModeratorGuard: CanActivateFn = async (route) => {
   const kanbansService = inject(KanbansService);
   const router = inject(Router);
-  const kanbanId = Number(route.paramMap.get('kanbanId'));
+  const code = route.paramMap.get('kanbanCode');
 
   try {
     const kanbans = await kanbansService.list();
-    const kanban = kanbans.find((k) => k.id === kanbanId);
+    const kanban = kanbans.find((k) => k.code === code);
     if (kanban?.is_moderator) {
       return true;
     }
     if (kanban) {
-      return router.parseUrl(`/kanbans/${kanbanId}`);
+      return router.parseUrl(`/kanbans/${kanban.code}`);
     }
   } catch {
     // Ignore et redirige comme un accès refusé

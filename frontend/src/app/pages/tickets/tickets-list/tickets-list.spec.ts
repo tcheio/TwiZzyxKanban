@@ -94,7 +94,10 @@ describe('TicketsList', () => {
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: AuthService, useValue: { isAdmin } },
         { provide: Router, useValue: { navigate } },
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '1' } } } },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } } } },
+        },
       ],
     });
     fixture = TestBed.createComponent(TicketsList);
@@ -139,7 +142,7 @@ describe('TicketsList', () => {
 
     component.openTicket(cards[0]);
 
-    expect(navigate).toHaveBeenCalledWith(['/kanbans', `1-${cards[0].id}`]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', `TK-TEST-${cards[0].id}`]);
   });
 
   it('createTicket() crée le ticket puis navigue vers sa page dédiée', async () => {
@@ -158,7 +161,7 @@ describe('TicketsList', () => {
 
     expect(cardsService.create).toHaveBeenCalled();
     expect(component.dialogOpen()).toBe(false);
-    expect(navigate).toHaveBeenCalledWith(['/kanbans', '1-99']);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST-99']);
   });
 
   it('filteredTickets() sans filtre retourne tous les tickets', async () => {

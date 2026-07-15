@@ -14,6 +14,7 @@ import { UsersService } from '../../services/users.service';
 import { TagsService } from '../../services/tags.service';
 import { EpicsService } from '../../services/epics.service';
 import { Column } from '../../models/column.model';
+import { Kanban } from '../../models/kanban.model';
 import { Card, Priority } from '../../models/card.model';
 import { UserLite } from '../../models/user.model';
 import { Tag } from '../../models/tag.model';
@@ -48,7 +49,8 @@ export class Board implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly kanbanId = Number(this.route.snapshot.paramMap.get('kanbanId'));
+  private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
+  private readonly kanbanId = this.kanban.id;
 
   readonly groups = signal<ColumnGroup[]>([]);
   readonly users = signal<UserLite[]>([]);
@@ -246,6 +248,6 @@ export class Board implements OnInit {
   }
 
   openTicket(card: Card): void {
-    this.router.navigate(['/kanbans', `${this.kanbanId}-${card.id}`]);
+    this.router.navigate(['/kanbans', `${this.kanban.code}-${card.id}`]);
   }
 }

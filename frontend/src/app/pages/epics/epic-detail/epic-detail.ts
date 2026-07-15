@@ -9,6 +9,7 @@ import { Epic } from '../../../models/epic.model';
 import { Card, Priority } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
 import { UserLite } from '../../../models/user.model';
+import { Kanban } from '../../../models/kanban.model';
 import { ChartComponent } from '../../../shared/chart/chart';
 import { epicBadgeClass, epicDotClass } from '../../../shared/epic-colors';
 import { StatusChip } from '../../../shared/status-chip/status-chip';
@@ -41,7 +42,9 @@ export class EpicDetail implements OnInit {
   private readonly columnsService = inject(ColumnsService);
   private readonly usersService = inject(UsersService);
   private readonly destroyRef = inject(DestroyRef);
-  protected readonly kanbanId = Number(this.route.snapshot.paramMap.get('kanbanId'));
+  private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
+  protected readonly kanbanId = this.kanban.id;
+  protected readonly kanbanCode = this.kanban.code;
 
   readonly epic = signal<Epic | null>(null);
   readonly columns = signal<Column[]>([]);
@@ -151,6 +154,6 @@ export class EpicDetail implements OnInit {
   }
 
   openTicket(card: Card): void {
-    this.router.navigate(['/kanbans', `${this.kanbanId}-${card.id}`]);
+    this.router.navigate(['/kanbans', `${this.kanbanCode}-${card.id}`]);
   }
 }

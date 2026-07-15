@@ -82,7 +82,10 @@ describe('TagsList', () => {
         { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
         { provide: AuthService, useValue: { isAdmin } },
         { provide: Router, useValue: { navigate } },
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '1' } } } },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } } } },
+        },
       ],
     });
     fixture = TestBed.createComponent(TagsList);
@@ -104,7 +107,7 @@ describe('TagsList', () => {
   it('openTag() navigue vers la page de détail du tag', async () => {
     await component.reload();
     component.openTag(tags[0]);
-    expect(navigate).toHaveBeenCalledWith(['/kanbans', 1, 'tags', 1]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST', 'tags', 1]);
   });
 
   it('affiche le bouton "+ Nouveau tag" pour un admin', async () => {

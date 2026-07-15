@@ -6,6 +6,7 @@ import { CardsService } from '../../../services/cards.service';
 import { AuthService } from '../../../core/auth.service';
 import { Epic } from '../../../models/epic.model';
 import { Card } from '../../../models/card.model';
+import { Kanban } from '../../../models/kanban.model';
 import { EPIC_COLORS, epicDotClass } from '../../../shared/epic-colors';
 
 @Component({
@@ -19,7 +20,8 @@ export class EpicsList implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   protected readonly authService = inject(AuthService);
-  private readonly kanbanId = Number(this.route.snapshot.paramMap.get('kanbanId'));
+  private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
+  private readonly kanbanId = this.kanban.id;
 
   readonly epicColors = EPIC_COLORS;
   readonly epicDotClass = epicDotClass;
@@ -63,7 +65,7 @@ export class EpicsList implements OnInit {
   }
 
   openEpic(epic: Epic): void {
-    this.router.navigate(['/kanbans', this.kanbanId, 'epics', epic.id]);
+    this.router.navigate(['/kanbans', this.kanban.code, 'epics', epic.id]);
   }
 
   async createEpic(): Promise<void> {

@@ -82,7 +82,10 @@ describe('EpicsList', () => {
         { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
         { provide: AuthService, useValue: { isAdmin } },
         { provide: Router, useValue: { navigate } },
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '1' } } } },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } } } },
+        },
       ],
     });
     fixture = TestBed.createComponent(EpicsList);
@@ -104,7 +107,7 @@ describe('EpicsList', () => {
   it("openEpic() navigue vers la page de détail de l'EPIC", async () => {
     await component.reload();
     component.openEpic(epics[0]);
-    expect(navigate).toHaveBeenCalledWith(['/kanbans', 1, 'epics', 1]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST', 'epics', 1]);
   });
 
   it('affiche le bouton "+ Nouvelle EPIC" pour un admin', async () => {

@@ -6,6 +6,7 @@ import { CardsService } from '../../../services/cards.service';
 import { AuthService } from '../../../core/auth.service';
 import { Tag } from '../../../models/tag.model';
 import { Card } from '../../../models/card.model';
+import { Kanban } from '../../../models/kanban.model';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 
 @Component({
@@ -19,7 +20,8 @@ export class TagsList implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   protected readonly authService = inject(AuthService);
-  private readonly kanbanId = Number(this.route.snapshot.paramMap.get('kanbanId'));
+  private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
+  private readonly kanbanId = this.kanban.id;
 
   readonly tags = signal<Tag[]>([]);
   readonly cards = signal<Card[]>([]);
@@ -62,7 +64,7 @@ export class TagsList implements OnInit {
   }
 
   openTag(tag: Tag): void {
-    this.router.navigate(['/kanbans', this.kanbanId, 'tags', tag.id]);
+    this.router.navigate(['/kanbans', this.kanban.code, 'tags', tag.id]);
   }
 
   async createTag(): Promise<void> {

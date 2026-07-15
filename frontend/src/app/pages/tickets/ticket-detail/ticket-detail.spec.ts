@@ -113,7 +113,15 @@ describe('TicketDetail', () => {
         { provide: CardImagesService, useValue: cardImagesService },
         { provide: AuthService, useValue: { currentUser, isAdmin } },
         { provide: Router, useValue: { navigate } },
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '5' } } } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              data: { kanban: { id: 5, name: 'Kanban Test', code: 'TK-TEST' } },
+              paramMap: { get: () => '5' },
+            },
+          },
+        },
       ],
     });
     fixture = TestBed.createComponent(TicketDetail);
@@ -327,7 +335,7 @@ describe('TicketDetail', () => {
     await component.reload();
     await component.deleteTicket();
     expect(cardsService.remove).toHaveBeenCalledWith(5, 5);
-    expect(navigate).toHaveBeenCalledWith(['/kanbans', 5, 'tickets']);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST', 'tickets']);
   });
 
   it("deleteTicket() n'agit pas si l'utilisateur annule", async () => {
@@ -412,7 +420,7 @@ describe('TicketDetail', () => {
       expect.objectContaining({ title: 'COPIE - Mon ticket', cloned_from_id: 5 })
     );
     expect(component.cloneDialogOpen()).toBe(false);
-    expect(navigate).toHaveBeenCalledWith(['/kanbans', '5-99']);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST-99']);
   });
 
   it('linkedBefore() liste les tickets à faire avant', async () => {

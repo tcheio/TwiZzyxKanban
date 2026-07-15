@@ -23,7 +23,7 @@ function configure(authValue: {
     imports: [App],
     providers: [
       provideRouter([
-        { path: 'kanbans/:kanbanId', component: StubComponent },
+        { path: 'kanbans/:kanbanCode', component: StubComponent, data: { kanban: kanbans[0] } },
         { path: 'kanbans', component: StubComponent },
       ]),
       { provide: AuthService, useValue: authValue },
@@ -107,16 +107,16 @@ describe('App', () => {
     fixture.detectChanges();
     const router = TestBed.inject(Router);
 
-    await router.navigateByUrl('/kanbans/3');
+    await router.navigateByUrl('/kanbans/TK-TEST');
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Chaîne Test');
-    expect(compiled.querySelector('a[href="/kanbans/3"]')?.textContent).toContain('Tableau');
-    expect(compiled.querySelector('a[href="/kanbans/3/tickets"]')?.textContent).toContain('Tickets');
-    expect(compiled.querySelector('a[href="/kanbans/3/tags"]')?.textContent).toContain('Tags');
+    expect(compiled.querySelector('a[href="/kanbans/TK-TEST"]')?.textContent).toContain('Tableau');
+    expect(compiled.querySelector('a[href="/kanbans/TK-TEST/tickets"]')?.textContent).toContain('Tickets');
+    expect(compiled.querySelector('a[href="/kanbans/TK-TEST/tags"]')?.textContent).toContain('Tags');
     expect(compiled.textContent).toContain('TwiZzyx');
   });
 });

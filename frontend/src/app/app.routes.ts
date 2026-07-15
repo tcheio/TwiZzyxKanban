@@ -1,9 +1,9 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
 import { adminGuard } from './core/admin.guard';
-import { kanbanAccessGuard } from './core/kanban-access.guard';
 import { kanbanModeratorGuard } from './core/kanban-moderator.guard';
 import { kanbanBoardMatcher, kanbanTicketMatcher } from './core/kanban-route-matchers';
+import { kanbanResolver } from './core/kanban.resolver';
 
 export const routes: Routes = [
   {
@@ -24,58 +24,67 @@ export const routes: Routes = [
         matcher: kanbanTicketMatcher,
         loadComponent: () =>
           import('./pages/tickets/ticket-detail/ticket-detail').then((m) => m.TicketDetail),
-        canActivate: [authGuard, kanbanAccessGuard],
+        canActivate: [authGuard],
+        resolve: { kanban: kanbanResolver },
         title: 'Ticket - TwiZzyxKanban',
       },
       {
         matcher: kanbanBoardMatcher,
         loadComponent: () => import('./pages/board/board').then((m) => m.Board),
-        canActivate: [authGuard, kanbanAccessGuard],
+        canActivate: [authGuard],
+        resolve: { kanban: kanbanResolver },
         title: 'Tableau - TwiZzyxKanban',
       },
       {
-        path: ':kanbanId/settings',
+        path: ':kanbanCode/settings',
         loadComponent: () =>
           import('./pages/board/board-settings/board-settings').then((m) => m.BoardSettings),
         canActivate: [authGuard, kanbanModeratorGuard],
+        resolve: { kanban: kanbanResolver },
         title: 'Paramètres du tableau - TwiZzyxKanban',
       },
       {
-        path: ':kanbanId/members',
+        path: ':kanbanCode/members',
         loadComponent: () =>
           import('./pages/kanbans/kanban-members/kanban-members').then((m) => m.KanbanMembers),
         canActivate: [authGuard, kanbanModeratorGuard],
+        resolve: { kanban: kanbanResolver },
         title: 'Membres - TwiZzyxKanban',
       },
       {
-        path: ':kanbanId/tickets',
+        path: ':kanbanCode/tickets',
         loadComponent: () =>
           import('./pages/tickets/tickets-list/tickets-list').then((m) => m.TicketsList),
-        canActivate: [authGuard, kanbanAccessGuard],
+        canActivate: [authGuard],
+        resolve: { kanban: kanbanResolver },
         title: 'Tickets - TwiZzyxKanban',
       },
       {
-        path: ':kanbanId/tags',
+        path: ':kanbanCode/tags',
         loadComponent: () => import('./pages/tags/tags-list/tags-list').then((m) => m.TagsList),
-        canActivate: [authGuard, kanbanAccessGuard],
+        canActivate: [authGuard],
+        resolve: { kanban: kanbanResolver },
         title: 'Tags - TwiZzyxKanban',
       },
       {
-        path: ':kanbanId/tags/:id',
+        path: ':kanbanCode/tags/:id',
         loadComponent: () => import('./pages/tags/tag-detail/tag-detail').then((m) => m.TagDetail),
-        canActivate: [authGuard, kanbanAccessGuard],
+        canActivate: [authGuard],
+        resolve: { kanban: kanbanResolver },
         title: 'Tag - TwiZzyxKanban',
       },
       {
-        path: ':kanbanId/epics',
+        path: ':kanbanCode/epics',
         loadComponent: () => import('./pages/epics/epics-list/epics-list').then((m) => m.EpicsList),
-        canActivate: [authGuard, kanbanAccessGuard],
+        canActivate: [authGuard],
+        resolve: { kanban: kanbanResolver },
         title: 'EPICs - TwiZzyxKanban',
       },
       {
-        path: ':kanbanId/epics/:id',
+        path: ':kanbanCode/epics/:id',
         loadComponent: () => import('./pages/epics/epic-detail/epic-detail').then((m) => m.EpicDetail),
-        canActivate: [authGuard, kanbanAccessGuard],
+        canActivate: [authGuard],
+        resolve: { kanban: kanbanResolver },
         title: 'EPIC - TwiZzyxKanban',
       },
     ],

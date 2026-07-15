@@ -13,6 +13,7 @@ import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
 import { Card, CardInput, Priority } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
+import { Kanban } from '../../../models/kanban.model';
 import { UserLite } from '../../../models/user.model';
 import { Comment } from '../../../models/comment.model';
 import { CardLink, CardLinkType } from '../../../models/card-link.model';
@@ -82,8 +83,16 @@ export class TicketDetail implements OnInit {
   readonly newLinkType = signal<CardLinkType>('before');
   readonly viewingImageUrl = signal<string | null>(null);
 
+  protected get kanban(): Kanban {
+    return this.route.snapshot.data['kanban'] as Kanban;
+  }
+
   protected get kanbanId(): number {
-    return Number(this.route.snapshot.paramMap.get('kanbanId'));
+    return this.kanban.id;
+  }
+
+  protected get kanbanCode(): string {
+    return this.kanban.code;
   }
 
   protected get ticketId(): number {
@@ -260,7 +269,7 @@ export class TicketDetail implements OnInit {
     try {
       const created = await this.cardsService.create(this.kanbanId, input);
       this.cloneDialogOpen.set(false);
-      this.router.navigate(['/kanbans', `${this.kanbanId}-${created.id}`]);
+      this.router.navigate(['/kanbans', `${this.kanbanCode}-${created.id}`]);
     } catch {
       this.error.set('Échec de la création du clone.');
     }
@@ -529,7 +538,7 @@ export class TicketDetail implements OnInit {
     if (!confirm(`Supprimer le ticket "${ticket.title}" ?`)) return;
     try {
       await this.cardsService.remove(this.kanbanId, ticket.id);
-      this.router.navigate(['/kanbans', this.kanbanId, 'tickets']);
+      this.router.navigate(['/kanbans', this.kanbanCode, 'tickets']);
     } catch {
       this.error.set('Échec de la suppression du ticket.');
     }

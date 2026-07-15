@@ -99,7 +99,10 @@ describe('Board', () => {
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: Router, useValue: { navigate } },
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '1' } } } },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } } } },
+        },
       ],
     });
     component = TestBed.createComponent(Board).componentInstance;
@@ -137,7 +140,7 @@ describe('Board', () => {
 
     component.openTicket(baseCards[0]);
 
-    expect(navigate).toHaveBeenCalledWith(['/kanbans', `1-${baseCards[0].id}`]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', `TK-TEST-${baseCards[0].id}`]);
   });
 
   it('drop() réordonne dans la même colonne et appelle move() avec le bon index', async () => {

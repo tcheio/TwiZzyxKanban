@@ -8,6 +8,7 @@ import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
 import { Card, CardInput } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
+import { Kanban } from '../../../models/kanban.model';
 import { UserLite } from '../../../models/user.model';
 import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
@@ -41,7 +42,8 @@ export class TicketsList implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly authService = inject(AuthService);
-  protected readonly kanbanId = Number(this.route.snapshot.paramMap.get('kanbanId'));
+  private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
+  protected readonly kanbanId = this.kanban.id;
 
   readonly columns = signal<Column[]>([]);
   readonly tickets = signal<Card[]>([]);
@@ -193,14 +195,14 @@ export class TicketsList implements OnInit {
   }
 
   openTicket(card: Card): void {
-    this.router.navigate(['/kanbans', `${this.kanbanId}-${card.id}`]);
+    this.router.navigate(['/kanbans', `${this.kanban.code}-${card.id}`]);
   }
 
   async createTicket(input: CardInput): Promise<void> {
     try {
       const created = await this.cardsService.create(this.kanbanId, input);
       this.dialogOpen.set(false);
-      this.router.navigate(['/kanbans', `${this.kanbanId}-${created.id}`]);
+      this.router.navigate(['/kanbans', `${this.kanban.code}-${created.id}`]);
     } catch {
       this.error.set('Échec de la création du ticket.');
     }

@@ -3,8 +3,8 @@ import { ActivatedRoute } from '@angular/router';
 import { KanbansService } from '../../../services/kanbans.service';
 import { UsersService } from '../../../services/users.service';
 import { AuthService } from '../../../core/auth.service';
-import { KanbanMember } from '../../../models/kanban.model';
-import { User } from '../../../models/user.model';
+import { Kanban, KanbanMember } from '../../../models/kanban.model';
+import { UserLite } from '../../../models/user.model';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
 
 @Component({
@@ -18,10 +18,11 @@ export class KanbanMembers implements OnInit {
   private readonly usersService = inject(UsersService);
   protected readonly authService = inject(AuthService);
 
-  private readonly kanbanId = Number(this.route.snapshot.paramMap.get('kanbanId'));
+  private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
+  private readonly kanbanId = this.kanban.id;
 
   readonly members = signal<KanbanMember[]>([]);
-  readonly allUsers = signal<User[]>([]);
+  readonly allUsers = signal<UserLite[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly selectedUserId = signal<number | null>(null);
@@ -36,7 +37,7 @@ export class KanbanMembers implements OnInit {
     try {
       const [members, allUsers] = await Promise.all([
         this.kanbansService.membersList(this.kanbanId),
-        this.usersService.list(),
+        this.usersService.lite(),
       ]);
       this.members.set(members);
       this.allUsers.set(allUsers);
