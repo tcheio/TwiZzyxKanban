@@ -202,6 +202,29 @@ describe('Board', () => {
     expect(component.visibleCards(assignedGroup).map((c) => c.title)).toEqual(['C']);
   });
 
+  it('visibleCards() filtre par titre selon searchQuery, insensible à la casse', async () => {
+    await component.reload();
+    const group = component.groups()[0];
+
+    component.searchQuery.set('a');
+    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['A']);
+
+    component.searchQuery.set('');
+    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['A', 'B']);
+  });
+
+  it('visibleCards() combine le filtre destinataire et le filtre de recherche', async () => {
+    await component.reload();
+    const assignedGroup = component.groups()[1];
+
+    component.toggleAssigneeFilter(1);
+    component.searchQuery.set('c');
+    expect(component.visibleCards(assignedGroup).map((c) => c.title)).toEqual(['C']);
+
+    component.searchQuery.set('nomatch');
+    expect(component.visibleCards(assignedGroup)).toEqual([]);
+  });
+
   it('toggleAssigneeFilter() active puis désactive le filtre sur un second clic', () => {
     expect(component.selectedAssigneeId()).toBeNull();
 

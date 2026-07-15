@@ -10,13 +10,15 @@
         <circle cx="11" cy="11" r="7" />
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
-      <label for="board-search" class="sr-only">Rechercher</label>
+      <label for="board-search" class="sr-only">Rechercher un ticket dans ce tableau</label>
       <input
         id="board-search"
         type="text"
         placeholder="Rechercher"
-        disabled
-        class="w-56 cursor-not-allowed rounded-md border border-gray-300 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-400 placeholder-gray-400 focus:outline-none"
+        autocomplete="off"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        class="w-56 rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-sm text-gray-700 placeholder-gray-400 focus:border-blue-400 focus:outline-none"
       />
     </div>
     @if (users().length) {

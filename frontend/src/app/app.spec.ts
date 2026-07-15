@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component } from '@angular/core';
 import { describe, it, expect, vi } from 'vitest';
 import { App } from './app';
@@ -22,6 +24,8 @@ function configure(authValue: {
   TestBed.configureTestingModule({
     imports: [App],
     providers: [
+      provideHttpClient(),
+      provideHttpClientTesting(),
       provideRouter([
         { path: 'kanbans/:kanbanCode', component: StubComponent, data: { kanban: kanbans[0] } },
         { path: 'kanbans', component: StubComponent },

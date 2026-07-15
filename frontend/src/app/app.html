@@ -16,20 +16,7 @@
       <span class="text-base font-bold text-gray-900">TwiZzyxKanban</span>
 
       <div class="ml-auto flex items-center gap-3">
-        <div class="relative hidden sm:block">
-          <svg viewBox="0 0 24 24" class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="7" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <label for="app-search" class="sr-only">Rechercher</label>
-          <input
-            id="app-search"
-            type="text"
-            placeholder="Rechercher"
-            disabled
-            class="w-48 cursor-not-allowed rounded-md border border-gray-300 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-400 placeholder-gray-400 focus:outline-none"
-          />
-        </div>
+        <app-global-search />
         <button type="button" class="rounded-full p-1.5 text-gray-500 hover:bg-gray-100" title="Notifications">
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 3a5 5 0 00-5 5v3l-1.5 3h13L17 11V8a5 5 0 00-5-5z" stroke-linejoin="round" />
