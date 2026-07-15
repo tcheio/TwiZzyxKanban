@@ -260,7 +260,7 @@ export class TicketDetail implements OnInit {
     try {
       const created = await this.cardsService.create(this.kanbanId, input);
       this.cloneDialogOpen.set(false);
-      this.router.navigate(['/kanbans', this.kanbanId, 'tickets', created.id]);
+      this.router.navigate(['/kanbans', `${this.kanbanId}-${created.id}`]);
     } catch {
       this.error.set('Échec de la création du clone.');
     }

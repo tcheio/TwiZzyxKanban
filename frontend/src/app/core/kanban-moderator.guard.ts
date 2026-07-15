@@ -14,7 +14,7 @@ export const kanbanModeratorGuard: CanActivateFn = async (route) => {
       return true;
     }
     if (kanban) {
-      return router.parseUrl(`/kanbans/${kanbanId}/board`);
+      return router.parseUrl(`/kanbans/${kanbanId}`);
     }
   } catch {
     // Ignore et redirige comme un accès refusé

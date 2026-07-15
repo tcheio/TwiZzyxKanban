@@ -139,7 +139,7 @@ describe('TicketsList', () => {
 
     component.openTicket(cards[0]);
 
-    expect(navigate).toHaveBeenCalledWith(['/kanbans', 1, 'tickets', cards[0].id]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', `1-${cards[0].id}`]);
   });
 
   it('createTicket() crée le ticket puis navigue vers sa page dédiée', async () => {
@@ -158,7 +158,7 @@ describe('TicketsList', () => {
 
     expect(cardsService.create).toHaveBeenCalled();
     expect(component.dialogOpen()).toBe(false);
-    expect(navigate).toHaveBeenCalledWith(['/kanbans', 1, 'tickets', 99]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', '1-99']);
   });
 
   it('filteredTickets() sans filtre retourne tous les tickets', async () => {

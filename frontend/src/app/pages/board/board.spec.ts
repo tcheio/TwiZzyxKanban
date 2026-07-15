@@ -137,7 +137,7 @@ describe('Board', () => {
 
     component.openTicket(baseCards[0]);
 
-    expect(navigate).toHaveBeenCalledWith(['/kanbans', 1, 'tickets', baseCards[0].id]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', `1-${baseCards[0].id}`]);
   });
 
   it('drop() réordonne dans la même colonne et appelle move() avec le bon index', async () => {

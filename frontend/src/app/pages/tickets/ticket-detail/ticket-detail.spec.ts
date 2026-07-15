@@ -412,7 +412,7 @@ describe('TicketDetail', () => {
       expect.objectContaining({ title: 'COPIE - Mon ticket', cloned_from_id: 5 })
     );
     expect(component.cloneDialogOpen()).toBe(false);
-    expect(navigate).toHaveBeenCalledWith(['/kanbans', 5, 'tickets', 99]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', '5-99']);
   });
 
   it('linkedBefore() liste les tickets à faire avant', async () => {

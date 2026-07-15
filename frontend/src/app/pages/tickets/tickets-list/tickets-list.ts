@@ -193,14 +193,14 @@ export class TicketsList implements OnInit {
   }
 
   openTicket(card: Card): void {
-    this.router.navigate(['/kanbans', this.kanbanId, 'tickets', card.id]);
+    this.router.navigate(['/kanbans', `${this.kanbanId}-${card.id}`]);
   }
 
   async createTicket(input: CardInput): Promise<void> {
     try {
       const created = await this.cardsService.create(this.kanbanId, input);
       this.dialogOpen.set(false);
-      this.router.navigate(['/kanbans', this.kanbanId, 'tickets', created.id]);
+      this.router.navigate(['/kanbans', `${this.kanbanId}-${created.id}`]);
     } catch {
       this.error.set('Échec de la création du ticket.');
     }

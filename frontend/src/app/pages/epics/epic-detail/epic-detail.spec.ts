@@ -134,7 +134,7 @@ describe('EpicDetail', () => {
 
     component.openTicket(cards[0]);
 
-    expect(navigate).toHaveBeenCalledWith(['/kanbans', 1, 'tickets', cards[0].id]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', `1-${cards[0].id}`]);
   });
 
   it("ngOnInit() recharge l'EPIC à chaque changement de paramètre de route (navigation directe entre EPICs)", async () => {

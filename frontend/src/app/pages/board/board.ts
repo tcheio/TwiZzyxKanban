@@ -246,6 +246,6 @@ export class Board implements OnInit {
   }
 
   openTicket(card: Card): void {
-    this.router.navigate(['/kanbans', this.kanbanId, 'tickets', card.id]);
+    this.router.navigate(['/kanbans', `${this.kanbanId}-${card.id}`]);
   }
 }
