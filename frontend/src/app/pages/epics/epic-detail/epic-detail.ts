@@ -41,6 +41,7 @@ export class EpicDetail implements OnInit {
   private readonly columnsService = inject(ColumnsService);
   private readonly usersService = inject(UsersService);
   private readonly destroyRef = inject(DestroyRef);
+  protected readonly kanbanId = Number(this.route.snapshot.paramMap.get('kanbanId'));
 
   readonly epic = signal<Epic | null>(null);
   readonly columns = signal<Column[]>([]);
@@ -84,10 +85,10 @@ export class EpicDetail implements OnInit {
     this.error.set(null);
     try {
       const [epics, cards, columns, users] = await Promise.all([
-        this.epicsService.list(),
-        this.cardsService.list(),
-        this.columnsService.list(),
-        this.usersService.lite(),
+        this.epicsService.list(this.kanbanId),
+        this.cardsService.list(this.kanbanId),
+        this.columnsService.list(this.kanbanId),
+        this.usersService.liteForKanban(this.kanbanId),
       ]);
 
       const epic = epics.find((e) => e.id === this.epicId) ?? null;
@@ -150,6 +151,6 @@ export class EpicDetail implements OnInit {
   }
 
   openTicket(card: Card): void {
-    this.router.navigate(['/tickets', card.id]);
+    this.router.navigate(['/kanbans', this.kanbanId, 'tickets', card.id]);
   }
 }

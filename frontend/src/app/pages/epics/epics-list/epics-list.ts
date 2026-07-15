@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { EpicsService } from '../../../services/epics.service';
 import { CardsService } from '../../../services/cards.service';
@@ -17,7 +17,9 @@ export class EpicsList implements OnInit {
   private readonly epicsService = inject(EpicsService);
   private readonly cardsService = inject(CardsService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   protected readonly authService = inject(AuthService);
+  private readonly kanbanId = Number(this.route.snapshot.paramMap.get('kanbanId'));
 
   readonly epicColors = EPIC_COLORS;
   readonly epicDotClass = epicDotClass;
@@ -43,7 +45,10 @@ export class EpicsList implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [epics, cards] = await Promise.all([this.epicsService.list(), this.cardsService.list()]);
+      const [epics, cards] = await Promise.all([
+        this.epicsService.list(this.kanbanId),
+        this.cardsService.list(this.kanbanId),
+      ]);
       this.epics.set(epics);
       this.cards.set(cards);
     } catch {
@@ -58,14 +63,14 @@ export class EpicsList implements OnInit {
   }
 
   openEpic(epic: Epic): void {
-    this.router.navigate(['/epics', epic.id]);
+    this.router.navigate(['/kanbans', this.kanbanId, 'epics', epic.id]);
   }
 
   async createEpic(): Promise<void> {
     const name = this.newEpicName().trim();
     if (!name) return;
     try {
-      await this.epicsService.create(name, this.newEpicColor());
+      await this.epicsService.create(this.kanbanId, name, this.newEpicColor());
       this.newEpicName.set('');
       this.newEpicColor.set(EPIC_COLORS[0]);
       this.creating.set(false);
@@ -91,7 +96,7 @@ export class EpicsList implements OnInit {
     this.editingId.set(null);
     if (!trimmed || (trimmed === epic.name && color === epic.color)) return;
     try {
-      await this.epicsService.update(epic.id, { name: trimmed, color });
+      await this.epicsService.update(this.kanbanId, epic.id, { name: trimmed, color });
       await this.reload();
     } catch {
       this.error.set("Échec de la modification de l'EPIC.");
@@ -101,7 +106,7 @@ export class EpicsList implements OnInit {
   async deleteEpic(epic: Epic): Promise<void> {
     if (!confirm(`Supprimer l'EPIC "${epic.name}" ?`)) return;
     try {
-      await this.epicsService.remove(epic.id);
+      await this.epicsService.remove(this.kanbanId, epic.id);
       await this.reload();
     } catch {
       this.error.set("Échec de la suppression de l'EPIC.");

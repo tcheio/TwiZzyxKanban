@@ -1,0 +1,111 @@
+<div class="mx-auto max-w-3xl px-4 py-6 sm:px-6">
+  <div class="mb-4 flex items-center justify-between">
+    <h1 class="text-xl font-bold text-gray-900">Mes Kanbans</h1>
+    @if (authService.isAdmin() && !creating()) {
+      <button
+        type="button"
+        class="new-kanban-btn rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+        (click)="creating.set(true)"
+      >
+        + Nouveau Kanban
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <p class="text-sm text-gray-500">Chargement...</p>
+  }
+  @if (error()) {
+    <p class="mb-3 text-sm text-red-600">{{ error() }}</p>
+  }
+  @if (!loading() && kanbans().length === 0 && !creating()) {
+    <p class="text-sm text-gray-500">Aucun Kanban pour le moment.</p>
+  }
+
+  @if (authService.isAdmin() && creating()) {
+    <form
+      class="create-form mb-4 flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-4"
+      (ngSubmit)="createKanban()"
+    >
+      <label class="flex flex-col gap-1 text-xs text-gray-500">
+        Nom du Kanban
+        <input
+          type="text"
+          [ngModel]="newName()"
+          (ngModelChange)="newName.set($event)"
+          name="newKanbanName"
+          placeholder="Ex: TwiZzyxKanban"
+          class="rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
+        />
+      </label>
+      <label class="flex flex-col gap-1 text-xs text-gray-500">
+        Code (préfixe des tickets, ex: TK-TWIZZYX)
+        <input
+          type="text"
+          [ngModel]="newCode()"
+          (ngModelChange)="newCode.set($event)"
+          name="newKanbanCode"
+          placeholder="Ex: TK-TWIZZYX"
+          class="rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-gray-800 uppercase focus:border-blue-400 focus:outline-none"
+        />
+      </label>
+      <fieldset class="flex flex-col gap-1 text-xs text-gray-500">
+        <legend class="mb-1">Template de départ</legend>
+        <label class="flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="radio"
+            name="template"
+            [checked]="newTemplate() === 'video'"
+            (change)="newTemplate.set('video')"
+          />
+          Vidéo (colonnes, tags et EPICs du Kanban de production actuel)
+        </label>
+        <label class="flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="radio"
+            name="template"
+            [checked]="newTemplate() === 'basique'"
+            (change)="newTemplate.set('basique')"
+          />
+          Basique (À faire / En cours / Fait)
+        </label>
+      </fieldset>
+      <div class="flex justify-end gap-2">
+        <button
+          type="submit"
+          [disabled]="!newName().trim() || !newCode().trim()"
+          class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+        >
+          Créer
+        </button>
+        <button
+          type="button"
+          class="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+          (click)="creating.set(false)"
+        >
+          Annuler
+        </button>
+      </div>
+    </form>
+  }
+
+  @if (kanbans().length > 0) {
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      @for (kanban of kanbans(); track kanban.id) {
+        <button
+          type="button"
+          class="kanban-card flex flex-col items-start gap-1 rounded-lg border border-gray-200 bg-white p-4 text-left hover:bg-gray-50"
+          (click)="openKanban(kanban)"
+        >
+          <span class="text-xs font-semibold tracking-wide text-gray-400 uppercase">{{ kanban.code }}</span>
+          <span class="font-medium text-gray-900">{{ kanban.name }}</span>
+          @if (kanban.is_moderator) {
+            <span class="mt-1 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+              Modérateur
+            </span>
+          }
+        </button>
+      }
+    </div>
+  }
+</div>

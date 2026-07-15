@@ -4,11 +4,11 @@
   }
   @if (error()) {
     <p class="text-sm text-red-600">{{ error() }}</p>
-    <a routerLink="/tags" class="back-link text-sm text-gray-500 hover:text-gray-700 hover:underline">← Retour aux tags</a>
+    <a [routerLink]="['/kanbans', kanbanId, 'tags']" class="back-link text-sm text-gray-500 hover:text-gray-700 hover:underline">← Retour aux tags</a>
   }
 
   @if (tag(); as t) {
-    <a routerLink="/tags" class="back-link mb-3 inline-block text-sm text-gray-500 hover:text-gray-700 hover:underline">
+    <a [routerLink]="['/kanbans', kanbanId, 'tags']" class="back-link mb-3 inline-block text-sm text-gray-500 hover:text-gray-700 hover:underline">
       ← Retour aux tags
     </a>
 

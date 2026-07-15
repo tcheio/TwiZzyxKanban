@@ -32,14 +32,14 @@ describe('Login', () => {
     expect(login).not.toHaveBeenCalled();
   });
 
-  it('submit() appelle login() et redirige vers /board en cas de succès', async () => {
+  it('submit() appelle login() et redirige vers /kanbans en cas de succès', async () => {
     login.mockResolvedValue(undefined);
     component.form.setValue({ username: 'admin', password: 'admin123' });
 
     await component.submit();
 
     expect(login).toHaveBeenCalledWith('admin', 'admin123');
-    expect(navigate).toHaveBeenCalledWith(['/board']);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans']);
     expect(component.error()).toBeNull();
     expect(component.loading()).toBe(false);
   });

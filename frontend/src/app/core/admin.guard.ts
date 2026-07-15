@@ -9,5 +9,5 @@ export const adminGuard: CanActivateFn = () => {
   if (authService.isAdmin()) {
     return true;
   }
-  return router.parseUrl('/board');
+  return router.parseUrl('/kanbans');
 };

@@ -1,0 +1,76 @@
+@if (kanban(); as k) {
+  <div class="flex h-full flex-col">
+    <div class="flex flex-wrap items-center gap-4 border-b border-gray-200 px-6 py-3">
+      <div>
+        <div class="text-xs text-gray-400">{{ k.code }}</div>
+        <h1 class="text-lg font-semibold text-gray-900">{{ k.name }}</h1>
+      </div>
+      <nav class="ml-auto flex flex-wrap items-center gap-1">
+        <a
+          [routerLink]="['/kanbans', kanbanId, 'board']"
+          routerLinkActive="bg-blue-50 text-blue-700"
+          class="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+        >
+          Tableau
+        </a>
+        <a
+          [routerLink]="['/kanbans', kanbanId, 'tickets']"
+          routerLinkActive="bg-blue-50 text-blue-700"
+          class="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+        >
+          Tickets
+        </a>
+        <a
+          [routerLink]="['/kanbans', kanbanId, 'tags']"
+          routerLinkActive="bg-blue-50 text-blue-700"
+          class="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+        >
+          Tags
+        </a>
+        <a
+          [routerLink]="['/kanbans', kanbanId, 'epics']"
+          routerLinkActive="bg-blue-50 text-blue-700"
+          class="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+        >
+          EPICs
+        </a>
+        @if (k.is_moderator) {
+          <a
+            [routerLink]="['/kanbans', kanbanId, 'members']"
+            routerLinkActive="bg-blue-50 text-blue-700"
+            class="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+          >
+            Membres
+          </a>
+          <a
+            [routerLink]="['/kanbans', kanbanId, 'board', 'settings']"
+            routerLinkActive="bg-blue-50 text-blue-700"
+            class="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+          >
+            Paramètres
+          </a>
+        }
+      </nav>
+    </div>
+
+    @if (epics().length) {
+      <div class="flex flex-wrap items-center gap-1.5 border-b border-gray-100 px-6 py-2">
+        @for (epic of epics(); track epic.id) {
+          <a
+            [routerLink]="['/kanbans', kanbanId, 'epics', epic.id]"
+            class="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-100"
+          >
+            <span class="h-2 w-2 rounded-full" [class]="epicDotClass(epic.color)"></span>
+            {{ epic.name }}
+          </a>
+        }
+      </div>
+    }
+
+    <div class="min-h-0 flex-1 overflow-y-auto">
+      <router-outlet />
+    </div>
+  </div>
+} @else {
+  <p class="p-6 text-sm text-gray-500">Chargement...</p>
+}

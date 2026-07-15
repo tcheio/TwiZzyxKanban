@@ -41,6 +41,7 @@ export class TagDetail implements OnInit {
   private readonly columnsService = inject(ColumnsService);
   private readonly usersService = inject(UsersService);
   private readonly destroyRef = inject(DestroyRef);
+  protected readonly kanbanId = Number(this.route.snapshot.paramMap.get('kanbanId'));
 
   readonly tag = signal<Tag | null>(null);
   readonly columns = signal<Column[]>([]);
@@ -84,10 +85,10 @@ export class TagDetail implements OnInit {
     this.error.set(null);
     try {
       const [tags, cards, columns, users] = await Promise.all([
-        this.tagsService.list(),
-        this.cardsService.list(),
-        this.columnsService.list(),
-        this.usersService.lite(),
+        this.tagsService.list(this.kanbanId),
+        this.cardsService.list(this.kanbanId),
+        this.columnsService.list(this.kanbanId),
+        this.usersService.liteForKanban(this.kanbanId),
       ]);
 
       const tag = tags.find((t) => t.id === this.tagId) ?? null;
@@ -146,6 +147,6 @@ export class TagDetail implements OnInit {
   }
 
   openTicket(card: Card): void {
-    this.router.navigate(['/tickets', card.id]);
+    this.router.navigate(['/kanbans', this.kanbanId, 'tickets', card.id]);
   }
 }

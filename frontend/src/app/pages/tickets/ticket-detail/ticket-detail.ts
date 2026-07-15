@@ -82,6 +82,10 @@ export class TicketDetail implements OnInit {
   readonly newLinkType = signal<CardLinkType>('before');
   readonly viewingImageUrl = signal<string | null>(null);
 
+  protected get kanbanId(): number {
+    return Number(this.route.snapshot.paramMap.get('kanbanId'));
+  }
+
   protected get ticketId(): number {
     return Number(this.route.snapshot.paramMap.get('id'));
   }
@@ -101,15 +105,15 @@ export class TicketDetail implements OnInit {
     const hasUnsavedDescription = options.silent && this.descriptionDraftHtml() !== this.descriptionHtml();
     try {
       const [ticket, columns, users, tags, epics, comments, links, images, cards] = await Promise.all([
-        this.cardsService.get(this.ticketId),
-        this.columnsService.list(),
-        this.usersService.lite(),
-        this.tagsService.list(),
-        this.epicsService.list(),
-        this.commentsService.list(this.ticketId),
-        this.cardLinksService.list(this.ticketId),
-        this.cardImagesService.list(this.ticketId),
-        this.cardsService.list(),
+        this.cardsService.get(this.kanbanId, this.ticketId),
+        this.columnsService.list(this.kanbanId),
+        this.usersService.liteForKanban(this.kanbanId),
+        this.tagsService.list(this.kanbanId),
+        this.epicsService.list(this.kanbanId),
+        this.commentsService.list(this.kanbanId, this.ticketId),
+        this.cardLinksService.list(this.kanbanId, this.ticketId),
+        this.cardImagesService.list(this.kanbanId, this.ticketId),
+        this.cardsService.list(this.kanbanId),
       ]);
       this.ticket.set(ticket);
       this.columns.set(columns);
@@ -221,9 +225,9 @@ export class TicketDetail implements OnInit {
     const targetId = this.newLinkTargetId();
     if (!targetId) return;
     try {
-      await this.cardLinksService.create(this.ticketId, targetId, this.newLinkType());
+      await this.cardLinksService.create(this.kanbanId, this.ticketId, targetId, this.newLinkType());
       this.newLinkTargetId.set(null);
-      this.links.set(await this.cardLinksService.list(this.ticketId));
+      this.links.set(await this.cardLinksService.list(this.kanbanId, this.ticketId));
     } catch {
       this.error.set("Échec de l'ajout du lien.");
     }
@@ -232,8 +236,8 @@ export class TicketDetail implements OnInit {
   async removeLink(linkId: number): Promise<void> {
     if (!confirm('Supprimer ce lien ?')) return;
     try {
-      await this.cardLinksService.remove(this.ticketId, linkId);
-      this.links.set(await this.cardLinksService.list(this.ticketId));
+      await this.cardLinksService.remove(this.kanbanId, this.ticketId, linkId);
+      this.links.set(await this.cardLinksService.list(this.kanbanId, this.ticketId));
     } catch {
       this.error.set('Échec de la suppression du lien.');
     }
@@ -254,9 +258,9 @@ export class TicketDetail implements OnInit {
 
   async createClone(input: CardInput): Promise<void> {
     try {
-      const created = await this.cardsService.create(input);
+      const created = await this.cardsService.create(this.kanbanId, input);
       this.cloneDialogOpen.set(false);
-      this.router.navigate(['/tickets', created.id]);
+      this.router.navigate(['/kanbans', this.kanbanId, 'tickets', created.id]);
     } catch {
       this.error.set('Échec de la création du clone.');
     }
@@ -282,7 +286,7 @@ export class TicketDetail implements OnInit {
     const ticket = this.ticket();
     if (!ticket) return;
     try {
-      const updated = await this.cardsService.update(ticket.id, partial);
+      const updated = await this.cardsService.update(this.kanbanId, ticket.id, partial);
       this.ticket.set(updated);
     } catch {
       this.error.set("Échec de l'enregistrement.");
@@ -349,13 +353,13 @@ export class TicketDetail implements OnInit {
     try {
       let current = ticket;
       if (value === CANCELLED_STATUS_ID) {
-        current = await this.cardsService.cancel(ticket.id);
+        current = await this.cardsService.cancel(this.kanbanId, ticket.id);
       } else {
         if (this.isCancelled()) {
-          current = await this.cardsService.restore(ticket.id);
+          current = await this.cardsService.restore(this.kanbanId, ticket.id);
         }
         if (value !== current.column_id) {
-          current = await this.cardsService.move(current.id, value);
+          current = await this.cardsService.move(this.kanbanId, current.id, value);
         }
       }
       this.ticket.set(current);
@@ -402,10 +406,10 @@ export class TicketDetail implements OnInit {
     input.value = '';
     if (!file) return;
     try {
-      const image = await this.cardImagesService.upload(this.ticketId, file);
+      const image = await this.cardImagesService.upload(this.kanbanId, this.ticketId, file);
       this.commentEditorRef?.nativeElement.insertAdjacentHTML('beforeend', this.imageTag(image));
       this.newCommentDraftHtml.set(this.commentEditorRef?.nativeElement.innerHTML ?? '');
-      this.images.set(await this.cardImagesService.list(this.ticketId));
+      this.images.set(await this.cardImagesService.list(this.kanbanId, this.ticketId));
     } catch {
       this.error.set("Échec de l'ajout de l'image.");
     }
@@ -414,7 +418,7 @@ export class TicketDetail implements OnInit {
   async addComment(): Promise<void> {
     if (!this.hasCommentContent()) return;
     try {
-      await this.commentsService.create(this.ticketId, this.newCommentDraftHtml());
+      await this.commentsService.create(this.kanbanId, this.ticketId, this.newCommentDraftHtml());
       this.newCommentDraftHtml.set('');
       // La zone de commentaire est un contenteditable "non contrôlé" : son contenu (texte
       // et images insérées) vit hors du binding Angular, donc on le vide directement dans
@@ -422,7 +426,7 @@ export class TicketDetail implements OnInit {
       if (this.commentEditorRef) {
         this.commentEditorRef.nativeElement.innerHTML = '';
       }
-      this.comments.set(await this.commentsService.list(this.ticketId));
+      this.comments.set(await this.commentsService.list(this.kanbanId, this.ticketId));
     } catch {
       this.error.set("Échec de l'ajout du commentaire.");
     }
@@ -460,8 +464,8 @@ export class TicketDetail implements OnInit {
     input.value = '';
     if (!file) return;
     try {
-      await this.cardImagesService.upload(this.ticketId, file);
-      this.images.set(await this.cardImagesService.list(this.ticketId));
+      await this.cardImagesService.upload(this.kanbanId, this.ticketId, file);
+      this.images.set(await this.cardImagesService.list(this.kanbanId, this.ticketId));
     } catch {
       this.error.set("Échec de l'ajout de l'image.");
     }
@@ -470,8 +474,8 @@ export class TicketDetail implements OnInit {
   async removeImage(imageId: number): Promise<void> {
     if (!confirm('Supprimer cette image ?')) return;
     try {
-      await this.cardImagesService.remove(this.ticketId, imageId);
-      this.images.set(await this.cardImagesService.list(this.ticketId));
+      await this.cardImagesService.remove(this.kanbanId, this.ticketId, imageId);
+      this.images.set(await this.cardImagesService.list(this.kanbanId, this.ticketId));
     } catch {
       this.error.set("Échec de la suppression de l'image.");
     }
@@ -490,10 +494,10 @@ export class TicketDetail implements OnInit {
     if (!file) return;
     event.preventDefault();
     try {
-      const image = await this.cardImagesService.upload(this.ticketId, file);
+      const image = await this.cardImagesService.upload(this.kanbanId, this.ticketId, file);
       document.execCommand('insertHTML', false, this.imageTag(image));
       onInsert();
-      this.images.set(await this.cardImagesService.list(this.ticketId));
+      this.images.set(await this.cardImagesService.list(this.kanbanId, this.ticketId));
     } catch {
       this.error.set("Échec de l'ajout de l'image.");
     }
@@ -508,8 +512,8 @@ export class TicketDetail implements OnInit {
   async deleteComment(comment: Comment): Promise<void> {
     if (!confirm('Supprimer ce commentaire ?')) return;
     try {
-      await this.commentsService.remove(this.ticketId, comment.id);
-      this.comments.set(await this.commentsService.list(this.ticketId));
+      await this.commentsService.remove(this.kanbanId, this.ticketId, comment.id);
+      this.comments.set(await this.commentsService.list(this.kanbanId, this.ticketId));
     } catch {
       this.error.set('Échec de la suppression du commentaire.');
     }
@@ -524,8 +528,8 @@ export class TicketDetail implements OnInit {
     if (!ticket) return;
     if (!confirm(`Supprimer le ticket "${ticket.title}" ?`)) return;
     try {
-      await this.cardsService.remove(ticket.id);
-      this.router.navigate(['/tickets']);
+      await this.cardsService.remove(this.kanbanId, ticket.id);
+      this.router.navigate(['/kanbans', this.kanbanId, 'tickets']);
     } catch {
       this.error.set('Échec de la suppression du ticket.');
     }

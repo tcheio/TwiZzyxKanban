@@ -74,7 +74,7 @@ describe('TagDetail', () => {
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
         { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
         { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
-        { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
+        { provide: UsersService, useValue: { liteForKanban: vi.fn().mockResolvedValue(users) } },
         { provide: Router, useValue: { navigate } },
         {
           provide: ActivatedRoute,
@@ -134,7 +134,7 @@ describe('TagDetail', () => {
 
     component.openTicket(cards[0]);
 
-    expect(navigate).toHaveBeenCalledWith(['/tickets', cards[0].id]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 1, 'tickets', cards[0].id]);
   });
 
   it('ngOnInit() recharge le tag à chaque changement de paramètre de route (navigation directe entre tags)', async () => {

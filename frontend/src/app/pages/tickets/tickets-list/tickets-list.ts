@@ -1,5 +1,5 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ColumnsService } from '../../../services/columns.service';
 import { CardsService } from '../../../services/cards.service';
@@ -38,8 +38,10 @@ export class TicketsList implements OnInit {
   private readonly tagsService = inject(TagsService);
   private readonly epicsService = inject(EpicsService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly authService = inject(AuthService);
+  protected readonly kanbanId = Number(this.route.snapshot.paramMap.get('kanbanId'));
 
   readonly columns = signal<Column[]>([]);
   readonly tickets = signal<Card[]>([]);
@@ -90,11 +92,11 @@ export class TicketsList implements OnInit {
     this.error.set(null);
     try {
       const [columns, cards, users, tags, epics] = await Promise.all([
-        this.columnsService.list(),
-        this.cardsService.list(),
-        this.usersService.lite(),
-        this.tagsService.list(),
-        this.epicsService.list(),
+        this.columnsService.list(this.kanbanId),
+        this.cardsService.list(this.kanbanId),
+        this.usersService.liteForKanban(this.kanbanId),
+        this.tagsService.list(this.kanbanId),
+        this.epicsService.list(this.kanbanId),
       ]);
       this.columns.set(columns);
       this.users.set(users);
@@ -191,14 +193,14 @@ export class TicketsList implements OnInit {
   }
 
   openTicket(card: Card): void {
-    this.router.navigate(['/tickets', card.id]);
+    this.router.navigate(['/kanbans', this.kanbanId, 'tickets', card.id]);
   }
 
   async createTicket(input: CardInput): Promise<void> {
     try {
-      const created = await this.cardsService.create(input);
+      const created = await this.cardsService.create(this.kanbanId, input);
       this.dialogOpen.set(false);
-      this.router.navigate(['/tickets', created.id]);
+      this.router.navigate(['/kanbans', this.kanbanId, 'tickets', created.id]);
     } catch {
       this.error.set('Échec de la création du ticket.');
     }

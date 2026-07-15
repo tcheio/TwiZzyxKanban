@@ -7,23 +7,23 @@ import { Column } from '../models/column.model';
 export class ColumnsService {
   constructor(private readonly http: HttpClient) {}
 
-  list(): Promise<Column[]> {
-    return firstValueFrom(this.http.get<Column[]>('/api/columns'));
+  list(kanbanId: number): Promise<Column[]> {
+    return firstValueFrom(this.http.get<Column[]>(`/api/kanbans/${kanbanId}/columns`));
   }
 
-  create(name: string): Promise<Column> {
-    return firstValueFrom(this.http.post<Column>('/api/columns', { name }));
+  create(kanbanId: number, name: string): Promise<Column> {
+    return firstValueFrom(this.http.post<Column>(`/api/kanbans/${kanbanId}/columns`, { name }));
   }
 
-  rename(id: number, name: string): Promise<Column> {
-    return firstValueFrom(this.http.patch<Column>(`/api/columns/${id}`, { name }));
+  rename(kanbanId: number, id: number, name: string): Promise<Column> {
+    return firstValueFrom(this.http.patch<Column>(`/api/kanbans/${kanbanId}/columns/${id}`, { name }));
   }
 
-  remove(id: number): Promise<void> {
-    return firstValueFrom(this.http.delete<void>(`/api/columns/${id}`));
+  remove(kanbanId: number, id: number): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`/api/kanbans/${kanbanId}/columns/${id}`));
   }
 
-  reorder(orderedIds: number[]): Promise<Column[]> {
-    return firstValueFrom(this.http.patch<Column[]>('/api/columns/reorder', { orderedIds }));
+  reorder(kanbanId: number, orderedIds: number[]): Promise<Column[]> {
+    return firstValueFrom(this.http.patch<Column[]>(`/api/kanbans/${kanbanId}/columns/reorder`, { orderedIds }));
   }
 }

@@ -7,19 +7,19 @@ import { Epic } from '../models/epic.model';
 export class EpicsService {
   constructor(private readonly http: HttpClient) {}
 
-  list(): Promise<Epic[]> {
-    return firstValueFrom(this.http.get<Epic[]>('/api/epics'));
+  list(kanbanId: number): Promise<Epic[]> {
+    return firstValueFrom(this.http.get<Epic[]>(`/api/kanbans/${kanbanId}/epics`));
   }
 
-  create(name: string, color: string): Promise<Epic> {
-    return firstValueFrom(this.http.post<Epic>('/api/epics', { name, color }));
+  create(kanbanId: number, name: string, color: string): Promise<Epic> {
+    return firstValueFrom(this.http.post<Epic>(`/api/kanbans/${kanbanId}/epics`, { name, color }));
   }
 
-  update(id: number, changes: { name?: string; color?: string }): Promise<Epic> {
-    return firstValueFrom(this.http.patch<Epic>(`/api/epics/${id}`, changes));
+  update(kanbanId: number, id: number, changes: { name?: string; color?: string }): Promise<Epic> {
+    return firstValueFrom(this.http.patch<Epic>(`/api/kanbans/${kanbanId}/epics/${id}`, changes));
   }
 
-  remove(id: number): Promise<void> {
-    return firstValueFrom(this.http.delete<void>(`/api/epics/${id}`));
+  remove(kanbanId: number, id: number): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`/api/kanbans/${kanbanId}/epics/${id}`));
   }
 }

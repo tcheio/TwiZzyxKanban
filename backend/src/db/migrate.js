@@ -3,13 +3,6 @@ const path = require('node:path');
 const bcrypt = require('bcryptjs');
 const db = require('./connection');
 
-const DEFAULT_COLUMNS = ['💡Idées', '📝Préparation/Écriture', '🎥Tournage', '🎬Montage', '🖼️Miniature', '✅Publié'];
-const DEFAULT_TAGS = ['Minecraft', 'Pokémon', 'Ykw Watch', 'Inazuma Eleven'];
-const DEFAULT_EPICS = [
-  { name: 'TwiZzyx', color: 'red' },
-  { name: 'TwiZzyxPasSympa', color: 'orange' },
-  { name: 'Twitch', color: 'violet' },
-];
 const silent = process.env.NODE_ENV === 'test';
 
 // Renomme les colonnes par défaut d'une base déjà existante vers les nouveaux noms
@@ -26,13 +19,13 @@ const LEGACY_COLUMN_RENAMES = {
 
 function addMissingCardColumns(cardColumns) {
   const columnsToAdd = [
+    ['kanban_id', 'INTEGER REFERENCES kanbans(id) ON DELETE CASCADE'],
     ['description', 'TEXT'],
     ['tag_id', 'INTEGER REFERENCES tags(id) ON DELETE SET NULL'],
     ['epic_id', 'INTEGER REFERENCES epics(id) ON DELETE SET NULL'],
     ['cloned_from_id', 'INTEGER REFERENCES cards(id) ON DELETE SET NULL'],
     ['due_date', 'TEXT'],
     ['published_at', 'TEXT'],
-    ['cancelled_at', 'TEXT'],
   ];
   const existingNames = new Set(cardColumns.map((col) => col.name));
   columnsToAdd
@@ -44,6 +37,17 @@ function addMissingUserColumns(userColumns) {
   if (!userColumns.some((col) => col.name === 'avatar_url')) {
     db.exec('ALTER TABLE users ADD COLUMN avatar_url TEXT');
   }
+}
+
+function addKanbanIdColumn(tableName) {
+  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
+  if (!columns.some((col) => col.name === 'kanban_id')) {
+    db.exec(`ALTER TABLE ${tableName} ADD COLUMN kanban_id INTEGER REFERENCES kanbans(id) ON DELETE CASCADE`);
+  }
+  // Créé après coup (plutôt que dans schema.sql) : sur une base déjà existante, la colonne
+  // kanban_id ne devient disponible qu'au ALTER TABLE ci-dessus, or schema.sql s'exécute
+  // avant cette fonction et un CREATE INDEX y échouerait tant que la colonne n'existe pas.
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_${tableName}_kanban ON ${tableName}(kanban_id)`);
 }
 
 function ensureDefaultAdmin() {
@@ -59,41 +63,9 @@ function ensureDefaultAdmin() {
   }
 }
 
-function ensureDefaultColumns() {
-  const columnCount = db.prepare('SELECT COUNT(*) AS count FROM columns').get().count;
-  if (columnCount === 0) {
-    const insertColumn = db.prepare('INSERT INTO columns (name, position) VALUES (?, ?)');
-    DEFAULT_COLUMNS.forEach((name, index) => insertColumn.run(name, index));
-    if (!silent) {
-      console.log('Colonnes par défaut créées.');
-    }
-    return;
-  }
-
+function renameLegacyColumnNames() {
   const renameColumn = db.prepare('UPDATE columns SET name = ? WHERE name = ?');
   Object.entries(LEGACY_COLUMN_RENAMES).forEach(([oldName, newName]) => renameColumn.run(newName, oldName));
-}
-
-function ensureDefaultTags() {
-  const tagCount = db.prepare('SELECT COUNT(*) AS count FROM tags').get().count;
-  if (tagCount === 0) {
-    const insertTag = db.prepare('INSERT INTO tags (name) VALUES (?)');
-    DEFAULT_TAGS.forEach((name) => insertTag.run(name));
-    if (!silent) {
-      console.log('Tags par défaut créés.');
-    }
-  }
-}
-
-function ensureDefaultEpics() {
-  const epicCount = db.prepare('SELECT COUNT(*) AS count FROM epics').get().count;
-  if (epicCount === 0) {
-    const insertEpic = db.prepare('INSERT INTO epics (name, color) VALUES (?, ?)');
-    DEFAULT_EPICS.forEach(({ name, color }) => insertEpic.run(name, color));
-    if (!silent) {
-      console.log('Epics par défaut créées.');
-    }
-  }
 }
 
 // L'EPIC remplace l'ancien champ libre "Chaîne YTB" : les cartes existantes dont le
@@ -113,21 +85,72 @@ function migrateChannelToEpic(cardColumns) {
   }
 }
 
+// Migration historique : la toute première version de l'app ne gérait qu'un seul kanban
+// implicite (colonnes/tags/epics/cartes sans rattachement à un kanban). On adopte ces
+// données existantes dans un kanban "TwiZzyxKanban" nommé, plutôt que de les perdre.
+// Une base neuve (aucune donnée préexistante) ne déclenche pas cette adoption : elle
+// démarre sans aucun kanban, à créer depuis l'interface.
+function adoptLegacyBoardIfNeeded() {
+  const kanbanCount = db.prepare('SELECT COUNT(*) AS count FROM kanbans').get().count;
+  if (kanbanCount > 0) return;
+
+  const legacyColumnCount = db.prepare('SELECT COUNT(*) AS count FROM columns WHERE kanban_id IS NULL').get().count;
+  if (legacyColumnCount === 0) return;
+
+  const adopt = db.transaction(() => {
+    const kanbanId = db
+      .prepare('INSERT INTO kanbans (name, code) VALUES (?, ?)')
+      .run('TwiZzyxKanban', 'TK-TWIZZYX').lastInsertRowid;
+
+    db.prepare('UPDATE columns SET kanban_id = ? WHERE kanban_id IS NULL').run(kanbanId);
+    db.prepare('UPDATE tags SET kanban_id = ? WHERE kanban_id IS NULL').run(kanbanId);
+    db.prepare('UPDATE epics SET kanban_id = ? WHERE kanban_id IS NULL').run(kanbanId);
+    db.prepare('UPDATE cards SET kanban_id = ? WHERE kanban_id IS NULL').run(kanbanId);
+
+    const assignedUsers = db
+      .prepare('SELECT DISTINCT assigned_user_id AS id FROM cards WHERE kanban_id = ? AND assigned_user_id IS NOT NULL')
+      .all(kanbanId);
+    const insertMember = db.prepare(
+      'INSERT OR IGNORE INTO kanban_members (kanban_id, user_id, is_moderator) VALUES (?, ?, 0)'
+    );
+    assignedUsers.forEach(({ id }) => insertMember.run(kanbanId, id));
+
+    const moderator =
+      db.prepare('SELECT id FROM users WHERE username = ?').get('TwiZzyx') ||
+      db.prepare("SELECT id FROM users WHERE role = 'admin' ORDER BY id LIMIT 1").get();
+    if (moderator) {
+      db.prepare(
+        `INSERT INTO kanban_members (kanban_id, user_id, is_moderator) VALUES (?, ?, 1)
+         ON CONFLICT(kanban_id, user_id) DO UPDATE SET is_moderator = 1`
+      ).run(kanbanId, moderator.id);
+    }
+
+    if (!silent) {
+      console.log('Kanban historique "TwiZzyxKanban" (TK-TWIZZYX) créé, données existantes rattachées.');
+    }
+  });
+  adopt();
+}
+
 function migrate() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
   db.exec(schema);
 
   const cardColumns = db.prepare('PRAGMA table_info(cards)').all();
   addMissingCardColumns(cardColumns);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_cards_kanban ON cards(kanban_id)');
 
   const userColumns = db.prepare('PRAGMA table_info(users)').all();
   addMissingUserColumns(userColumns);
 
-  ensureDefaultAdmin();
-  ensureDefaultColumns();
-  ensureDefaultTags();
-  ensureDefaultEpics();
+  addKanbanIdColumn('columns');
+  addKanbanIdColumn('tags');
+  addKanbanIdColumn('epics');
+
+  renameLegacyColumnNames();
   migrateChannelToEpic(cardColumns);
+  adoptLegacyBoardIfNeeded();
+  ensureDefaultAdmin();
 
   if (!silent) {
     console.log('DB initialisée.');

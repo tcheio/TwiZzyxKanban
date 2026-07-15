@@ -3,9 +3,6 @@ import { provideRouter } from '@angular/router';
 import { describe, it, expect } from 'vitest';
 import { App } from './app';
 import { AuthService } from './core/auth.service';
-import { EpicsService } from './services/epics.service';
-
-const epicsServiceStub = { list: () => Promise.resolve([]) };
 
 describe('App', () => {
   it('affiche la barre de navigation quand connecté', () => {
@@ -13,7 +10,6 @@ describe('App', () => {
       imports: [App],
       providers: [
         provideRouter([]),
-        { provide: EpicsService, useValue: epicsServiceStub },
         {
           provide: AuthService,
           useValue: {
@@ -32,9 +28,8 @@ describe('App', () => {
 
     expect(compiled.querySelector('.app-shell')).toBeTruthy();
     expect(compiled.querySelector('.username')?.textContent).toContain('admin');
-    expect(compiled.querySelector('a[routerLink="/tickets"]')).toBeTruthy();
+    expect(compiled.querySelector('a[routerLink="/kanbans"]')).toBeTruthy();
     expect(compiled.querySelector('a[routerLink="/admin/users"]')).toBeTruthy();
-    expect(compiled.querySelector('a[routerLink="/board/settings"]')).toBeTruthy();
   });
 
   it('masque la barre de navigation quand déconnecté', () => {
@@ -42,7 +37,6 @@ describe('App', () => {
       imports: [App],
       providers: [
         provideRouter([]),
-        { provide: EpicsService, useValue: epicsServiceStub },
         {
           provide: AuthService,
           useValue: { isLoggedIn: () => false, isAdmin: () => false, currentUser: () => null, logout: () => {} },
@@ -57,12 +51,11 @@ describe('App', () => {
     expect(compiled.querySelector('.app-shell')).toBeFalsy();
   });
 
-  it("masque le lien Utilisateurs pour un non-admin", () => {
+  it('masque le lien Utilisateurs pour un non-admin', () => {
     TestBed.configureTestingModule({
       imports: [App],
       providers: [
         provideRouter([]),
-        { provide: EpicsService, useValue: epicsServiceStub },
         {
           provide: AuthService,
           useValue: {
@@ -79,8 +72,7 @@ describe('App', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.querySelector('a[routerLink="/tickets"]')).toBeTruthy();
+    expect(compiled.querySelector('a[routerLink="/kanbans"]')).toBeTruthy();
     expect(compiled.querySelector('a[routerLink="/admin/users"]')).toBeFalsy();
-    expect(compiled.querySelector('a[routerLink="/board/settings"]')).toBeFalsy();
   });
 });

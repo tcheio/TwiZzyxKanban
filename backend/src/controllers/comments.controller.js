@@ -2,7 +2,7 @@ const db = require('../db/connection');
 
 function list(req, res) {
   const cardId = Number(req.params.id);
-  const card = db.prepare('SELECT id FROM cards WHERE id = ?').get(cardId);
+  const card = db.prepare('SELECT id FROM cards WHERE id = ? AND kanban_id = ?').get(cardId, req.kanbanId);
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
@@ -24,7 +24,7 @@ function create(req, res) {
   const cardId = Number(req.params.id);
   const { body } = req.body || {};
 
-  const card = db.prepare('SELECT id FROM cards WHERE id = ?').get(cardId);
+  const card = db.prepare('SELECT id FROM cards WHERE id = ? AND kanban_id = ?').get(cardId, req.kanbanId);
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }

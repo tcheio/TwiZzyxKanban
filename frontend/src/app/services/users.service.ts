@@ -21,6 +21,10 @@ export class UsersService {
     return firstValueFrom(this.http.get<UserLite[]>('/api/users/lite'));
   }
 
+  liteForKanban(kanbanId: number): Promise<UserLite[]> {
+    return firstValueFrom(this.http.get<UserLite[]>(`/api/kanbans/${kanbanId}/members/lite`));
+  }
+
   create(input: UserInput): Promise<User> {
     return firstValueFrom(this.http.post<User>('/api/users', input));
   }

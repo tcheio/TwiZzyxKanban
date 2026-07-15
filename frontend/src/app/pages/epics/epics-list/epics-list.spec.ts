@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EpicsList } from './epics-list';
 import { EpicsService } from '../../../services/epics.service';
@@ -82,6 +82,7 @@ describe('EpicsList', () => {
         { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
         { provide: AuthService, useValue: { isAdmin } },
         { provide: Router, useValue: { navigate } },
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '1' } } } },
       ],
     });
     fixture = TestBed.createComponent(EpicsList);
@@ -103,7 +104,7 @@ describe('EpicsList', () => {
   it("openEpic() navigue vers la page de détail de l'EPIC", async () => {
     await component.reload();
     component.openEpic(epics[0]);
-    expect(navigate).toHaveBeenCalledWith(['/epics', 1]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 1, 'epics', 1]);
   });
 
   it('affiche le bouton "+ Nouvelle EPIC" pour un admin', async () => {
@@ -131,7 +132,7 @@ describe('EpicsList', () => {
 
     await component.createEpic();
 
-    expect(epicsService.create).toHaveBeenCalledWith('AutreChaine', 'sky');
+    expect(epicsService.create).toHaveBeenCalledWith(1, 'AutreChaine', 'sky');
     expect(component.newEpicName()).toBe('');
     expect(component.creating()).toBe(false);
   });
@@ -171,7 +172,7 @@ describe('EpicsList', () => {
 
     await component.saveEdit(epics[0]);
 
-    expect(epicsService.update).toHaveBeenCalledWith(1, { name: 'TwiZzyx', color: 'emerald' });
+    expect(epicsService.update).toHaveBeenCalledWith(1, 1, { name: 'TwiZzyx', color: 'emerald' });
   });
 
   it('deleteEpic() supprime après confirmation', async () => {
@@ -179,7 +180,7 @@ describe('EpicsList', () => {
 
     await component.deleteEpic(epics[0]);
 
-    expect(epicsService.remove).toHaveBeenCalledWith(1);
+    expect(epicsService.remove).toHaveBeenCalledWith(1, 1);
   });
 
   it("deleteEpic() n'appelle pas remove() si l'utilisateur annule", async () => {

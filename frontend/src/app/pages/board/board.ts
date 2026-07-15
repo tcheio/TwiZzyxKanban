@@ -1,5 +1,5 @@
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   CdkDropList,
   CdkDropListGroup,
@@ -46,7 +46,9 @@ const PRIORITY_CLASSES: Record<Priority, string> = {
 })
 export class Board implements OnInit {
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly kanbanId = Number(this.route.snapshot.paramMap.get('kanbanId'));
 
   readonly groups = signal<ColumnGroup[]>([]);
   readonly users = signal<UserLite[]>([]);
@@ -86,11 +88,11 @@ export class Board implements OnInit {
     this.error.set(null);
     try {
       const [columns, cards, users, tags, epics] = await Promise.all([
-        this.columnsService.list(),
-        this.cardsService.list(),
-        this.usersService.lite(),
-        this.tagsService.list(),
-        this.epicsService.list(),
+        this.columnsService.list(this.kanbanId),
+        this.cardsService.list(this.kanbanId),
+        this.usersService.liteForKanban(this.kanbanId),
+        this.tagsService.list(this.kanbanId),
+        this.epicsService.list(this.kanbanId),
       ]);
       this.users.set(users);
       this.tags.set(tags);
@@ -236,7 +238,7 @@ export class Board implements OnInit {
 
     const targetColumnId = Number(event.container.id.replace('col-', ''));
     try {
-      await this.cardsService.move(card.id, targetColumnId, event.currentIndex);
+      await this.cardsService.move(this.kanbanId, card.id, targetColumnId, event.currentIndex);
     } catch {
       this.error.set('Le déplacement a échoué, rechargement du tableau...');
       await this.reload();
@@ -244,6 +246,6 @@ export class Board implements OnInit {
   }
 
   openTicket(card: Card): void {
-    this.router.navigate(['/tickets', card.id]);
+    this.router.navigate(['/kanbans', this.kanbanId, 'tickets', card.id]);
   }
 }
