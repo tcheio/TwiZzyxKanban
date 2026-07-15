@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS tags (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   kanban_id INTEGER REFERENCES kanbans(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
+  color TEXT NOT NULL DEFAULT 'gray',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

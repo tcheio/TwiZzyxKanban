@@ -1,20 +1,33 @@
-const TAG_CLASSES = [
-  'bg-sky-50 text-sky-700',
-  'bg-emerald-50 text-emerald-700',
-  'bg-violet-50 text-violet-700',
-  'bg-amber-50 text-amber-700',
-  'bg-rose-50 text-rose-700',
-  'bg-indigo-50 text-indigo-700',
-];
-
-// Couleur imposée pour certains tags par leur nom (plutôt que par id, qui dépend de
-// l'ordre de création et n'est pas stable entre environnements).
-const TAG_COLOR_OVERRIDES: Record<string, string> = {
-  'Inazuma Eleven': 'bg-blue-50 text-blue-700',
+export const TAG_BADGE_CLASSES: Record<string, string> = {
+  red: 'bg-red-50 text-red-700',
+  orange: 'bg-orange-50 text-orange-700',
+  amber: 'bg-amber-50 text-amber-700',
+  emerald: 'bg-emerald-50 text-emerald-700',
+  sky: 'bg-sky-50 text-sky-700',
+  violet: 'bg-violet-50 text-violet-700',
+  rose: 'bg-rose-50 text-rose-700',
+  indigo: 'bg-indigo-50 text-indigo-700',
+  gray: 'bg-gray-100 text-gray-700',
 };
 
-export function tagBadgeClass(tagId: number | null | undefined, tagName?: string | null): string {
-  if (!tagId) return '';
-  if (tagName && TAG_COLOR_OVERRIDES[tagName]) return TAG_COLOR_OVERRIDES[tagName];
-  return TAG_CLASSES[tagId % TAG_CLASSES.length];
+export const TAG_DOT_CLASSES: Record<string, string> = {
+  red: 'bg-red-500',
+  orange: 'bg-orange-500',
+  amber: 'bg-amber-500',
+  emerald: 'bg-emerald-500',
+  sky: 'bg-sky-500',
+  violet: 'bg-violet-500',
+  rose: 'bg-rose-500',
+  indigo: 'bg-indigo-500',
+  gray: 'bg-gray-400',
+};
+
+export const TAG_COLORS = Object.keys(TAG_BADGE_CLASSES);
+
+export function tagBadgeClass(color: string | null | undefined): string {
+  return (color && TAG_BADGE_CLASSES[color]) || TAG_BADGE_CLASSES['gray'];
+}
+
+export function tagDotClass(color: string | null | undefined): string {
+  return (color && TAG_DOT_CLASSES[color]) || TAG_DOT_CLASSES['gray'];
 }

@@ -23,25 +23,25 @@ describe('TagsService', () => {
     const promise = service.list(kanbanId);
     const req = httpMock.expectOne('/api/kanbans/1/tags');
     expect(req.request.method).toBe('GET');
-    req.flush([{ id: 1, name: 'Minecraft' }]);
-    await expect(promise).resolves.toEqual([{ id: 1, name: 'Minecraft' }]);
+    req.flush([{ id: 1, name: 'Minecraft', color: 'emerald' }]);
+    await expect(promise).resolves.toEqual([{ id: 1, name: 'Minecraft', color: 'emerald' }]);
   });
 
-  it('create() effectue un POST /api/kanbans/:kanbanId/tags avec le nom', async () => {
-    const promise = service.create(kanbanId, 'One Piece');
+  it('create() effectue un POST /api/kanbans/:kanbanId/tags avec le nom et la couleur', async () => {
+    const promise = service.create(kanbanId, 'One Piece', 'rose');
     const req = httpMock.expectOne('/api/kanbans/1/tags');
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ name: 'One Piece' });
-    req.flush({ id: 5, name: 'One Piece' });
+    expect(req.request.body).toEqual({ name: 'One Piece', color: 'rose' });
+    req.flush({ id: 5, name: 'One Piece', color: 'rose' });
     await promise;
   });
 
-  it('rename() effectue un PATCH /api/kanbans/:kanbanId/tags/:id', async () => {
-    const promise = service.rename(kanbanId, 3, 'Nouveau nom');
+  it('update() effectue un PATCH /api/kanbans/:kanbanId/tags/:id', async () => {
+    const promise = service.update(kanbanId, 3, { name: 'Nouveau nom', color: 'violet' });
     const req = httpMock.expectOne('/api/kanbans/1/tags/3');
     expect(req.request.method).toBe('PATCH');
-    expect(req.request.body).toEqual({ name: 'Nouveau nom' });
-    req.flush({ id: 3, name: 'Nouveau nom' });
+    expect(req.request.body).toEqual({ name: 'Nouveau nom', color: 'violet' });
+    req.flush({ id: 3, name: 'Nouveau nom', color: 'violet' });
     await promise;
   });
 

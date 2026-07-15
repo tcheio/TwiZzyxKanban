@@ -162,7 +162,9 @@ export class Board implements OnInit {
   }
 
   tagClass(tagId: number | null): string {
-    return tagBadgeClass(tagId, this.tagName(tagId));
+    if (!tagId) return '';
+    const color = this.tags().find((t) => t.id === tagId)?.color;
+    return tagBadgeClass(color);
   }
 
   epicName(epicId: number | null): string | null {

@@ -28,8 +28,8 @@ describe('TicketsList', () => {
     { id: 2, username: 'bob' },
   ];
   const tags = [
-    { id: 1, name: 'Minecraft' },
-    { id: 2, name: 'Pokémon' },
+    { id: 1, name: 'Minecraft', color: 'emerald' },
+    { id: 2, name: 'Pokémon', color: 'red' },
   ];
   const cards: Card[] = [
     {

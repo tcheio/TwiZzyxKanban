@@ -142,7 +142,7 @@ export class TagDetail implements OnInit {
   }
 
   tagClass(): string {
-    return tagBadgeClass(this.tag()?.id ?? null, this.tag()?.name);
+    return tagBadgeClass(this.tag()?.color);
   }
 
   priorityDotClass(priority: Priority): string {

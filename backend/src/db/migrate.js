@@ -39,6 +39,21 @@ function addMissingUserColumns(userColumns) {
   }
 }
 
+// Les tags existants n'avaient pas de couleur stockée (elle était dérivée de l'id à
+// l'affichage) : on leur assigne une couleur en rotation dès l'ajout de la colonne, pour
+// qu'ils n'apparaissent pas tous gris par défaut au moment de la migration.
+function addTagColorColumn() {
+  const columns = db.prepare('PRAGMA table_info(tags)').all();
+  if (columns.some((col) => col.name === 'color')) return;
+
+  db.exec("ALTER TABLE tags ADD COLUMN color TEXT NOT NULL DEFAULT 'gray'");
+
+  const rotatingPalette = ['sky', 'emerald', 'violet', 'amber', 'rose', 'indigo'];
+  const existingTags = db.prepare('SELECT id FROM tags ORDER BY id').all();
+  const setColor = db.prepare('UPDATE tags SET color = ? WHERE id = ?');
+  existingTags.forEach(({ id }, index) => setColor.run(rotatingPalette[index % rotatingPalette.length], id));
+}
+
 function addKanbanIdColumn(tableName) {
   const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
   if (!columns.some((col) => col.name === 'kanban_id')) {
@@ -146,6 +161,7 @@ function migrate() {
   addKanbanIdColumn('columns');
   addKanbanIdColumn('tags');
   addKanbanIdColumn('epics');
+  addTagColorColumn();
 
   renameLegacyColumnNames();
   migrateChannelToEpic(cardColumns);

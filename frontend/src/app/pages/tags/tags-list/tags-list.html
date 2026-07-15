@@ -35,6 +35,20 @@
         placeholder="Nom du tag"
         autofocus
       />
+      <div class="flex items-center gap-1">
+        @for (color of tagColors; track color) {
+          <button
+            type="button"
+            class="h-5 w-5 shrink-0 rounded-full"
+            [class]="tagDotClass(color)"
+            [class.ring-2]="newTagColor() === color"
+            [class.ring-offset-1]="newTagColor() === color"
+            [class.ring-gray-800]="newTagColor() === color"
+            [attr.aria-label]="color"
+            (click)="newTagColor.set(color)"
+          ></button>
+        }
+      </div>
       <button type="submit" class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
         Créer
       </button>
@@ -64,6 +78,20 @@
                 name="editName"
                 autofocus
               />
+              <div class="flex items-center gap-1">
+                @for (color of tagColors; track color) {
+                  <button
+                    type="button"
+                    class="h-5 w-5 shrink-0 rounded-full"
+                    [class]="tagDotClass(color)"
+                    [class.ring-2]="editColor() === color"
+                    [class.ring-offset-1]="editColor() === color"
+                    [class.ring-gray-800]="editColor() === color"
+                    [attr.aria-label]="color"
+                    (click)="editColor.set(color)"
+                  ></button>
+                }
+              </div>
               <button type="submit" class="rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700">
                 Enregistrer
               </button>
@@ -81,7 +109,7 @@
             @if (authService.isAdmin()) {
               <div class="actions flex shrink-0 items-center gap-1" (click)="$event.stopPropagation()">
                 <button type="button" class="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100" (click)="startEdit(tag)">
-                  Renommer
+                  Modifier
                 </button>
                 <button type="button" class="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50" (click)="deleteTag(tag)">
                   Supprimer

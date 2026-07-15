@@ -73,7 +73,7 @@ describe('Board', () => {
     },
   ];
   const users = [{ id: 1, username: 'alice', avatar_url: 'data:image/jpeg;base64,abc' }];
-  const tags = [{ id: 1, name: 'Minecraft' }];
+  const tags = [{ id: 1, name: 'Minecraft', color: 'emerald' }];
 
   beforeEach(() => {
     columnsService = {
@@ -248,10 +248,10 @@ describe('Board', () => {
     expect(component.priorityClass('high')).toBe('bg-red-600');
   });
 
-  it('tagClass() retourne une classe Tailwind stable pour un tag et vide sinon', () => {
+  it('tagClass() résout la classe Tailwind depuis la couleur du tag et vide sinon', async () => {
+    await component.reload();
     expect(component.tagClass(null)).toBe('');
-    expect(component.tagClass(1)).toBe(component.tagClass(1));
-    expect(component.tagClass(1)).not.toBe('');
+    expect(component.tagClass(1)).toBe('bg-emerald-50 text-emerald-700');
   });
 
   it('formatDate() convertit AAAA-MM-JJ en JJ-MM-AAAA', () => {
