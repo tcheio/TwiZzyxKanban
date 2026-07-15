@@ -4,10 +4,7 @@ const requireAuth = require('./middleware/auth');
 
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
-const columnsRoutes = require('./routes/columns.routes');
-const cardsRoutes = require('./routes/cards.routes');
-const tagsRoutes = require('./routes/tags.routes');
-const epicsRoutes = require('./routes/epics.routes');
+const kanbansRoutes = require('./routes/kanbans.routes');
 
 const app = express();
 
@@ -24,10 +21,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', requireAuth, usersRoutes);
-app.use('/api/columns', requireAuth, columnsRoutes);
-app.use('/api/cards', requireAuth, cardsRoutes);
-app.use('/api/tags', requireAuth, tagsRoutes);
-app.use('/api/epics', requireAuth, epicsRoutes);
+app.use('/api/kanbans', requireAuth, kanbansRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

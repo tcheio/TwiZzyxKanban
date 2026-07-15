@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TagsList } from './tags-list';
 import { TagsService } from '../../../services/tags.service';
@@ -82,6 +82,10 @@ describe('TagsList', () => {
         { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
         { provide: AuthService, useValue: { isAdmin } },
         { provide: Router, useValue: { navigate } },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } } } },
+        },
       ],
     });
     fixture = TestBed.createComponent(TagsList);
@@ -103,7 +107,7 @@ describe('TagsList', () => {
   it('openTag() navigue vers la page de détail du tag', async () => {
     await component.reload();
     component.openTag(tags[0]);
-    expect(navigate).toHaveBeenCalledWith(['/tags', 1]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST', 'tags', 1]);
   });
 
   it('affiche le bouton "+ Nouveau tag" pour un admin', async () => {
@@ -130,7 +134,7 @@ describe('TagsList', () => {
 
     await component.createTag();
 
-    expect(tagsService.create).toHaveBeenCalledWith('One Piece');
+    expect(tagsService.create).toHaveBeenCalledWith(1, 'One Piece');
     expect(component.newTagName()).toBe('');
     expect(component.creating()).toBe(false);
   });
@@ -167,7 +171,7 @@ describe('TagsList', () => {
 
     await component.saveEdit(tags[0]);
 
-    expect(tagsService.rename).toHaveBeenCalledWith(1, 'Minecraft Vanilla');
+    expect(tagsService.rename).toHaveBeenCalledWith(1, 1, 'Minecraft Vanilla');
   });
 
   it('deleteTag() supprime après confirmation', async () => {
@@ -175,7 +179,7 @@ describe('TagsList', () => {
 
     await component.deleteTag(tags[0]);
 
-    expect(tagsService.remove).toHaveBeenCalledWith(1);
+    expect(tagsService.remove).toHaveBeenCalledWith(1, 1);
   });
 
   it("deleteTag() n'appelle pas remove() si l'utilisateur annule", async () => {

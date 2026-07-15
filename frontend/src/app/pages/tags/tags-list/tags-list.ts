@@ -1,11 +1,12 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TagsService } from '../../../services/tags.service';
 import { CardsService } from '../../../services/cards.service';
 import { AuthService } from '../../../core/auth.service';
 import { Tag } from '../../../models/tag.model';
 import { Card } from '../../../models/card.model';
+import { Kanban } from '../../../models/kanban.model';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 
 @Component({
@@ -17,7 +18,10 @@ export class TagsList implements OnInit {
   private readonly tagsService = inject(TagsService);
   private readonly cardsService = inject(CardsService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   protected readonly authService = inject(AuthService);
+  private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
+  private readonly kanbanId = this.kanban.id;
 
   readonly tags = signal<Tag[]>([]);
   readonly cards = signal<Card[]>([]);
@@ -38,7 +42,10 @@ export class TagsList implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [tags, cards] = await Promise.all([this.tagsService.list(), this.cardsService.list()]);
+      const [tags, cards] = await Promise.all([
+        this.tagsService.list(this.kanbanId),
+        this.cardsService.list(this.kanbanId),
+      ]);
       this.tags.set(tags);
       this.cards.set(cards);
     } catch {
@@ -57,14 +64,14 @@ export class TagsList implements OnInit {
   }
 
   openTag(tag: Tag): void {
-    this.router.navigate(['/tags', tag.id]);
+    this.router.navigate(['/kanbans', this.kanban.code, 'tags', tag.id]);
   }
 
   async createTag(): Promise<void> {
     const name = this.newTagName().trim();
     if (!name) return;
     try {
-      await this.tagsService.create(name);
+      await this.tagsService.create(this.kanbanId, name);
       this.newTagName.set('');
       this.creating.set(false);
       await this.reload();
@@ -87,7 +94,7 @@ export class TagsList implements OnInit {
     this.editingId.set(null);
     if (!trimmed || trimmed === tag.name) return;
     try {
-      await this.tagsService.rename(tag.id, trimmed);
+      await this.tagsService.rename(this.kanbanId, tag.id, trimmed);
       await this.reload();
     } catch {
       this.error.set('Échec du renommage du tag.');
@@ -97,7 +104,7 @@ export class TagsList implements OnInit {
   async deleteTag(tag: Tag): Promise<void> {
     if (!confirm(`Supprimer le tag "${tag.name}" ?`)) return;
     try {
-      await this.tagsService.remove(tag.id);
+      await this.tagsService.remove(this.kanbanId, tag.id);
       await this.reload();
     } catch {
       this.error.set('Échec de la suppression du tag.');

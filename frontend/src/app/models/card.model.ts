@@ -2,6 +2,7 @@ export type Priority = 'low' | 'medium' | 'high';
 
 export interface Card {
   id: number;
+  key?: string;
   title: string;
   description: string | null;
   tag_id: number | null;

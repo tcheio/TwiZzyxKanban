@@ -28,12 +28,12 @@ describe('adminGuard', () => {
     expect(result).toBe(true);
   });
 
-  it('redirige vers /board pour un non-admin', () => {
+  it('redirige vers /kanbans pour un non-admin', () => {
     isAdmin.mockReturnValue(false);
 
     const result = TestBed.runInInjectionContext(() => adminGuard({} as any, {} as any));
 
-    expect(parseUrl).toHaveBeenCalledWith('/board');
+    expect(parseUrl).toHaveBeenCalledWith('/kanbans');
     expect(result).toBe('PARSED_BOARD_URL');
   });
 });

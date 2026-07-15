@@ -30,7 +30,7 @@ export class Login {
 
     try {
       await this.authService.login(username!, password!);
-      this.router.navigate(['/board']);
+      this.router.navigate(['/kanbans']);
     } catch {
       this.error.set('Identifiants invalides');
     } finally {

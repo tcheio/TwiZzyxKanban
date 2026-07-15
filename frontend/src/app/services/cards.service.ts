@@ -7,39 +7,39 @@ import { Card, CardInput } from '../models/card.model';
 export class CardsService {
   constructor(private readonly http: HttpClient) {}
 
-  list(): Promise<Card[]> {
-    return firstValueFrom(this.http.get<Card[]>('/api/cards'));
+  list(kanbanId: number): Promise<Card[]> {
+    return firstValueFrom(this.http.get<Card[]>(`/api/kanbans/${kanbanId}/cards`));
   }
 
-  get(id: number): Promise<Card> {
-    return firstValueFrom(this.http.get<Card>(`/api/cards/${id}`));
+  get(kanbanId: number, id: number): Promise<Card> {
+    return firstValueFrom(this.http.get<Card>(`/api/kanbans/${kanbanId}/cards/${id}`));
   }
 
-  create(input: CardInput): Promise<Card> {
-    return firstValueFrom(this.http.post<Card>('/api/cards', input));
+  create(kanbanId: number, input: CardInput): Promise<Card> {
+    return firstValueFrom(this.http.post<Card>(`/api/kanbans/${kanbanId}/cards`, input));
   }
 
-  update(id: number, input: Partial<CardInput>): Promise<Card> {
-    return firstValueFrom(this.http.patch<Card>(`/api/cards/${id}`, input));
+  update(kanbanId: number, id: number, input: Partial<CardInput>): Promise<Card> {
+    return firstValueFrom(this.http.patch<Card>(`/api/kanbans/${kanbanId}/cards/${id}`, input));
   }
 
-  remove(id: number): Promise<void> {
-    return firstValueFrom(this.http.delete<void>(`/api/cards/${id}`));
+  remove(kanbanId: number, id: number): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`/api/kanbans/${kanbanId}/cards/${id}`));
   }
 
-  move(id: number, columnId: number, position?: number): Promise<Card> {
+  move(kanbanId: number, id: number, columnId: number, position?: number): Promise<Card> {
     const body: { columnId: number; position?: number } = { columnId };
     if (position !== undefined) {
       body.position = position;
     }
-    return firstValueFrom(this.http.patch<Card>(`/api/cards/${id}/move`, body));
+    return firstValueFrom(this.http.patch<Card>(`/api/kanbans/${kanbanId}/cards/${id}/move`, body));
   }
 
-  cancel(id: number): Promise<Card> {
-    return firstValueFrom(this.http.patch<Card>(`/api/cards/${id}/cancel`, {}));
+  cancel(kanbanId: number, id: number): Promise<Card> {
+    return firstValueFrom(this.http.patch<Card>(`/api/kanbans/${kanbanId}/cards/${id}/cancel`, {}));
   }
 
-  restore(id: number): Promise<Card> {
-    return firstValueFrom(this.http.patch<Card>(`/api/cards/${id}/restore`, {}));
+  restore(kanbanId: number, id: number): Promise<Card> {
+    return firstValueFrom(this.http.patch<Card>(`/api/kanbans/${kanbanId}/cards/${id}/restore`, {}));
   }
 }

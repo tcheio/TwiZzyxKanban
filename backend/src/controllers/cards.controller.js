@@ -8,18 +8,24 @@ function isPublishedColumn(columnId) {
   return column?.name === PUBLISHED_COLUMN_NAME;
 }
 
+function withKey(card, kanbanCode) {
+  return { ...card, key: `${kanbanCode}-${card.id}` };
+}
+
 function list(req, res) {
-  const cards = db.prepare('SELECT * FROM cards ORDER BY column_id, position').all();
-  res.json(cards);
+  const cards = db
+    .prepare('SELECT * FROM cards WHERE kanban_id = ? ORDER BY column_id, position')
+    .all(req.kanbanId);
+  res.json(cards.map((card) => withKey(card, req.kanbanCode)));
 }
 
 function getOne(req, res) {
   const id = Number(req.params.id);
-  const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
+  const card = db.prepare('SELECT * FROM cards WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
-  res.json(card);
+  res.json(withKey(card, req.kanbanCode));
 }
 
 function create(req, res) {
@@ -33,24 +39,24 @@ function create(req, res) {
     return res.status(400).json({ error: `priority doit être l'un de: ${VALID_PRIORITIES.join(', ')}` });
   }
 
-  const column = db.prepare('SELECT id FROM columns WHERE id = ?').get(column_id);
+  const column = db.prepare('SELECT id FROM columns WHERE id = ? AND kanban_id = ?').get(column_id, req.kanbanId);
   if (!column) {
     return res.status(400).json({ error: 'column_id invalide' });
   }
   if (tag_id) {
-    const tag = db.prepare('SELECT id FROM tags WHERE id = ?').get(tag_id);
+    const tag = db.prepare('SELECT id FROM tags WHERE id = ? AND kanban_id = ?').get(tag_id, req.kanbanId);
     if (!tag) {
       return res.status(400).json({ error: 'tag_id invalide' });
     }
   }
   if (epic_id) {
-    const epic = db.prepare('SELECT id FROM epics WHERE id = ?').get(epic_id);
+    const epic = db.prepare('SELECT id FROM epics WHERE id = ? AND kanban_id = ?').get(epic_id, req.kanbanId);
     if (!epic) {
       return res.status(400).json({ error: 'epic_id invalide' });
     }
   }
   if (cloned_from_id) {
-    const source = db.prepare('SELECT id FROM cards WHERE id = ?').get(cloned_from_id);
+    const source = db.prepare('SELECT id FROM cards WHERE id = ? AND kanban_id = ?').get(cloned_from_id, req.kanbanId);
     if (!source) {
       return res.status(400).json({ error: 'cloned_from_id invalide' });
     }
@@ -64,10 +70,11 @@ function create(req, res) {
 
   const result = db
     .prepare(
-      `INSERT INTO cards (title, description, assigned_user_id, priority, column_id, tag_id, epic_id, cloned_from_id, position, due_date, published_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO cards (kanban_id, title, description, assigned_user_id, priority, column_id, tag_id, epic_id, cloned_from_id, position, due_date, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
+      req.kanbanId,
       title,
       description || null,
       assigned_user_id || null,
@@ -82,14 +89,14 @@ function create(req, res) {
     );
 
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(result.lastInsertRowid);
-  res.status(201).json(card);
+  res.status(201).json(withKey(card, req.kanbanCode));
 }
 
 function update(req, res) {
   const id = Number(req.params.id);
   const { title, description, assigned_user_id, priority, tag_id, epic_id, due_date } = req.body || {};
 
-  const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
+  const card = db.prepare('SELECT * FROM cards WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
@@ -97,13 +104,13 @@ function update(req, res) {
     return res.status(400).json({ error: `priority doit être l'un de: ${VALID_PRIORITIES.join(', ')}` });
   }
   if (tag_id) {
-    const tag = db.prepare('SELECT id FROM tags WHERE id = ?').get(tag_id);
+    const tag = db.prepare('SELECT id FROM tags WHERE id = ? AND kanban_id = ?').get(tag_id, req.kanbanId);
     if (!tag) {
       return res.status(400).json({ error: 'tag_id invalide' });
     }
   }
   if (epic_id) {
-    const epic = db.prepare('SELECT id FROM epics WHERE id = ?').get(epic_id);
+    const epic = db.prepare('SELECT id FROM epics WHERE id = ? AND kanban_id = ?').get(epic_id, req.kanbanId);
     if (!epic) {
       return res.status(400).json({ error: 'epic_id invalide' });
     }
@@ -124,13 +131,13 @@ function update(req, res) {
   );
 
   const updated = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
-  res.json(updated);
+  res.json(withKey(updated, req.kanbanCode));
 }
 
 function remove(req, res) {
   const id = Number(req.params.id);
 
-  const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
+  const card = db.prepare('SELECT * FROM cards WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
@@ -144,7 +151,7 @@ function move(req, res) {
   const { columnId } = req.body || {};
   let { position } = req.body || {};
 
-  const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
+  const card = db.prepare('SELECT * FROM cards WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
@@ -152,7 +159,7 @@ function move(req, res) {
     return res.status(400).json({ error: 'columnId requis' });
   }
 
-  const targetColumn = db.prepare('SELECT id, name FROM columns WHERE id = ?').get(columnId);
+  const targetColumn = db.prepare('SELECT id, name FROM columns WHERE id = ? AND kanban_id = ?').get(columnId, req.kanbanId);
   if (!targetColumn) {
     return res.status(400).json({ error: 'columnId invalide' });
   }
@@ -206,19 +213,19 @@ function move(req, res) {
   moveTx();
 
   const moved = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
-  res.json(moved);
+  res.json(withKey(moved, req.kanbanCode));
 }
 
 function setCancelled(req, res, isCancelled) {
   const id = Number(req.params.id);
-  const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
+  const card = db.prepare('SELECT * FROM cards WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
 
   const cancelledAtExpr = isCancelled ? "datetime('now')" : 'NULL';
   db.prepare(`UPDATE cards SET cancelled_at = ${cancelledAtExpr}, updated_at = datetime('now') WHERE id = ?`).run(id);
-  res.json(db.prepare('SELECT * FROM cards WHERE id = ?').get(id));
+  res.json(withKey(db.prepare('SELECT * FROM cards WHERE id = ?').get(id), req.kanbanCode));
 }
 
 function cancel(req, res) {

@@ -105,7 +105,7 @@ describe('TicketDetail', () => {
       providers: [
         { provide: CardsService, useValue: cardsService },
         { provide: ColumnsService, useValue: columnsService },
-        { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
+        { provide: UsersService, useValue: { liteForKanban: vi.fn().mockResolvedValue(users) } },
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: CommentsService, useValue: commentsService },
@@ -113,7 +113,15 @@ describe('TicketDetail', () => {
         { provide: CardImagesService, useValue: cardImagesService },
         { provide: AuthService, useValue: { currentUser, isAdmin } },
         { provide: Router, useValue: { navigate } },
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '5' } } } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              data: { kanban: { id: 5, name: 'Kanban Test', code: 'TK-TEST' } },
+              paramMap: { get: () => '5' },
+            },
+          },
+        },
       ],
     });
     fixture = TestBed.createComponent(TicketDetail);
@@ -123,7 +131,7 @@ describe('TicketDetail', () => {
   it('reload() charge le ticket, les colonnes, les utilisateurs et les commentaires', async () => {
     await component.reload();
 
-    expect(cardsService.get).toHaveBeenCalledWith(5);
+    expect(cardsService.get).toHaveBeenCalledWith(5, 5);
     expect(component.ticket()?.title).toBe('Mon ticket');
     expect(component.columns()).toEqual(columns);
     expect(component.tags()).toEqual(tags);
@@ -148,7 +156,7 @@ describe('TicketDetail', () => {
     await component.reload();
     component.updateTitle('Nouveau titre');
     await Promise.resolve();
-    expect(cardsService.update).toHaveBeenCalledWith(5, { title: 'Nouveau titre' });
+    expect(cardsService.update).toHaveBeenCalledWith(5, 5, { title: 'Nouveau titre' });
   });
 
   it('updatePriority()/updateAssignee() persistent le bon champ', async () => {
@@ -157,33 +165,33 @@ describe('TicketDetail', () => {
     component.updateAssignee(null);
     await Promise.resolve();
 
-    expect(cardsService.update).toHaveBeenCalledWith(5, { priority: 'high' });
-    expect(cardsService.update).toHaveBeenCalledWith(5, { assigned_user_id: null });
+    expect(cardsService.update).toHaveBeenCalledWith(5, 5, { priority: 'high' });
+    expect(cardsService.update).toHaveBeenCalledWith(5, 5, { assigned_user_id: null });
   });
 
   it('updateTag() persiste le nouveau tag', async () => {
     await component.reload();
     component.updateTag(2);
     await Promise.resolve();
-    expect(cardsService.update).toHaveBeenCalledWith(5, { tag_id: 2 });
+    expect(cardsService.update).toHaveBeenCalledWith(5, 5, { tag_id: 2 });
   });
 
   it('updateTag() accepte null (retrait du tag)', async () => {
     await component.reload();
     component.updateTag(null);
     await Promise.resolve();
-    expect(cardsService.update).toHaveBeenCalledWith(5, { tag_id: null });
+    expect(cardsService.update).toHaveBeenCalledWith(5, 5, { tag_id: null });
   });
 
   it('updateDueDate() persiste la date ou null si vide', async () => {
     await component.reload();
     component.updateDueDate('2026-08-01');
     await Promise.resolve();
-    expect(cardsService.update).toHaveBeenCalledWith(5, { due_date: '2026-08-01' });
+    expect(cardsService.update).toHaveBeenCalledWith(5, 5, { due_date: '2026-08-01' });
 
     component.updateDueDate('');
     await Promise.resolve();
-    expect(cardsService.update).toHaveBeenCalledWith(5, { due_date: null });
+    expect(cardsService.update).toHaveBeenCalledWith(5, 5, { due_date: null });
   });
 
   it('isPublished() vaut true seulement si la colonne courante est "Publié"', async () => {
@@ -220,7 +228,7 @@ describe('TicketDetail', () => {
   it('updateStatus() appelle move() quand la colonne change', async () => {
     await component.reload();
     await component.updateStatus(2);
-    expect(cardsService.move).toHaveBeenCalledWith(5, 2);
+    expect(cardsService.move).toHaveBeenCalledWith(5, 5, 2);
     expect(component.ticket()?.column_id).toBe(2);
   });
 
@@ -229,7 +237,7 @@ describe('TicketDetail', () => {
     component.descriptionDraftHtml.set('Nouvelle description');
     component.saveDescription();
     await Promise.resolve();
-    expect(cardsService.update).toHaveBeenCalledWith(5, { description: 'Nouvelle description' });
+    expect(cardsService.update).toHaveBeenCalledWith(5, 5, { description: 'Nouvelle description' });
   });
 
   it('saveDescription() retire le src des images avant sauvegarde', async () => {
@@ -239,7 +247,7 @@ describe('TicketDetail', () => {
     );
     component.saveDescription();
     await Promise.resolve();
-    expect(cardsService.update).toHaveBeenCalledWith(5, {
+    expect(cardsService.update).toHaveBeenCalledWith(5, 5, {
       description: '<p>Texte</p><img data-card-image-id="1" alt="">',
     });
   });
@@ -269,7 +277,7 @@ describe('TicketDetail', () => {
     await component.reload();
     component.newCommentDraftHtml.set('Un avis');
     await component.addComment();
-    expect(commentsService.create).toHaveBeenCalledWith(5, 'Un avis');
+    expect(commentsService.create).toHaveBeenCalledWith(5, 5, 'Un avis');
     expect(component.newCommentDraftHtml()).toBe('');
   });
 
@@ -319,15 +327,15 @@ describe('TicketDetail', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     await component.reload();
     await component.deleteComment(comments[0]);
-    expect(commentsService.remove).toHaveBeenCalledWith(5, comments[0].id);
+    expect(commentsService.remove).toHaveBeenCalledWith(5, 5, comments[0].id);
   });
 
   it('deleteTicket() supprime puis navigue vers /tickets', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     await component.reload();
     await component.deleteTicket();
-    expect(cardsService.remove).toHaveBeenCalledWith(5);
-    expect(navigate).toHaveBeenCalledWith(['/tickets']);
+    expect(cardsService.remove).toHaveBeenCalledWith(5, 5);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST', 'tickets']);
   });
 
   it("deleteTicket() n'agit pas si l'utilisateur annule", async () => {
@@ -408,10 +416,11 @@ describe('TicketDetail', () => {
     });
 
     expect(cardsService.create).toHaveBeenCalledWith(
+      5,
       expect.objectContaining({ title: 'COPIE - Mon ticket', cloned_from_id: 5 })
     );
     expect(component.cloneDialogOpen()).toBe(false);
-    expect(navigate).toHaveBeenCalledWith(['/tickets', 99]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST-99']);
   });
 
   it('linkedBefore() liste les tickets à faire avant', async () => {
@@ -452,7 +461,7 @@ describe('TicketDetail', () => {
     component.newLinkType.set('after');
     await component.addLink();
 
-    expect(cardLinksService.create).toHaveBeenCalledWith(5, 20, 'after');
+    expect(cardLinksService.create).toHaveBeenCalledWith(5, 5, 20, 'after');
     expect(component.newLinkTargetId()).toBeNull();
   });
 
@@ -467,7 +476,7 @@ describe('TicketDetail', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     await component.reload();
     await component.removeLink(1);
-    expect(cardLinksService.remove).toHaveBeenCalledWith(5, 1);
+    expect(cardLinksService.remove).toHaveBeenCalledWith(5, 5, 1);
   });
 
   function fakeImagePasteEvent(target: HTMLElement, file: File): ClipboardEvent {
@@ -491,7 +500,7 @@ describe('TicketDetail', () => {
     await component.onDescriptionPaste(event);
 
     expect(event.preventDefault).toHaveBeenCalled();
-    expect(cardImagesService.upload).toHaveBeenCalledWith(5, file);
+    expect(cardImagesService.upload).toHaveBeenCalledWith(5, 5, file);
     expect(execSpy).toHaveBeenCalledWith(
       'insertHTML',
       false,
@@ -525,7 +534,7 @@ describe('TicketDetail', () => {
 
     await component.onCommentPaste(event);
 
-    expect(cardImagesService.upload).toHaveBeenCalledWith(5, file);
+    expect(cardImagesService.upload).toHaveBeenCalledWith(5, 5, file);
     expect(component.newCommentDraftHtml()).toBe('brouillon');
   });
 
@@ -540,7 +549,7 @@ describe('TicketDetail', () => {
 
     await component.onCommentImageSelected({ target: input } as unknown as Event);
 
-    expect(cardImagesService.upload).toHaveBeenCalledWith(5, file);
+    expect(cardImagesService.upload).toHaveBeenCalledWith(5, 5, file);
     expect(component.newCommentDraftHtml()).toContain('data-card-image-id="1"');
   });
 
@@ -576,7 +585,7 @@ describe('TicketDetail', () => {
 
     await component.onGalleryImageSelected({ target: input } as unknown as Event);
 
-    expect(cardImagesService.upload).toHaveBeenCalledWith(5, file);
+    expect(cardImagesService.upload).toHaveBeenCalledWith(5, 5, file);
     expect(component.images()).toEqual([{ id: 1, card_id: 5, data_url: 'data:image/jpeg;base64,AAA' }]);
   });
 
@@ -601,7 +610,7 @@ describe('TicketDetail', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     await component.reload();
     await component.removeImage(3);
-    expect(cardImagesService.remove).toHaveBeenCalledWith(5, 3);
+    expect(cardImagesService.remove).toHaveBeenCalledWith(5, 5, 3);
   });
 
   it('openImageViewer()/closeImageViewer() pilotent le visualiseur', () => {

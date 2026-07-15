@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TicketsList } from './tickets-list';
 import { ColumnsService } from '../../../services/columns.service';
@@ -89,11 +89,15 @@ describe('TicketsList', () => {
       providers: [
         { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
         { provide: CardsService, useValue: cardsService },
-        { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
+        { provide: UsersService, useValue: { liteForKanban: vi.fn().mockResolvedValue(users) } },
         { provide: TagsService, useValue: tagsService },
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: AuthService, useValue: { isAdmin } },
         { provide: Router, useValue: { navigate } },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } } } },
+        },
       ],
     });
     fixture = TestBed.createComponent(TicketsList);
@@ -138,7 +142,7 @@ describe('TicketsList', () => {
 
     component.openTicket(cards[0]);
 
-    expect(navigate).toHaveBeenCalledWith(['/tickets', cards[0].id]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', `TK-TEST-${cards[0].id}`]);
   });
 
   it('createTicket() crée le ticket puis navigue vers sa page dédiée', async () => {
@@ -157,7 +161,7 @@ describe('TicketsList', () => {
 
     expect(cardsService.create).toHaveBeenCalled();
     expect(component.dialogOpen()).toBe(false);
-    expect(navigate).toHaveBeenCalledWith(['/tickets', 99]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST-99']);
   });
 
   it('filteredTickets() sans filtre retourne tous les tickets', async () => {

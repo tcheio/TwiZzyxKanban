@@ -1,16 +1,16 @@
 const express = require('express');
-const requireAdmin = require('../middleware/requireAdmin');
+const requireKanbanModerator = require('../middleware/requireKanbanModerator');
 const { list, create, update, remove, reorder } = require('../controllers/columns.controller');
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
-// Consultation : accessible à tout utilisateur authentifié (affichage du tableau)
+// Consultation : accessible à tout membre du kanban (affichage du tableau)
 router.get('/', list);
 
-// Gestion des colonnes (créer/renommer/supprimer/réordonner) : réservée aux admins
-router.post('/', requireAdmin, create);
-router.patch('/reorder', requireAdmin, reorder);
-router.patch('/:id', requireAdmin, update);
-router.delete('/:id', requireAdmin, remove);
+// Gestion des colonnes (créer/renommer/supprimer/réordonner) : réservée aux modérateurs du kanban (et aux admins)
+router.post('/', requireKanbanModerator, create);
+router.patch('/reorder', requireKanbanModerator, reorder);
+router.patch('/:id', requireKanbanModerator, update);
+router.delete('/:id', requireKanbanModerator, remove);
 
 module.exports = router;

@@ -1,7 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ColumnsService } from '../../../services/columns.service';
 import { Column } from '../../../models/column.model';
+import { Kanban } from '../../../models/kanban.model';
 
 @Component({
   selector: 'app-board-settings',
@@ -10,6 +11,10 @@ import { Column } from '../../../models/column.model';
 })
 export class BoardSettings implements OnInit {
   private readonly columnsService = inject(ColumnsService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
+  readonly kanbanId = this.kanban.id;
+  readonly kanbanCode = this.kanban.code;
 
   readonly columns = signal<Column[]>([]);
   readonly loading = signal(true);
@@ -26,7 +31,7 @@ export class BoardSettings implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      this.columns.set(await this.columnsService.list());
+      this.columns.set(await this.columnsService.list(this.kanbanId));
     } catch {
       this.error.set('Impossible de charger les colonnes.');
     } finally {
@@ -40,7 +45,7 @@ export class BoardSettings implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     try {
-      await this.columnsService.rename(column.id, trimmed);
+      await this.columnsService.rename(this.kanbanId, column.id, trimmed);
       await this.reload();
     } catch {
       this.error.set('Échec du renommage de la colonne.');
@@ -60,7 +65,7 @@ export class BoardSettings implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     try {
-      this.columns.set(await this.columnsService.reorder(orderedIds));
+      this.columns.set(await this.columnsService.reorder(this.kanbanId, orderedIds));
     } catch {
       this.error.set('Échec de la réorganisation des colonnes.');
     } finally {
@@ -73,7 +78,7 @@ export class BoardSettings implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     try {
-      await this.columnsService.remove(column.id);
+      await this.columnsService.remove(this.kanbanId, column.id);
       await this.reload();
     } catch {
       this.error.set('Impossible de supprimer une colonne contenant des cartes.');
@@ -88,7 +93,7 @@ export class BoardSettings implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     try {
-      await this.columnsService.create(name);
+      await this.columnsService.create(this.kanbanId, name);
       this.newColumnName.set('');
       await this.reload();
     } catch {
