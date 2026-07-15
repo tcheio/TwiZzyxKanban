@@ -1,0 +1,38 @@
+<div class="relative hidden sm:block">
+  <svg viewBox="0 0 24 24" class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="11" cy="11" r="7" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+  <label for="app-search" class="sr-only">Rechercher un ticket dans tous vos kanbans</label>
+  <input
+    id="app-search"
+    type="text"
+    placeholder="Rechercher un ticket..."
+    autocomplete="off"
+    [ngModel]="query()"
+    (ngModelChange)="onQueryChange($event)"
+    (focus)="onFocus()"
+    class="w-48 rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-sm text-gray-700 placeholder-gray-400 focus:border-blue-400 focus:outline-none sm:w-64"
+  />
+
+  @if (open()) {
+    <div class="absolute right-0 z-20 mt-1 max-h-80 w-80 overflow-y-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+      @if (loading()) {
+        <p class="px-3 py-2 text-sm text-gray-400">Recherche...</p>
+      } @else if (results().length === 0) {
+        <p class="px-3 py-2 text-sm text-gray-400">Aucun ticket trouvé.</p>
+      } @else {
+        @for (result of results(); track result.key) {
+          <button
+            type="button"
+            class="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-gray-50"
+            (click)="select(result)"
+          >
+            <span class="text-sm font-medium text-gray-900" [class.line-through]="result.cancelled">{{ result.title }}</span>
+            <span class="text-xs text-gray-400">{{ result.key }} · {{ result.kanban_name }} · {{ result.column_name }}</span>
+          </button>
+        }
+      }
+    </div>
+  }
+</div>

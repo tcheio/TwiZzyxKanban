@@ -1,5 +1,6 @@
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import {
   CdkDropList,
   CdkDropListGroup,
@@ -42,7 +43,7 @@ const PRIORITY_CLASSES: Record<Priority, string> = {
 
 @Component({
   selector: 'app-board',
-  imports: [CdkDropListGroup, CdkDropList, CdkDrag],
+  imports: [CdkDropListGroup, CdkDropList, CdkDrag, FormsModule],
   templateUrl: './board.html',
 })
 export class Board implements OnInit {
@@ -65,6 +66,7 @@ export class Board implements OnInit {
   private dragInProgress = false;
 
   readonly selectedAssigneeId = signal<number | null>(null);
+  readonly searchQuery = signal('');
 
   constructor(
     private readonly columnsService: ColumnsService,
@@ -133,7 +135,12 @@ export class Board implements OnInit {
 
   visibleCards(group: ColumnGroup): Card[] {
     const assigneeId = this.selectedAssigneeId();
-    return assigneeId === null ? group.cards : group.cards.filter((c) => c.assigned_user_id === assigneeId);
+    const query = this.searchQuery().trim().toLowerCase();
+    return group.cards.filter((c) => {
+      if (assigneeId !== null && c.assigned_user_id !== assigneeId) return false;
+      if (query && !c.title.toLowerCase().includes(query)) return false;
+      return true;
+    });
   }
 
   toggleAssigneeFilter(userId: number | null): void {
