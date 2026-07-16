@@ -25,7 +25,18 @@ beforeEach(async () => {
   kanbanId = created.kanban.id;
   columns = created.columns;
   tags = created.tags;
-  epics = created.epics;
+
+  // Le template 'video' ne seed plus d'EPICs par défaut : ces tests en ont besoin de deux,
+  // donc on les crée explicitement ici plutôt que de dépendre d'un seed implicite.
+  const epicA = await request(app)
+    .post(`/api/kanbans/${kanbanId}/epics`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'TwiZzyx', color: 'red' });
+  const epicB = await request(app)
+    .post(`/api/kanbans/${kanbanId}/epics`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'TwiZzyxPasSympa', color: 'orange' });
+  epics = [epicA.body, epicB.body];
 });
 
 test('GET /api/kanbans/:id/cards sans token retourne 401', async () => {

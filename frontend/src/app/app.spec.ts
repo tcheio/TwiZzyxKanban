@@ -121,6 +121,7 @@ describe('App', () => {
     expect(compiled.querySelector('a[href="/kanbans/TK-TEST"]')?.textContent).toContain('Tableau');
     expect(compiled.querySelector('a[href="/kanbans/TK-TEST/tickets"]')?.textContent).toContain('Tickets');
     expect(compiled.querySelector('a[href="/kanbans/TK-TEST/tags"]')?.textContent).toContain('Tags');
+    expect(compiled.querySelector('a[href="/kanbans/TK-TEST/epics"]')?.textContent).toContain('EPICs');
     expect(compiled.textContent).toContain('TwiZzyx');
   });
 });

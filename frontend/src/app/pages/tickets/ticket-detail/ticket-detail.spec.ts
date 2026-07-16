@@ -43,7 +43,6 @@ describe('TicketDetail', () => {
   let columnsService: { list: ReturnType<typeof vi.fn> };
   let navigate: ReturnType<typeof vi.fn>;
   let currentUser: ReturnType<typeof vi.fn>;
-  let isAdmin: ReturnType<typeof vi.fn>;
 
   const columns = [
     { id: 1, name: 'Idée', position: 0 },
@@ -71,11 +70,12 @@ describe('TicketDetail', () => {
     { id: 1, card_id: 5, user_id: 1, username: 'alice', body: 'Salut', created_at: '2026-01-01' },
     { id: 2, card_id: 5, user_id: 2, username: 'bob', body: 'Re', created_at: '2026-01-02' },
   ];
+  let kanbanData: { id: number; name: string; code: string; is_moderator: boolean };
 
   beforeEach(() => {
+    kanbanData = { id: 5, name: 'Kanban Test', code: 'TK-TEST', is_moderator: false };
     navigate = vi.fn();
     currentUser = vi.fn().mockReturnValue({ id: 1, username: 'alice', role: 'user' });
-    isAdmin = vi.fn().mockReturnValue(false);
     cardsService = {
       get: vi.fn().mockResolvedValue({ ...ticket }),
       list: vi.fn().mockResolvedValue([ticket]),
@@ -111,13 +111,13 @@ describe('TicketDetail', () => {
         { provide: CommentsService, useValue: commentsService },
         { provide: CardLinksService, useValue: cardLinksService },
         { provide: CardImagesService, useValue: cardImagesService },
-        { provide: AuthService, useValue: { currentUser, isAdmin } },
+        { provide: AuthService, useValue: { currentUser } },
         { provide: Router, useValue: { navigate } },
         {
           provide: ActivatedRoute,
           useValue: {
             snapshot: {
-              data: { kanban: { id: 5, name: 'Kanban Test', code: 'TK-TEST' } },
+              data: { kanban: kanbanData },
               paramMap: { get: () => '5' },
             },
           },
@@ -345,7 +345,7 @@ describe('TicketDetail', () => {
     expect(cardsService.remove).not.toHaveBeenCalled();
   });
 
-  it('masque le bouton "Supprimer le ticket" pour un non-admin', async () => {
+  it('masque le bouton "Supprimer le ticket" pour un non-modérateur', async () => {
     await component.reload();
     fixture.detectChanges();
 
@@ -353,8 +353,8 @@ describe('TicketDetail', () => {
     expect(button).toBeFalsy();
   });
 
-  it('affiche le bouton "Supprimer le ticket" pour un admin', async () => {
-    isAdmin.mockReturnValue(true);
+  it('affiche le bouton "Supprimer le ticket" pour un modérateur', async () => {
+    kanbanData.is_moderator = true;
     await component.reload();
     fixture.detectChanges();
 

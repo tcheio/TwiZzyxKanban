@@ -3,7 +3,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { EpicsService } from '../../../services/epics.service';
 import { CardsService } from '../../../services/cards.service';
-import { AuthService } from '../../../core/auth.service';
 import { Epic } from '../../../models/epic.model';
 import { Card } from '../../../models/card.model';
 import { Kanban } from '../../../models/kanban.model';
@@ -19,9 +18,9 @@ export class EpicsList implements OnInit {
   private readonly cardsService = inject(CardsService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  protected readonly authService = inject(AuthService);
   private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
   private readonly kanbanId = this.kanban.id;
+  protected readonly canManage = this.kanban.is_moderator;
 
   readonly epicColors = EPIC_COLORS;
   readonly epicDotClass = epicDotClass;

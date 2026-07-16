@@ -7,7 +7,6 @@ import { CardsService } from '../../../services/cards.service';
 import { UsersService } from '../../../services/users.service';
 import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
-import { AuthService } from '../../../core/auth.service';
 import { Card } from '../../../models/card.model';
 
 describe('TicketsList', () => {
@@ -16,7 +15,6 @@ describe('TicketsList', () => {
   let cardsService: { list: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
   let tagsService: { list: ReturnType<typeof vi.fn> };
   let navigate: ReturnType<typeof vi.fn>;
-  let isAdmin: ReturnType<typeof vi.fn>;
 
   const columns = [
     { id: 1, name: 'Idée', position: 0 },
@@ -73,9 +71,8 @@ describe('TicketsList', () => {
     },
   ];
 
-  beforeEach(() => {
+  function configure(isModerator: boolean): void {
     navigate = vi.fn();
-    isAdmin = vi.fn().mockReturnValue(true);
     cardsService = {
       list: vi.fn().mockResolvedValue(cards),
       create: vi.fn().mockResolvedValue({ id: 99 }),
@@ -84,6 +81,7 @@ describe('TicketsList', () => {
       list: vi.fn().mockResolvedValue(tags),
     };
 
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [TicketsList],
       providers: [
@@ -92,19 +90,22 @@ describe('TicketsList', () => {
         { provide: UsersService, useValue: { liteForKanban: vi.fn().mockResolvedValue(users) } },
         { provide: TagsService, useValue: tagsService },
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
-        { provide: AuthService, useValue: { isAdmin } },
         { provide: Router, useValue: { navigate } },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } } } },
+          useValue: {
+            snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST', is_moderator: isModerator } } },
+          },
         },
       ],
     });
     fixture = TestBed.createComponent(TicketsList);
     component = fixture.componentInstance;
-  });
+  }
 
-  it('affiche le bouton "+ Nouveau ticket" pour un admin', async () => {
+  beforeEach(() => configure(true));
+
+  it('affiche le bouton "+ Nouveau ticket" pour un modérateur', async () => {
     await component.reload();
     fixture.detectChanges();
 
@@ -112,8 +113,8 @@ describe('TicketsList', () => {
     expect(button).toBeTruthy();
   });
 
-  it('masque le bouton "+ Nouveau ticket" pour un non-admin', async () => {
-    isAdmin.mockReturnValue(false);
+  it('masque le bouton "+ Nouveau ticket" pour un non-modérateur', async () => {
+    configure(false);
     await component.reload();
     fixture.detectChanges();
 

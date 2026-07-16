@@ -104,11 +104,23 @@
               </svg>
               Tags
             </a>
+            <a
+              [routerLink]="['/kanbans', kanban.code, 'epics']"
+              routerLinkActive="bg-blue-50 text-blue-700"
+              class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              <svg viewBox="0 0 24 24" class="h-4 w-4 shrink-0 fill-current">
+                <circle cx="7" cy="7" r="3" />
+                <circle cx="17" cy="7" r="3" />
+                <circle cx="12" cy="17" r="3" />
+              </svg>
+              EPICs
+            </a>
           </nav>
 
           @if (epics().length) {
             <div class="mt-3 border-t border-gray-100 pt-3">
-              <div class="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">EPICs</div>
+              <div class="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">Accès rapide</div>
               @for (epic of epics(); track epic.id) {
                 <a
                   [routerLink]="['/kanbans', kanban.code, 'epics', epic.id]"
