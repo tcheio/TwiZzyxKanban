@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TagsList } from './tags-list';
 import { TagsService } from '../../../services/tags.service';
 import { CardsService } from '../../../services/cards.service';
-import { AuthService } from '../../../core/auth.service';
 import { Card } from '../../../models/card.model';
 
 describe('TagsList', () => {
@@ -17,7 +16,6 @@ describe('TagsList', () => {
     remove: ReturnType<typeof vi.fn>;
   };
   let navigate: ReturnType<typeof vi.fn>;
-  let isAdmin: ReturnType<typeof vi.fn>;
 
   const tags = [
     { id: 1, name: 'Minecraft', color: 'emerald' },
@@ -65,9 +63,8 @@ describe('TagsList', () => {
     },
   ];
 
-  beforeEach(() => {
+  function configure(isModerator: boolean): void {
     navigate = vi.fn();
-    isAdmin = vi.fn().mockReturnValue(true);
     tagsService = {
       list: vi.fn().mockResolvedValue(tags),
       create: vi.fn().mockResolvedValue({}),
@@ -75,22 +72,26 @@ describe('TagsList', () => {
       remove: vi.fn().mockResolvedValue(undefined),
     };
 
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [TagsList],
       providers: [
         { provide: TagsService, useValue: tagsService },
         { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
-        { provide: AuthService, useValue: { isAdmin } },
         { provide: Router, useValue: { navigate } },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } } } },
+          useValue: {
+            snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST', is_moderator: isModerator } } },
+          },
         },
       ],
     });
     fixture = TestBed.createComponent(TagsList);
     component = fixture.componentInstance;
-  });
+  }
+
+  beforeEach(() => configure(true));
 
   it('reload() charge les tags et les cartes', async () => {
     await component.reload();
@@ -110,7 +111,7 @@ describe('TagsList', () => {
     expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST', 'tags', 1]);
   });
 
-  it('affiche le bouton "+ Nouveau tag" pour un admin', async () => {
+  it('affiche le bouton "+ Nouveau tag" pour un modérateur', async () => {
     await component.reload();
     fixture.detectChanges();
 
@@ -118,8 +119,8 @@ describe('TagsList', () => {
     expect(button).toBeTruthy();
   });
 
-  it('masque les contrôles de gestion pour un non-admin', async () => {
-    isAdmin.mockReturnValue(false);
+  it('masque les contrôles de gestion pour un non-modérateur', async () => {
+    configure(false);
     await component.reload();
     fixture.detectChanges();
 

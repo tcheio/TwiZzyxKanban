@@ -7,11 +7,7 @@ const KANBAN_TEMPLATES = {
       { name: 'Ykw Watch', color: 'amber' },
       { name: 'Inazuma Eleven', color: 'sky' },
     ],
-    epics: [
-      { name: 'TwiZzyx', color: 'red' },
-      { name: 'TwiZzyxPasSympa', color: 'orange' },
-      { name: 'Twitch', color: 'violet' },
-    ],
+    epics: [],
   },
   basique: {
     columns: ['À faire', 'En cours', 'Fait'],

@@ -28,19 +28,10 @@ test('GET /api/kanbans/:id/epics sans token retourne 401', async () => {
   assert.equal(res.status, 401);
 });
 
-test('GET retourne les 3 epics par défaut avec leurs couleurs', async () => {
+test("GET ne retourne aucune EPIC par défaut (le template 'video' ne seed plus d'EPICs)", async () => {
   const res = await request(app).get(`/api/kanbans/${kanbanId}/epics`).set('Authorization', `Bearer ${adminToken}`);
   assert.equal(res.status, 200);
-  assert.deepEqual(
-    res.body.map((e) => e.name).sort(),
-    ['Twitch', 'TwiZzyx', 'TwiZzyxPasSympa'].sort()
-  );
-  const twiZzyx = res.body.find((e) => e.name === 'TwiZzyx');
-  const twiZzyxPasSympa = res.body.find((e) => e.name === 'TwiZzyxPasSympa');
-  const twitch = res.body.find((e) => e.name === 'Twitch');
-  assert.equal(twiZzyx.color, 'red');
-  assert.equal(twiZzyxPasSympa.color, 'orange');
-  assert.equal(twitch.color, 'violet');
+  assert.deepEqual(res.body, []);
 });
 
 test('POST crée une epic avec une couleur valide', async () => {
@@ -67,8 +58,11 @@ test('POST avec une couleur invalide retourne 400', async () => {
 });
 
 test("PATCH renomme l'epic et change sa couleur", async () => {
-  const list = await request(app).get(`/api/kanbans/${kanbanId}/epics`).set('Authorization', `Bearer ${adminToken}`);
-  const id = list.body[0].id;
+  const created = await request(app)
+    .post(`/api/kanbans/${kanbanId}/epics`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'TwiZzyx', color: 'red' });
+  const id = created.body.id;
   const res = await request(app)
     .patch(`/api/kanbans/${kanbanId}/epics/${id}`)
     .set('Authorization', `Bearer ${adminToken}`)
@@ -87,8 +81,11 @@ test('PATCH sur une epic inexistante retourne 404', async () => {
 });
 
 test('DELETE supprime une epic', async () => {
-  const list = await request(app).get(`/api/kanbans/${kanbanId}/epics`).set('Authorization', `Bearer ${adminToken}`);
-  const id = list.body[0].id;
+  const created = await request(app)
+    .post(`/api/kanbans/${kanbanId}/epics`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'TwiZzyx', color: 'red' });
+  const id = created.body.id;
   const res = await request(app).delete(`/api/kanbans/${kanbanId}/epics/${id}`).set('Authorization', `Bearer ${adminToken}`);
   assert.equal(res.status, 204);
 });
@@ -135,8 +132,11 @@ test('POST par un modérateur (non-admin) réussit', async () => {
 });
 
 test("DELETE une epic utilisée par une carte retire simplement l'epic de la carte (pas de blocage)", async () => {
-  const epics = await request(app).get(`/api/kanbans/${kanbanId}/epics`).set('Authorization', `Bearer ${adminToken}`);
-  const epicId = epics.body[0].id;
+  const created = await request(app)
+    .post(`/api/kanbans/${kanbanId}/epics`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'TwiZzyx', color: 'red' });
+  const epicId = created.body.id;
   const columns = await request(app).get(`/api/kanbans/${kanbanId}/columns`).set('Authorization', `Bearer ${adminToken}`);
 
   const card = await request(app)

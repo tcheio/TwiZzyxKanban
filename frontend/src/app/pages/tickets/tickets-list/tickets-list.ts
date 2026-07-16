@@ -13,7 +13,6 @@ import { UserLite } from '../../../models/user.model';
 import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
-import { AuthService } from '../../../core/auth.service';
 import { epicBadgeClass } from '../../../shared/epic-colors';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
@@ -41,9 +40,9 @@ export class TicketsList implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
-  protected readonly authService = inject(AuthService);
   private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
   protected readonly kanbanId = this.kanban.id;
+  protected readonly canManage = this.kanban.is_moderator;
 
   readonly columns = signal<Column[]>([]);
   readonly tickets = signal<Card[]>([]);
