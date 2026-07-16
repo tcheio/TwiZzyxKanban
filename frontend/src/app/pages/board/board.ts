@@ -1,5 +1,6 @@
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import {
   CdkDropList,
   CdkDropListGroup,
@@ -14,6 +15,7 @@ import { UsersService } from '../../services/users.service';
 import { TagsService } from '../../services/tags.service';
 import { EpicsService } from '../../services/epics.service';
 import { Column } from '../../models/column.model';
+import { Kanban } from '../../models/kanban.model';
 import { Card, Priority } from '../../models/card.model';
 import { UserLite } from '../../models/user.model';
 import { Tag } from '../../models/tag.model';
@@ -41,12 +43,15 @@ const PRIORITY_CLASSES: Record<Priority, string> = {
 
 @Component({
   selector: 'app-board',
-  imports: [CdkDropListGroup, CdkDropList, CdkDrag],
+  imports: [CdkDropListGroup, CdkDropList, CdkDrag, FormsModule],
   templateUrl: './board.html',
 })
 export class Board implements OnInit {
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
+  private readonly kanbanId = this.kanban.id;
 
   readonly groups = signal<ColumnGroup[]>([]);
   readonly users = signal<UserLite[]>([]);
@@ -61,6 +66,7 @@ export class Board implements OnInit {
   private dragInProgress = false;
 
   readonly selectedAssigneeId = signal<number | null>(null);
+  readonly searchQuery = signal('');
 
   constructor(
     private readonly columnsService: ColumnsService,
@@ -86,11 +92,11 @@ export class Board implements OnInit {
     this.error.set(null);
     try {
       const [columns, cards, users, tags, epics] = await Promise.all([
-        this.columnsService.list(),
-        this.cardsService.list(),
-        this.usersService.lite(),
-        this.tagsService.list(),
-        this.epicsService.list(),
+        this.columnsService.list(this.kanbanId),
+        this.cardsService.list(this.kanbanId),
+        this.usersService.liteForKanban(this.kanbanId),
+        this.tagsService.list(this.kanbanId),
+        this.epicsService.list(this.kanbanId),
       ]);
       this.users.set(users);
       this.tags.set(tags);
@@ -129,7 +135,12 @@ export class Board implements OnInit {
 
   visibleCards(group: ColumnGroup): Card[] {
     const assigneeId = this.selectedAssigneeId();
-    return assigneeId === null ? group.cards : group.cards.filter((c) => c.assigned_user_id === assigneeId);
+    const query = this.searchQuery().trim().toLowerCase();
+    return group.cards.filter((c) => {
+      if (assigneeId !== null && c.assigned_user_id !== assigneeId) return false;
+      if (query && !c.title.toLowerCase().includes(query)) return false;
+      return true;
+    });
   }
 
   toggleAssigneeFilter(userId: number | null): void {
@@ -151,7 +162,9 @@ export class Board implements OnInit {
   }
 
   tagClass(tagId: number | null): string {
-    return tagBadgeClass(tagId, this.tagName(tagId));
+    if (!tagId) return '';
+    const color = this.tags().find((t) => t.id === tagId)?.color;
+    return tagBadgeClass(color);
   }
 
   epicName(epicId: number | null): string | null {
@@ -236,7 +249,7 @@ export class Board implements OnInit {
 
     const targetColumnId = Number(event.container.id.replace('col-', ''));
     try {
-      await this.cardsService.move(card.id, targetColumnId, event.currentIndex);
+      await this.cardsService.move(this.kanbanId, card.id, targetColumnId, event.currentIndex);
     } catch {
       this.error.set('Le déplacement a échoué, rechargement du tableau...');
       await this.reload();
@@ -244,6 +257,6 @@ export class Board implements OnInit {
   }
 
   openTicket(card: Card): void {
-    this.router.navigate(['/tickets', card.id]);
+    this.router.navigate(['/kanbans', `${this.kanban.code}-${card.id}`]);
   }
 }

@@ -1,7 +1,7 @@
 const db = require('../db/connection');
 
 function list(req, res) {
-  const columns = db.prepare('SELECT * FROM columns ORDER BY position').all();
+  const columns = db.prepare('SELECT * FROM columns WHERE kanban_id = ? ORDER BY position').all(req.kanbanId);
   res.json(columns);
 }
 
@@ -12,12 +12,12 @@ function create(req, res) {
   }
 
   const maxPosition = db
-    .prepare('SELECT COALESCE(MAX(position), -1) AS maxPos FROM columns')
-    .get().maxPos;
+    .prepare('SELECT COALESCE(MAX(position), -1) AS maxPos FROM columns WHERE kanban_id = ?')
+    .get(req.kanbanId).maxPos;
 
   const result = db
-    .prepare('INSERT INTO columns (name, position) VALUES (?, ?)')
-    .run(name, maxPosition + 1);
+    .prepare('INSERT INTO columns (kanban_id, name, position) VALUES (?, ?, ?)')
+    .run(req.kanbanId, name, maxPosition + 1);
 
   const column = db.prepare('SELECT * FROM columns WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(column);
@@ -27,7 +27,7 @@ function update(req, res) {
   const id = Number(req.params.id);
   const { name } = req.body || {};
 
-  const column = db.prepare('SELECT * FROM columns WHERE id = ?').get(id);
+  const column = db.prepare('SELECT * FROM columns WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!column) {
     return res.status(404).json({ error: 'Colonne introuvable' });
   }
@@ -43,7 +43,7 @@ function update(req, res) {
 function remove(req, res) {
   const id = Number(req.params.id);
 
-  const column = db.prepare('SELECT * FROM columns WHERE id = ?').get(id);
+  const column = db.prepare('SELECT * FROM columns WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!column) {
     return res.status(404).json({ error: 'Colonne introuvable' });
   }
@@ -65,13 +65,23 @@ function reorder(req, res) {
     return res.status(400).json({ error: 'orderedIds (tableau) requis' });
   }
 
+  const totalColumns = db.prepare('SELECT COUNT(*) AS count FROM columns WHERE kanban_id = ?').get(req.kanbanId).count;
+  const ownedCount = db
+    .prepare(
+      `SELECT COUNT(*) AS count FROM columns WHERE kanban_id = ? AND id IN (${orderedIds.map(() => '?').join(',')})`
+    )
+    .get(req.kanbanId, ...orderedIds).count;
+  if (orderedIds.length !== totalColumns || ownedCount !== orderedIds.length) {
+    return res.status(400).json({ error: 'orderedIds doit contenir exactement les colonnes de ce kanban' });
+  }
+
   const update = db.prepare('UPDATE columns SET position = ? WHERE id = ?');
   const reorderTx = db.transaction((ids) => {
     ids.forEach((columnId, index) => update.run(index, columnId));
   });
   reorderTx(orderedIds);
 
-  const columns = db.prepare('SELECT * FROM columns ORDER BY position').all();
+  const columns = db.prepare('SELECT * FROM columns WHERE kanban_id = ? ORDER BY position').all(req.kanbanId);
   res.json(columns);
 }
 

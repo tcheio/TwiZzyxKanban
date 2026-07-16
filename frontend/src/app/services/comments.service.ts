@@ -7,15 +7,15 @@ import { Comment } from '../models/comment.model';
 export class CommentsService {
   constructor(private readonly http: HttpClient) {}
 
-  list(cardId: number): Promise<Comment[]> {
-    return firstValueFrom(this.http.get<Comment[]>(`/api/cards/${cardId}/comments`));
+  list(kanbanId: number, cardId: number): Promise<Comment[]> {
+    return firstValueFrom(this.http.get<Comment[]>(`/api/kanbans/${kanbanId}/cards/${cardId}/comments`));
   }
 
-  create(cardId: number, body: string): Promise<Comment> {
-    return firstValueFrom(this.http.post<Comment>(`/api/cards/${cardId}/comments`, { body }));
+  create(kanbanId: number, cardId: number, body: string): Promise<Comment> {
+    return firstValueFrom(this.http.post<Comment>(`/api/kanbans/${kanbanId}/cards/${cardId}/comments`, { body }));
   }
 
-  remove(cardId: number, commentId: number): Promise<void> {
-    return firstValueFrom(this.http.delete<void>(`/api/cards/${cardId}/comments/${commentId}`));
+  remove(kanbanId: number, cardId: number, commentId: number): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`/api/kanbans/${kanbanId}/cards/${cardId}/comments/${commentId}`));
   }
 }

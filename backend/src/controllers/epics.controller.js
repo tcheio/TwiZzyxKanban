@@ -1,9 +1,8 @@
 const db = require('../db/connection');
-
-const ALLOWED_COLORS = ['red', 'orange', 'amber', 'emerald', 'sky', 'violet', 'rose', 'indigo', 'gray'];
+const { ALLOWED_COLORS } = require('../constants/colors');
 
 function list(req, res) {
-  const epics = db.prepare('SELECT * FROM epics ORDER BY name').all();
+  const epics = db.prepare('SELECT * FROM epics WHERE kanban_id = ? ORDER BY name').all(req.kanbanId);
   res.json(epics);
 }
 
@@ -17,8 +16,8 @@ function create(req, res) {
   }
 
   const result = db
-    .prepare('INSERT INTO epics (name, color) VALUES (?, ?)')
-    .run(name.trim(), color || 'gray');
+    .prepare('INSERT INTO epics (kanban_id, name, color) VALUES (?, ?, ?)')
+    .run(req.kanbanId, name.trim(), color || 'gray');
   const epic = db.prepare('SELECT * FROM epics WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(epic);
 }
@@ -27,7 +26,7 @@ function update(req, res) {
   const id = Number(req.params.id);
   const { name, color } = req.body || {};
 
-  const epic = db.prepare('SELECT * FROM epics WHERE id = ?').get(id);
+  const epic = db.prepare('SELECT * FROM epics WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!epic) {
     return res.status(404).json({ error: 'Epic introuvable' });
   }
@@ -50,7 +49,7 @@ function update(req, res) {
 function remove(req, res) {
   const id = Number(req.params.id);
 
-  const epic = db.prepare('SELECT * FROM epics WHERE id = ?').get(id);
+  const epic = db.prepare('SELECT * FROM epics WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!epic) {
     return res.status(404).json({ error: 'Epic introuvable' });
   }

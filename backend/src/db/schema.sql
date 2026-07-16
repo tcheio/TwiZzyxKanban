@@ -7,8 +7,26 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS kanbans (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  code TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS kanban_members (
+  kanban_id INTEGER NOT NULL REFERENCES kanbans(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  is_moderator INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (kanban_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_kanban_members_user ON kanban_members(user_id);
+
 CREATE TABLE IF NOT EXISTS columns (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kanban_id INTEGER REFERENCES kanbans(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   position INTEGER NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -16,12 +34,15 @@ CREATE TABLE IF NOT EXISTS columns (
 
 CREATE TABLE IF NOT EXISTS tags (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kanban_id INTEGER REFERENCES kanbans(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
+  color TEXT NOT NULL DEFAULT 'gray',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS epics (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kanban_id INTEGER REFERENCES kanbans(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   color TEXT NOT NULL DEFAULT 'gray',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -29,6 +50,7 @@ CREATE TABLE IF NOT EXISTS epics (
 
 CREATE TABLE IF NOT EXISTS cards (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kanban_id INTEGER REFERENCES kanbans(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
   tag_id INTEGER REFERENCES tags(id) ON DELETE SET NULL,

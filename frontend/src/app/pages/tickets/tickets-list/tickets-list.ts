@@ -1,5 +1,5 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ColumnsService } from '../../../services/columns.service';
 import { CardsService } from '../../../services/cards.service';
@@ -8,11 +8,11 @@ import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
 import { Card, CardInput } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
+import { Kanban } from '../../../models/kanban.model';
 import { UserLite } from '../../../models/user.model';
 import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
-import { AuthService } from '../../../core/auth.service';
 import { epicBadgeClass } from '../../../shared/epic-colors';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
@@ -38,8 +38,11 @@ export class TicketsList implements OnInit {
   private readonly tagsService = inject(TagsService);
   private readonly epicsService = inject(EpicsService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
-  protected readonly authService = inject(AuthService);
+  private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
+  protected readonly kanbanId = this.kanban.id;
+  protected readonly canManage = this.kanban.is_moderator;
 
   readonly columns = signal<Column[]>([]);
   readonly tickets = signal<Card[]>([]);
@@ -90,11 +93,11 @@ export class TicketsList implements OnInit {
     this.error.set(null);
     try {
       const [columns, cards, users, tags, epics] = await Promise.all([
-        this.columnsService.list(),
-        this.cardsService.list(),
-        this.usersService.lite(),
-        this.tagsService.list(),
-        this.epicsService.list(),
+        this.columnsService.list(this.kanbanId),
+        this.cardsService.list(this.kanbanId),
+        this.usersService.liteForKanban(this.kanbanId),
+        this.tagsService.list(this.kanbanId),
+        this.epicsService.list(this.kanbanId),
       ]);
       this.columns.set(columns);
       this.users.set(users);
@@ -153,7 +156,8 @@ export class TicketsList implements OnInit {
   }
 
   tagClass(tagId: number | null): string {
-    return tagBadgeClass(tagId, this.tagName(tagId));
+    if (!tagId) return '';
+    return tagBadgeClass(this.tags().find((t) => t.id === tagId)?.color);
   }
 
   epicClass(epicId: number | null): string {
@@ -167,7 +171,7 @@ export class TicketsList implements OnInit {
   }
 
   tagFilterOptions(): SearchSelectOption<number>[] {
-    return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.id, t.name) }));
+    return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.color) }));
   }
 
   epicFilterOptions(): SearchSelectOption<number>[] {
@@ -191,14 +195,14 @@ export class TicketsList implements OnInit {
   }
 
   openTicket(card: Card): void {
-    this.router.navigate(['/tickets', card.id]);
+    this.router.navigate(['/kanbans', `${this.kanban.code}-${card.id}`]);
   }
 
   async createTicket(input: CardInput): Promise<void> {
     try {
-      const created = await this.cardsService.create(input);
+      const created = await this.cardsService.create(this.kanbanId, input);
       this.dialogOpen.set(false);
-      this.router.navigate(['/tickets', created.id]);
+      this.router.navigate(['/kanbans', `${this.kanban.code}-${created.id}`]);
     } catch {
       this.error.set('Échec de la création du ticket.');
     }

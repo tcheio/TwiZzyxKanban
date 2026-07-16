@@ -15,8 +15,8 @@ describe('TagDetail', () => {
   let paramMap$: Subject<{ get: (key: string) => string | null }>;
 
   const tags = [
-    { id: 1, name: 'Minecraft' },
-    { id: 2, name: 'Pokémon' },
+    { id: 1, name: 'Minecraft', color: 'emerald' },
+    { id: 2, name: 'Pokémon', color: 'red' },
   ];
   const columns = [
     { id: 1, name: 'Idée', position: 0 },
@@ -74,11 +74,17 @@ describe('TagDetail', () => {
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
         { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
         { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
-        { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
+        { provide: UsersService, useValue: { liteForKanban: vi.fn().mockResolvedValue(users) } },
         { provide: Router, useValue: { navigate } },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: { get: () => id } }, paramMap: paramMap$.asObservable() },
+          useValue: {
+            snapshot: {
+              data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } },
+              paramMap: { get: () => id },
+            },
+            paramMap: paramMap$.asObservable(),
+          },
         },
       ],
     });
@@ -134,7 +140,7 @@ describe('TagDetail', () => {
 
     component.openTicket(cards[0]);
 
-    expect(navigate).toHaveBeenCalledWith(['/tickets', cards[0].id]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', `TK-TEST-${cards[0].id}`]);
   });
 
   it('ngOnInit() recharge le tag à chaque changement de paramètre de route (navigation directe entre tags)', async () => {

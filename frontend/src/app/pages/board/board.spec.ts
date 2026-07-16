@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Board } from './board';
@@ -24,7 +24,7 @@ describe('Board', () => {
     list: ReturnType<typeof vi.fn>;
     move: ReturnType<typeof vi.fn>;
   };
-  let usersService: { lite: ReturnType<typeof vi.fn> };
+  let usersService: { liteForKanban: ReturnType<typeof vi.fn> };
   let navigate: ReturnType<typeof vi.fn>;
 
   const columns: Column[] = [
@@ -73,7 +73,7 @@ describe('Board', () => {
     },
   ];
   const users = [{ id: 1, username: 'alice', avatar_url: 'data:image/jpeg;base64,abc' }];
-  const tags = [{ id: 1, name: 'Minecraft' }];
+  const tags = [{ id: 1, name: 'Minecraft', color: 'emerald' }];
 
   beforeEach(() => {
     columnsService = {
@@ -87,7 +87,7 @@ describe('Board', () => {
       list: vi.fn().mockResolvedValue([...baseCards]),
       move: vi.fn().mockResolvedValue({}),
     };
-    usersService = { lite: vi.fn().mockResolvedValue(users) };
+    usersService = { liteForKanban: vi.fn().mockResolvedValue(users) };
     navigate = vi.fn();
 
     TestBed.configureTestingModule({
@@ -99,6 +99,10 @@ describe('Board', () => {
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: Router, useValue: { navigate } },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } } } },
+        },
       ],
     });
     component = TestBed.createComponent(Board).componentInstance;
@@ -136,7 +140,7 @@ describe('Board', () => {
 
     component.openTicket(baseCards[0]);
 
-    expect(navigate).toHaveBeenCalledWith(['/tickets', baseCards[0].id]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', `TK-TEST-${baseCards[0].id}`]);
   });
 
   it('drop() réordonne dans la même colonne et appelle move() avec le bon index', async () => {
@@ -152,7 +156,7 @@ describe('Board', () => {
 
     await component.drop(event);
 
-    expect(cardsService.move).toHaveBeenCalledWith(10, 1, 1);
+    expect(cardsService.move).toHaveBeenCalledWith(1, 10, 1, 1);
   });
 
   it("drop() déplace vers une autre colonne et appelle move() avec le columnId cible", async () => {
@@ -167,7 +171,7 @@ describe('Board', () => {
 
     await component.drop(event);
 
-    expect(cardsService.move).toHaveBeenCalledWith(10, 2, 1);
+    expect(cardsService.move).toHaveBeenCalledWith(1, 10, 2, 1);
   });
 
   it('userInitial() retourne la première lettre du username ou "?"', async () => {
@@ -198,6 +202,29 @@ describe('Board', () => {
     expect(component.visibleCards(assignedGroup).map((c) => c.title)).toEqual(['C']);
   });
 
+  it('visibleCards() filtre par titre selon searchQuery, insensible à la casse', async () => {
+    await component.reload();
+    const group = component.groups()[0];
+
+    component.searchQuery.set('a');
+    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['A']);
+
+    component.searchQuery.set('');
+    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['A', 'B']);
+  });
+
+  it('visibleCards() combine le filtre destinataire et le filtre de recherche', async () => {
+    await component.reload();
+    const assignedGroup = component.groups()[1];
+
+    component.toggleAssigneeFilter(1);
+    component.searchQuery.set('c');
+    expect(component.visibleCards(assignedGroup).map((c) => c.title)).toEqual(['C']);
+
+    component.searchQuery.set('nomatch');
+    expect(component.visibleCards(assignedGroup)).toEqual([]);
+  });
+
   it('toggleAssigneeFilter() active puis désactive le filtre sur un second clic', () => {
     expect(component.selectedAssigneeId()).toBeNull();
 
@@ -221,10 +248,10 @@ describe('Board', () => {
     expect(component.priorityClass('high')).toBe('bg-red-600');
   });
 
-  it('tagClass() retourne une classe Tailwind stable pour un tag et vide sinon', () => {
+  it('tagClass() résout la classe Tailwind depuis la couleur du tag et vide sinon', async () => {
+    await component.reload();
     expect(component.tagClass(null)).toBe('');
-    expect(component.tagClass(1)).toBe(component.tagClass(1));
-    expect(component.tagClass(1)).not.toBe('');
+    expect(component.tagClass(1)).toBe('bg-emerald-50 text-emerald-700');
   });
 
   it('formatDate() convertit AAAA-MM-JJ en JJ-MM-AAAA', () => {

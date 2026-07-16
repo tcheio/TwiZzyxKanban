@@ -1,12 +1,12 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TagsService } from '../../../services/tags.service';
 import { CardsService } from '../../../services/cards.service';
-import { AuthService } from '../../../core/auth.service';
 import { Tag } from '../../../models/tag.model';
 import { Card } from '../../../models/card.model';
-import { tagBadgeClass } from '../../../shared/tag-colors';
+import { Kanban } from '../../../models/kanban.model';
+import { TAG_COLORS, tagBadgeClass, tagDotClass } from '../../../shared/tag-colors';
 
 @Component({
   selector: 'app-tags-list',
@@ -17,7 +17,13 @@ export class TagsList implements OnInit {
   private readonly tagsService = inject(TagsService);
   private readonly cardsService = inject(CardsService);
   private readonly router = inject(Router);
-  protected readonly authService = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
+  private readonly kanbanId = this.kanban.id;
+  protected readonly canManage = this.kanban.is_moderator;
+
+  readonly tagColors = TAG_COLORS;
+  readonly tagDotClass = tagDotClass;
 
   readonly tags = signal<Tag[]>([]);
   readonly cards = signal<Card[]>([]);
@@ -26,9 +32,11 @@ export class TagsList implements OnInit {
 
   readonly creating = signal(false);
   readonly newTagName = signal('');
+  readonly newTagColor = signal(TAG_COLORS[0]);
 
   readonly editingId = signal<number | null>(null);
   readonly editName = signal('');
+  readonly editColor = signal('');
 
   async ngOnInit(): Promise<void> {
     await this.reload();
@@ -38,7 +46,10 @@ export class TagsList implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [tags, cards] = await Promise.all([this.tagsService.list(), this.cardsService.list()]);
+      const [tags, cards] = await Promise.all([
+        this.tagsService.list(this.kanbanId),
+        this.cardsService.list(this.kanbanId),
+      ]);
       this.tags.set(tags);
       this.cards.set(cards);
     } catch {
@@ -53,19 +64,20 @@ export class TagsList implements OnInit {
   }
 
   tagClass(tag: Tag): string {
-    return tagBadgeClass(tag.id, tag.name);
+    return tagBadgeClass(tag.color);
   }
 
   openTag(tag: Tag): void {
-    this.router.navigate(['/tags', tag.id]);
+    this.router.navigate(['/kanbans', this.kanban.code, 'tags', tag.id]);
   }
 
   async createTag(): Promise<void> {
     const name = this.newTagName().trim();
     if (!name) return;
     try {
-      await this.tagsService.create(name);
+      await this.tagsService.create(this.kanbanId, name, this.newTagColor());
       this.newTagName.set('');
+      this.newTagColor.set(TAG_COLORS[0]);
       this.creating.set(false);
       await this.reload();
     } catch {
@@ -76,6 +88,7 @@ export class TagsList implements OnInit {
   startEdit(tag: Tag): void {
     this.editingId.set(tag.id);
     this.editName.set(tag.name);
+    this.editColor.set(tag.color);
   }
 
   cancelEdit(): void {
@@ -84,10 +97,11 @@ export class TagsList implements OnInit {
 
   async saveEdit(tag: Tag): Promise<void> {
     const trimmed = this.editName().trim();
+    const color = this.editColor();
     this.editingId.set(null);
-    if (!trimmed || trimmed === tag.name) return;
+    if (!trimmed || (trimmed === tag.name && color === tag.color)) return;
     try {
-      await this.tagsService.rename(tag.id, trimmed);
+      await this.tagsService.update(this.kanbanId, tag.id, { name: trimmed, color });
       await this.reload();
     } catch {
       this.error.set('Échec du renommage du tag.');
@@ -97,7 +111,7 @@ export class TagsList implements OnInit {
   async deleteTag(tag: Tag): Promise<void> {
     if (!confirm(`Supprimer le tag "${tag.name}" ?`)) return;
     try {
-      await this.tagsService.remove(tag.id);
+      await this.tagsService.remove(this.kanbanId, tag.id);
       await this.reload();
     } catch {
       this.error.set('Échec de la suppression du tag.');

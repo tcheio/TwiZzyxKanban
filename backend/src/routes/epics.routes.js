@@ -1,12 +1,12 @@
 const express = require('express');
-const requireAdmin = require('../middleware/requireAdmin');
+const requireKanbanModerator = require('../middleware/requireKanbanModerator');
 const { list, create, update, remove } = require('../controllers/epics.controller');
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 router.get('/', list);
-router.post('/', requireAdmin, create);
-router.patch('/:id', requireAdmin, update);
-router.delete('/:id', requireAdmin, remove);
+router.post('/', requireKanbanModerator, create);
+router.patch('/:id', requireKanbanModerator, update);
+router.delete('/:id', requireKanbanModerator, remove);
 
 module.exports = router;

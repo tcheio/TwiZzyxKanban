@@ -1,10 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TagsList } from './tags-list';
 import { TagsService } from '../../../services/tags.service';
 import { CardsService } from '../../../services/cards.service';
-import { AuthService } from '../../../core/auth.service';
 import { Card } from '../../../models/card.model';
 
 describe('TagsList', () => {
@@ -13,15 +12,14 @@ describe('TagsList', () => {
   let tagsService: {
     list: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
-    rename: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
   };
   let navigate: ReturnType<typeof vi.fn>;
-  let isAdmin: ReturnType<typeof vi.fn>;
 
   const tags = [
-    { id: 1, name: 'Minecraft' },
-    { id: 2, name: 'Pokémon' },
+    { id: 1, name: 'Minecraft', color: 'emerald' },
+    { id: 2, name: 'Pokémon', color: 'red' },
   ];
   const cards: Card[] = [
     {
@@ -65,28 +63,35 @@ describe('TagsList', () => {
     },
   ];
 
-  beforeEach(() => {
+  function configure(isModerator: boolean): void {
     navigate = vi.fn();
-    isAdmin = vi.fn().mockReturnValue(true);
     tagsService = {
       list: vi.fn().mockResolvedValue(tags),
       create: vi.fn().mockResolvedValue({}),
-      rename: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
       remove: vi.fn().mockResolvedValue(undefined),
     };
 
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [TagsList],
       providers: [
         { provide: TagsService, useValue: tagsService },
         { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
-        { provide: AuthService, useValue: { isAdmin } },
         { provide: Router, useValue: { navigate } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST', is_moderator: isModerator } } },
+          },
+        },
       ],
     });
     fixture = TestBed.createComponent(TagsList);
     component = fixture.componentInstance;
-  });
+  }
+
+  beforeEach(() => configure(true));
 
   it('reload() charge les tags et les cartes', async () => {
     await component.reload();
@@ -103,10 +108,10 @@ describe('TagsList', () => {
   it('openTag() navigue vers la page de détail du tag', async () => {
     await component.reload();
     component.openTag(tags[0]);
-    expect(navigate).toHaveBeenCalledWith(['/tags', 1]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST', 'tags', 1]);
   });
 
-  it('affiche le bouton "+ Nouveau tag" pour un admin', async () => {
+  it('affiche le bouton "+ Nouveau tag" pour un modérateur', async () => {
     await component.reload();
     fixture.detectChanges();
 
@@ -114,8 +119,8 @@ describe('TagsList', () => {
     expect(button).toBeTruthy();
   });
 
-  it('masque les contrôles de gestion pour un non-admin', async () => {
-    isAdmin.mockReturnValue(false);
+  it('masque les contrôles de gestion pour un non-modérateur', async () => {
+    configure(false);
     await component.reload();
     fixture.detectChanges();
 
@@ -126,11 +131,12 @@ describe('TagsList', () => {
 
   it('createTag() crée un tag et réinitialise le formulaire', async () => {
     component.newTagName.set('One Piece');
+    component.newTagColor.set('sky');
     component.creating.set(true);
 
     await component.createTag();
 
-    expect(tagsService.create).toHaveBeenCalledWith('One Piece');
+    expect(tagsService.create).toHaveBeenCalledWith(1, 'One Piece', 'sky');
     expect(component.newTagName()).toBe('');
     expect(component.creating()).toBe(false);
   });
@@ -147,27 +153,29 @@ describe('TagsList', () => {
     component.startEdit(tags[0]);
     expect(component.editingId()).toBe(1);
     expect(component.editName()).toBe('Minecraft');
+    expect(component.editColor()).toBe('emerald');
 
     component.cancelEdit();
     expect(component.editingId()).toBeNull();
   });
 
-  it('saveEdit() ne fait rien si le nom est inchangé', async () => {
+  it('saveEdit() ne fait rien si rien n\'a changé', async () => {
     component.startEdit(tags[0]);
     component.editName.set('Minecraft');
+    component.editColor.set('emerald');
 
     await component.saveEdit(tags[0]);
 
-    expect(tagsService.rename).not.toHaveBeenCalled();
+    expect(tagsService.update).not.toHaveBeenCalled();
   });
 
-  it('saveEdit() appelle le service si le nom change', async () => {
+  it('saveEdit() appelle le service si le nom ou la couleur change', async () => {
     component.startEdit(tags[0]);
     component.editName.set('Minecraft Vanilla');
 
     await component.saveEdit(tags[0]);
 
-    expect(tagsService.rename).toHaveBeenCalledWith(1, 'Minecraft Vanilla');
+    expect(tagsService.update).toHaveBeenCalledWith(1, 1, { name: 'Minecraft Vanilla', color: 'emerald' });
   });
 
   it('deleteTag() supprime après confirmation', async () => {
@@ -175,7 +183,7 @@ describe('TagsList', () => {
 
     await component.deleteTag(tags[0]);
 
-    expect(tagsService.remove).toHaveBeenCalledWith(1);
+    expect(tagsService.remove).toHaveBeenCalledWith(1, 1);
   });
 
   it("deleteTag() n'appelle pas remove() si l'utilisateur annule", async () => {

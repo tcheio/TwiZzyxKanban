@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TicketsList } from './tickets-list';
 import { ColumnsService } from '../../../services/columns.service';
@@ -7,7 +7,6 @@ import { CardsService } from '../../../services/cards.service';
 import { UsersService } from '../../../services/users.service';
 import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
-import { AuthService } from '../../../core/auth.service';
 import { Card } from '../../../models/card.model';
 
 describe('TicketsList', () => {
@@ -16,7 +15,6 @@ describe('TicketsList', () => {
   let cardsService: { list: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
   let tagsService: { list: ReturnType<typeof vi.fn> };
   let navigate: ReturnType<typeof vi.fn>;
-  let isAdmin: ReturnType<typeof vi.fn>;
 
   const columns = [
     { id: 1, name: 'Idée', position: 0 },
@@ -28,8 +26,8 @@ describe('TicketsList', () => {
     { id: 2, username: 'bob' },
   ];
   const tags = [
-    { id: 1, name: 'Minecraft' },
-    { id: 2, name: 'Pokémon' },
+    { id: 1, name: 'Minecraft', color: 'emerald' },
+    { id: 2, name: 'Pokémon', color: 'red' },
   ];
   const cards: Card[] = [
     {
@@ -73,9 +71,8 @@ describe('TicketsList', () => {
     },
   ];
 
-  beforeEach(() => {
+  function configure(isModerator: boolean): void {
     navigate = vi.fn();
-    isAdmin = vi.fn().mockReturnValue(true);
     cardsService = {
       list: vi.fn().mockResolvedValue(cards),
       create: vi.fn().mockResolvedValue({ id: 99 }),
@@ -84,23 +81,31 @@ describe('TicketsList', () => {
       list: vi.fn().mockResolvedValue(tags),
     };
 
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [TicketsList],
       providers: [
         { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
         { provide: CardsService, useValue: cardsService },
-        { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
+        { provide: UsersService, useValue: { liteForKanban: vi.fn().mockResolvedValue(users) } },
         { provide: TagsService, useValue: tagsService },
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
-        { provide: AuthService, useValue: { isAdmin } },
         { provide: Router, useValue: { navigate } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST', is_moderator: isModerator } } },
+          },
+        },
       ],
     });
     fixture = TestBed.createComponent(TicketsList);
     component = fixture.componentInstance;
-  });
+  }
 
-  it('affiche le bouton "+ Nouveau ticket" pour un admin', async () => {
+  beforeEach(() => configure(true));
+
+  it('affiche le bouton "+ Nouveau ticket" pour un modérateur', async () => {
     await component.reload();
     fixture.detectChanges();
 
@@ -108,8 +113,8 @@ describe('TicketsList', () => {
     expect(button).toBeTruthy();
   });
 
-  it('masque le bouton "+ Nouveau ticket" pour un non-admin', async () => {
-    isAdmin.mockReturnValue(false);
+  it('masque le bouton "+ Nouveau ticket" pour un non-modérateur', async () => {
+    configure(false);
     await component.reload();
     fixture.detectChanges();
 
@@ -138,7 +143,7 @@ describe('TicketsList', () => {
 
     component.openTicket(cards[0]);
 
-    expect(navigate).toHaveBeenCalledWith(['/tickets', cards[0].id]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', `TK-TEST-${cards[0].id}`]);
   });
 
   it('createTicket() crée le ticket puis navigue vers sa page dédiée', async () => {
@@ -157,7 +162,7 @@ describe('TicketsList', () => {
 
     expect(cardsService.create).toHaveBeenCalled();
     expect(component.dialogOpen()).toBe(false);
-    expect(navigate).toHaveBeenCalledWith(['/tickets', 99]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST-99']);
   });
 
   it('filteredTickets() sans filtre retourne tous les tickets', async () => {

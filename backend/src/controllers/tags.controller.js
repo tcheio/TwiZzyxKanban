@@ -1,34 +1,47 @@
 const db = require('../db/connection');
+const { ALLOWED_COLORS } = require('../constants/colors');
 
 function list(req, res) {
-  const tags = db.prepare('SELECT * FROM tags ORDER BY name').all();
+  const tags = db.prepare('SELECT * FROM tags WHERE kanban_id = ? ORDER BY name').all(req.kanbanId);
   res.json(tags);
 }
 
 function create(req, res) {
-  const { name } = req.body || {};
+  const { name, color } = req.body || {};
   if (!name?.trim()) {
     return res.status(400).json({ error: 'name requis' });
   }
+  if (color && !ALLOWED_COLORS.includes(color)) {
+    return res.status(400).json({ error: `color doit être l'une de: ${ALLOWED_COLORS.join(', ')}` });
+  }
 
-  const result = db.prepare('INSERT INTO tags (name) VALUES (?)').run(name.trim());
+  const result = db
+    .prepare('INSERT INTO tags (kanban_id, name, color) VALUES (?, ?, ?)')
+    .run(req.kanbanId, name.trim(), color || 'gray');
   const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(tag);
 }
 
 function update(req, res) {
   const id = Number(req.params.id);
-  const { name } = req.body || {};
+  const { name, color } = req.body || {};
 
-  const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(id);
+  const tag = db.prepare('SELECT * FROM tags WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!tag) {
     return res.status(404).json({ error: 'Tag introuvable' });
   }
-  if (!name?.trim()) {
+  if (name !== undefined && !name.trim()) {
     return res.status(400).json({ error: 'name requis' });
   }
+  if (color && !ALLOWED_COLORS.includes(color)) {
+    return res.status(400).json({ error: `color doit être l'une de: ${ALLOWED_COLORS.join(', ')}` });
+  }
 
-  db.prepare('UPDATE tags SET name = ? WHERE id = ?').run(name.trim(), id);
+  db.prepare('UPDATE tags SET name = ?, color = ? WHERE id = ?').run(
+    name ? name.trim() : tag.name,
+    color || tag.color,
+    id
+  );
   const updated = db.prepare('SELECT * FROM tags WHERE id = ?').get(id);
   res.json(updated);
 }
@@ -36,7 +49,7 @@ function update(req, res) {
 function remove(req, res) {
   const id = Number(req.params.id);
 
-  const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(id);
+  const tag = db.prepare('SELECT * FROM tags WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!tag) {
     return res.status(404).json({ error: 'Tag introuvable' });
   }

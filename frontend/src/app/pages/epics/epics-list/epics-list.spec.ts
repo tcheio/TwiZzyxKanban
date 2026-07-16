@@ -1,10 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EpicsList } from './epics-list';
 import { EpicsService } from '../../../services/epics.service';
 import { CardsService } from '../../../services/cards.service';
-import { AuthService } from '../../../core/auth.service';
 import { Card } from '../../../models/card.model';
 
 describe('EpicsList', () => {
@@ -17,7 +16,6 @@ describe('EpicsList', () => {
     remove: ReturnType<typeof vi.fn>;
   };
   let navigate: ReturnType<typeof vi.fn>;
-  let isAdmin: ReturnType<typeof vi.fn>;
 
   const epics = [
     { id: 1, name: 'TwiZzyx', color: 'red' },
@@ -65,9 +63,8 @@ describe('EpicsList', () => {
     },
   ];
 
-  beforeEach(() => {
+  function configure(isModerator: boolean): void {
     navigate = vi.fn();
-    isAdmin = vi.fn().mockReturnValue(true);
     epicsService = {
       list: vi.fn().mockResolvedValue(epics),
       create: vi.fn().mockResolvedValue({}),
@@ -75,18 +72,26 @@ describe('EpicsList', () => {
       remove: vi.fn().mockResolvedValue(undefined),
     };
 
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [EpicsList],
       providers: [
         { provide: EpicsService, useValue: epicsService },
         { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
-        { provide: AuthService, useValue: { isAdmin } },
         { provide: Router, useValue: { navigate } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST', is_moderator: isModerator } } },
+          },
+        },
       ],
     });
     fixture = TestBed.createComponent(EpicsList);
     component = fixture.componentInstance;
-  });
+  }
+
+  beforeEach(() => configure(true));
 
   it('reload() charge les epics et les cartes', async () => {
     await component.reload();
@@ -103,10 +108,10 @@ describe('EpicsList', () => {
   it("openEpic() navigue vers la page de détail de l'EPIC", async () => {
     await component.reload();
     component.openEpic(epics[0]);
-    expect(navigate).toHaveBeenCalledWith(['/epics', 1]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST', 'epics', 1]);
   });
 
-  it('affiche le bouton "+ Nouvelle EPIC" pour un admin', async () => {
+  it('affiche le bouton "+ Nouvelle EPIC" pour un modérateur', async () => {
     await component.reload();
     fixture.detectChanges();
 
@@ -114,8 +119,8 @@ describe('EpicsList', () => {
     expect(button).toBeTruthy();
   });
 
-  it('masque les contrôles de gestion pour un non-admin', async () => {
-    isAdmin.mockReturnValue(false);
+  it('masque les contrôles de gestion pour un non-modérateur', async () => {
+    configure(false);
     await component.reload();
     fixture.detectChanges();
 
@@ -131,7 +136,7 @@ describe('EpicsList', () => {
 
     await component.createEpic();
 
-    expect(epicsService.create).toHaveBeenCalledWith('AutreChaine', 'sky');
+    expect(epicsService.create).toHaveBeenCalledWith(1, 'AutreChaine', 'sky');
     expect(component.newEpicName()).toBe('');
     expect(component.creating()).toBe(false);
   });
@@ -171,7 +176,7 @@ describe('EpicsList', () => {
 
     await component.saveEdit(epics[0]);
 
-    expect(epicsService.update).toHaveBeenCalledWith(1, { name: 'TwiZzyx', color: 'emerald' });
+    expect(epicsService.update).toHaveBeenCalledWith(1, 1, { name: 'TwiZzyx', color: 'emerald' });
   });
 
   it('deleteEpic() supprime après confirmation', async () => {
@@ -179,7 +184,7 @@ describe('EpicsList', () => {
 
     await component.deleteEpic(epics[0]);
 
-    expect(epicsService.remove).toHaveBeenCalledWith(1);
+    expect(epicsService.remove).toHaveBeenCalledWith(1, 1);
   });
 
   it("deleteEpic() n'appelle pas remove() si l'utilisateur annule", async () => {

@@ -74,11 +74,17 @@ describe('EpicDetail', () => {
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue(epics) } },
         { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
         { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
-        { provide: UsersService, useValue: { lite: vi.fn().mockResolvedValue(users) } },
+        { provide: UsersService, useValue: { liteForKanban: vi.fn().mockResolvedValue(users) } },
         { provide: Router, useValue: { navigate } },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: { get: () => id } }, paramMap: paramMap$.asObservable() },
+          useValue: {
+            snapshot: {
+              data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } },
+              paramMap: { get: () => id },
+            },
+            paramMap: paramMap$.asObservable(),
+          },
         },
       ],
     });
@@ -134,7 +140,7 @@ describe('EpicDetail', () => {
 
     component.openTicket(cards[0]);
 
-    expect(navigate).toHaveBeenCalledWith(['/tickets', cards[0].id]);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', `TK-TEST-${cards[0].id}`]);
   });
 
   it("ngOnInit() recharge l'EPIC à chaque changement de paramètre de route (navigation directe entre EPICs)", async () => {

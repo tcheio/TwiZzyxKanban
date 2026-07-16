@@ -4,7 +4,7 @@ const VALID_TYPES = ['before', 'after'];
 
 function list(req, res) {
   const cardId = Number(req.params.id);
-  const card = db.prepare('SELECT id FROM cards WHERE id = ?').get(cardId);
+  const card = db.prepare('SELECT id FROM cards WHERE id = ? AND kanban_id = ?').get(cardId, req.kanbanId);
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
@@ -24,7 +24,7 @@ function create(req, res) {
   const cardId = Number(req.params.id);
   const { linked_card_id, type } = req.body || {};
 
-  const card = db.prepare('SELECT id FROM cards WHERE id = ?').get(cardId);
+  const card = db.prepare('SELECT id FROM cards WHERE id = ? AND kanban_id = ?').get(cardId, req.kanbanId);
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
@@ -38,7 +38,7 @@ function create(req, res) {
     return res.status(400).json({ error: 'Un ticket ne peut pas être lié à lui-même' });
   }
 
-  const linkedCard = db.prepare('SELECT id FROM cards WHERE id = ?').get(linked_card_id);
+  const linkedCard = db.prepare('SELECT id FROM cards WHERE id = ? AND kanban_id = ?').get(linked_card_id, req.kanbanId);
   if (!linkedCard) {
     return res.status(400).json({ error: 'linked_card_id invalide' });
   }

@@ -7,19 +7,19 @@ import { Tag } from '../models/tag.model';
 export class TagsService {
   constructor(private readonly http: HttpClient) {}
 
-  list(): Promise<Tag[]> {
-    return firstValueFrom(this.http.get<Tag[]>('/api/tags'));
+  list(kanbanId: number): Promise<Tag[]> {
+    return firstValueFrom(this.http.get<Tag[]>(`/api/kanbans/${kanbanId}/tags`));
   }
 
-  create(name: string): Promise<Tag> {
-    return firstValueFrom(this.http.post<Tag>('/api/tags', { name }));
+  create(kanbanId: number, name: string, color: string): Promise<Tag> {
+    return firstValueFrom(this.http.post<Tag>(`/api/kanbans/${kanbanId}/tags`, { name, color }));
   }
 
-  rename(id: number, name: string): Promise<Tag> {
-    return firstValueFrom(this.http.patch<Tag>(`/api/tags/${id}`, { name }));
+  update(kanbanId: number, id: number, changes: { name?: string; color?: string }): Promise<Tag> {
+    return firstValueFrom(this.http.patch<Tag>(`/api/kanbans/${kanbanId}/tags/${id}`, changes));
   }
 
-  remove(id: number): Promise<void> {
-    return firstValueFrom(this.http.delete<void>(`/api/tags/${id}`));
+  remove(kanbanId: number, id: number): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`/api/kanbans/${kanbanId}/tags/${id}`));
   }
 }

@@ -8,7 +8,7 @@
 
   @if (ticket(); as t) {
     <nav class="mb-3 flex flex-wrap items-center gap-1.5 text-sm text-gray-500">
-      <a routerLink="/tickets" class="hover:text-gray-700 hover:underline">Tickets</a>
+      <a [routerLink]="['/kanbans', kanbanCode, 'tickets']" class="hover:text-gray-700 hover:underline">Tickets</a>
       @if (epicName(t.epic_id); as epic) {
         <span class="text-gray-300">/</span>
         <span
@@ -61,7 +61,7 @@
             <div class="flex flex-col divide-y divide-gray-100">
               @if (clonedFrom(); as source) {
                 <a
-                  [routerLink]="['/tickets', source.id]"
+                  [routerLink]="['/kanbans', kanbanCode + '-' + source.id]"
                   class="flex items-center gap-2 py-2 text-sm hover:bg-gray-50"
                 >
                   <svg viewBox="0 0 20 20" class="h-4 w-4 shrink-0 fill-gray-400">
@@ -80,7 +80,7 @@
               }
               @for (clone of clones(); track clone.id) {
                 <a
-                  [routerLink]="['/tickets', clone.id]"
+                  [routerLink]="['/kanbans', kanbanCode + '-' + clone.id]"
                   class="flex items-center gap-2 py-2 text-sm hover:bg-gray-50"
                 >
                   <svg viewBox="0 0 20 20" class="h-4 w-4 shrink-0 fill-gray-400">
@@ -112,7 +112,7 @@
                   @for (entry of linkedBefore(); track entry.linkId) {
                     <div class="flex items-center gap-2 py-2 text-sm">
                       <a
-                        [routerLink]="['/tickets', entry.card.id]"
+                        [routerLink]="['/kanbans', kanbanCode + '-' + entry.card.id]"
                         class="flex min-w-0 flex-1 items-center gap-2 hover:bg-gray-50"
                       >
                         <svg viewBox="0 0 20 20" class="h-4 w-4 shrink-0 fill-indigo-400">
@@ -146,7 +146,7 @@
                   @for (entry of linkedAfter(); track entry.linkId) {
                     <div class="flex items-center gap-2 py-2 text-sm">
                       <a
-                        [routerLink]="['/tickets', entry.card.id]"
+                        [routerLink]="['/kanbans', kanbanCode + '-' + entry.card.id]"
                         class="flex min-w-0 flex-1 items-center gap-2 hover:bg-gray-50"
                       >
                         <svg viewBox="0 0 20 20" class="h-4 w-4 shrink-0 fill-indigo-400">
@@ -346,7 +346,7 @@
             searchPlaceholder="Rechercher un statut..."
             (valueChange)="updateStatus($event)"
           />
-          @if (authService.isAdmin()) {
+          @if (kanban.is_moderator) {
             <div class="flex flex-wrap gap-2">
               <button
                 type="button"
