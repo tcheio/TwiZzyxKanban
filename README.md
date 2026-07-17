@@ -63,14 +63,41 @@ Au premier démarrage, le backend crée automatiquement :
 - Cartes avec titre, chaîne YTB, personne assignée, priorité
 - Glisser-déposer des cartes entre colonnes (Angular CDK)
 
-## Build de production
+## Déploiement mono-processus (production / Minestrator)
+
+En développement, backend et frontend tournent séparément (voir plus haut). En production, un seul
+processus Node suffit : le backend sert l'API **et** le build Angular en statique
+(`backend/src/app.js` détecte `frontend/dist/frontend` et retombe sur `index.html` pour toute route
+non-API, afin que le routing Angular fonctionne après un rafraîchissement navigateur).
+
+Le point d'entrée est le `server.js` à la racine du dépôt : il lance `backend/src/server.js` en
+sous-processus, en normalisant le port d'écoute (`PORT`, sinon `SERVER_PORT`, sinon
+`MINESTRATOR_PORT`, sinon `3000`) — utile car certains panels d'hébergement (type Minestrator)
+injectent `SERVER_PORT` plutôt que `PORT`.
+
+### Tester le mode mono-processus en local
 
 ```bash
-cd frontend
-npm run build
+npm install   # à la racine : installe backend + frontend, puis build le frontend (postinstall)
+npm start     # lance server.js -> backend + frontend servis sur un seul port (3000 par défaut)
 ```
 
-Le résultat est généré dans `frontend/dist/frontend`. Le backend peut ensuite servir ce dossier en statique pour un déploiement mono-processus sur un VPS (étape à mettre en place lors du déploiement).
+Ouvre http://localhost:3000 (tout est servi par ce seul port, API comprise).
+
+Après toute modification du code (backend ou frontend), relance `npm run build` (à la racine) pour
+regénérer `frontend/dist/frontend` avant de relancer `npm start`.
+
+### Déployer sur Minestrator
+
+1. Pousser le dépôt sur le panel (ou le connecter via Git).
+2. Configurer les variables d'environnement du backend (`JWT_SECRET`, `DEFAULT_ADMIN_USERNAME`,
+   `DEFAULT_ADMIN_PASSWORD`, etc. — voir `backend/.env.example`) directement dans les variables
+   d'environnement du panel, ou via un fichier `backend/.env`.
+3. Commande d'installation : `npm install` (à la racine — déclenche le build complet via
+   `postinstall`).
+4. Commande de démarrage : `npm start` (ou `node server.js`).
+5. Le panel route son port externe vers la variable `SERVER_PORT` (ou `PORT`) : `server.js` la
+   détecte automatiquement et la transmet au backend.
 
 ## Structure du projet
 
