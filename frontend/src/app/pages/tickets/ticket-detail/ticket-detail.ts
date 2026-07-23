@@ -23,6 +23,7 @@ import { Epic } from '../../../models/epic.model';
 import { epicBadgeClass, epicDotClass } from '../../../shared/epic-colors';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { stripCardImageSrc, hydrateCardImages } from '../../../shared/card-image-html';
+import { RICH_TEXT_COLORS, applyRichTextCommand, RichTextCommand } from '../../../shared/rich-text';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
 import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from '../../../shared/ticket-status';
@@ -60,7 +61,10 @@ export class TicketDetail implements OnInit {
   protected readonly authService = inject(AuthService);
 
   @ViewChild('commentEditor') private commentEditorRef?: ElementRef<HTMLDivElement>;
+  @ViewChild('descriptionEditor') private descriptionEditorRef?: ElementRef<HTMLDivElement>;
   @ViewChild('galleryFileInput') private galleryFileInputRef?: ElementRef<HTMLInputElement>;
+
+  readonly richTextColors = RICH_TEXT_COLORS;
 
   readonly ticket = signal<Card | null>(null);
   readonly columns = signal<Column[]>([]);
@@ -391,6 +395,13 @@ export class TicketDetail implements OnInit {
     this.patch({ description: stripCardImageSrc(this.descriptionDraftHtml()) || null });
   }
 
+  formatDescription(command: RichTextCommand): void {
+    const editor = this.descriptionEditorRef?.nativeElement;
+    if (!editor) return;
+    applyRichTextCommand(editor, command);
+    this.descriptionDraftHtml.set(editor.innerHTML);
+  }
+
   hasCommentContent(): boolean {
     const html = this.newCommentDraftHtml();
     if (/<img[\s>]/i.test(html)) return true;
@@ -401,6 +412,13 @@ export class TicketDetail implements OnInit {
 
   onCommentInput(event: Event): void {
     this.newCommentDraftHtml.set((event.target as HTMLElement).innerHTML);
+  }
+
+  formatComment(command: RichTextCommand): void {
+    const editor = this.commentEditorRef?.nativeElement;
+    if (!editor) return;
+    applyRichTextCommand(editor, command);
+    this.newCommentDraftHtml.set(editor.innerHTML);
   }
 
   async onCommentPaste(event: ClipboardEvent): Promise<void> {
