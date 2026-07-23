@@ -1,4 +1,5 @@
 const db = require('../db/connection');
+const { sanitizeRichText } = require('../utils/rich-text');
 
 const VALID_PRIORITIES = ['low', 'medium', 'high'];
 const PUBLISHED_COLUMN_NAME = '✅Publié';
@@ -76,7 +77,7 @@ function create(req, res) {
     .run(
       req.kanbanId,
       title,
-      description || null,
+      description ? sanitizeRichText(description) : null,
       assigned_user_id || null,
       priority || 'medium',
       column_id,
@@ -121,7 +122,7 @@ function update(req, res) {
      WHERE id = ?`
   ).run(
     title ?? card.title,
-    description !== undefined ? description : card.description,
+    description !== undefined ? (description ? sanitizeRichText(description) : description) : card.description,
     assigned_user_id !== undefined ? assigned_user_id : card.assigned_user_id,
     priority || card.priority,
     tag_id !== undefined ? tag_id : card.tag_id,
