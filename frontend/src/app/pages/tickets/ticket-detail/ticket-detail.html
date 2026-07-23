@@ -39,7 +39,52 @@
 
         <section class="mt-4 rounded-lg border border-gray-200 bg-white p-4">
           <h2 class="mb-2 text-sm font-semibold text-gray-700">Description</h2>
+          <div class="mb-1 flex flex-wrap items-center gap-1">
+            <button
+              type="button"
+              class="rounded border border-gray-200 px-2 py-1 text-xs font-bold text-gray-600 hover:bg-gray-50"
+              title="Gras"
+              (click)="formatDescription('bold')"
+            >
+              G
+            </button>
+            <button
+              type="button"
+              class="rounded border border-gray-200 px-2 py-1 text-xs italic text-gray-600 hover:bg-gray-50"
+              title="Italique"
+              (click)="formatDescription('italic')"
+            >
+              I
+            </button>
+            <button
+              type="button"
+              class="rounded border border-gray-200 px-2 py-1 text-xs line-through text-gray-600 hover:bg-gray-50"
+              title="Barré"
+              (click)="formatDescription('strike')"
+            >
+              B
+            </button>
+            <button
+              type="button"
+              class="rounded border border-gray-200 px-2 py-1 text-xs font-mono text-gray-600 hover:bg-gray-50"
+              title="Code"
+              (click)="formatDescription('code')"
+            >
+              &lt;/&gt;
+            </button>
+            <span class="mx-1 h-4 w-px bg-gray-200"></span>
+            @for (color of richTextColors; track color.className) {
+              <button
+                type="button"
+                class="h-5 w-5 rounded-full border border-gray-200"
+                [class]="color.swatchClass"
+                [title]="color.label"
+                (click)="formatDescription(color.className)"
+              ></button>
+            }
+          </div>
           <div
+            #descriptionEditor
             contenteditable="true"
             class="min-h-[8rem] w-full rounded-md border border-gray-200 p-2 text-sm whitespace-pre-wrap text-gray-800 focus:border-blue-400 focus:outline-none"
             [innerHTML]="descriptionHtml()"
@@ -289,6 +334,50 @@
           }
 
           <div class="mt-3 flex flex-col gap-2">
+            <div class="flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs font-bold text-gray-600 hover:bg-gray-50"
+                title="Gras"
+                (click)="formatComment('bold')"
+              >
+                G
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs italic text-gray-600 hover:bg-gray-50"
+                title="Italique"
+                (click)="formatComment('italic')"
+              >
+                I
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs line-through text-gray-600 hover:bg-gray-50"
+                title="Barré"
+                (click)="formatComment('strike')"
+              >
+                B
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs font-mono text-gray-600 hover:bg-gray-50"
+                title="Code"
+                (click)="formatComment('code')"
+              >
+                &lt;/&gt;
+              </button>
+              <span class="mx-1 h-4 w-px bg-gray-200"></span>
+              @for (color of richTextColors; track color.className) {
+                <button
+                  type="button"
+                  class="h-5 w-5 rounded-full border border-gray-200"
+                  [class]="color.swatchClass"
+                  [title]="color.label"
+                  (click)="formatComment(color.className)"
+                ></button>
+              }
+            </div>
             <div class="relative">
               @if (!hasCommentContent()) {
                 <span class="pointer-events-none absolute top-2 left-2 text-sm text-gray-400">

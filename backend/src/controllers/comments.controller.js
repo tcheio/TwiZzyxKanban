@@ -1,4 +1,5 @@
 const db = require('../db/connection');
+const { sanitizeRichText } = require('../utils/rich-text');
 
 function list(req, res) {
   const cardId = Number(req.params.id);
@@ -34,7 +35,7 @@ function create(req, res) {
 
   const result = db
     .prepare('INSERT INTO comments (card_id, user_id, body) VALUES (?, ?, ?)')
-    .run(cardId, req.user.id, body.trim());
+    .run(cardId, req.user.id, sanitizeRichText(body.trim()));
 
   const comment = db
     .prepare(
