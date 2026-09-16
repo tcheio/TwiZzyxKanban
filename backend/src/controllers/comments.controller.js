@@ -11,7 +11,7 @@ function list(req, res) {
   const comments = db
     .prepare(
       `SELECT comments.id, comments.card_id, comments.user_id, comments.body, comments.created_at,
-              users.username AS username
+              users.username AS username, users.avatar_url AS avatar_url
        FROM comments
        LEFT JOIN users ON users.id = comments.user_id
        WHERE comments.card_id = ?
@@ -40,7 +40,7 @@ function create(req, res) {
   const comment = db
     .prepare(
       `SELECT comments.id, comments.card_id, comments.user_id, comments.body, comments.created_at,
-              users.username AS username
+              users.username AS username, users.avatar_url AS avatar_url
        FROM comments
        LEFT JOIN users ON users.id = comments.user_id
        WHERE comments.id = ?`
