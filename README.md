@@ -1,7 +1,10 @@
 # TwiZzyxKanban
 
-Kanban pour le suivi de projets YouTube : un tableau global avec colonnes personnalisables, cartes (titre, chaîne YTB, assigné, priorité), comptes utilisateurs avec rôles Admin / Utilisateur.
+Kanban pour le suivi de projets YouTube, multi-tableaux : chaque kanban a ses propres colonnes,
+tags, EPICs et membres, avec comptes utilisateurs à rôles globaux (Admin / Utilisateur) et un rôle
+de modérateur par kanban.
 
+Assisté de l'IA
 ## Stack
 
 - **Frontend** : Angular 21 (standalone components), Angular CDK (drag & drop)
@@ -58,10 +61,24 @@ Au premier démarrage, le backend crée automatiquement :
 ## Fonctionnalités
 
 - Connexion par identifiants (JWT)
-- Deux rôles : **Admin** (gère les comptes utilisateurs) et **Utilisateur** (utilise le tableau)
+- **Multi-kanban** : plusieurs tableaux indépendants, chacun avec ses membres et un rôle
+  modérateur dédié (en plus des rôles globaux Admin / Utilisateur)
 - Tableau Kanban avec colonnes personnalisables (ajout, renommage, suppression, réordonnancement)
-- Cartes avec titre, chaîne YTB, personne assignée, priorité
-- Glisser-déposer des cartes entre colonnes (Angular CDK)
+  et glisser-déposer des cartes (Angular CDK), avec tri combinable (nom, priorité, échéance, tag, EPIC)
+- Tickets avec titre, description (éditeur riche : gras/italique/couleurs/liens/listes), priorité,
+  échéance, statut, et clonage/liens entre tickets
+- **Tags et EPICs** personnalisables (couleur + émote optionnelle, scannée automatiquement depuis
+  `frontend/public/emote/` sans toucher au code) ; un ticket peut avoir plusieurs tags à la fois
+- **Multi-responsables** par ticket (un principal + des additionnels), avec historique des
+  changements d'assignation et raison obligatoire à chaque ajout/retrait
+- Commentaires, pièces jointes (images) et recherche globale
+- **Dark mode** à 4 modes (Jour / Nuit / Système / Horaire 8h-19h), couleurs centralisées dans
+  `frontend/src/styles.css`
+- **Notifications** : chaque responsable d'un ticket est notifié des changements de tag, de
+  responsable, de statut et des nouveaux commentaires
+- **Annonces** : bandeau d'avertissement dans la navbar, gérable sans coder (page "Annonces",
+  réservée aux admins), scopé à toute l'application ou à un kanban précis
+- Pages d'administration : gestion des comptes utilisateurs et des annonces (réservées aux admins)
 
 ## Déploiement mono-processus (production / Minestrator)
 
