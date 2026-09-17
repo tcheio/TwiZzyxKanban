@@ -73,7 +73,14 @@ describe('Board', () => {
     },
   ];
   const users = [{ id: 1, username: 'alice', avatar_url: 'data:image/jpeg;base64,abc' }];
-  const tags = [{ id: 1, name: 'Minecraft', color: 'emerald' }];
+  const tags = [
+    { id: 1, name: 'Minecraft', color: 'emerald' },
+    { id: 2, name: 'Aventure', color: 'sky' },
+  ];
+  const epics = [
+    { id: 1, name: 'Saison 2', color: 'red' },
+    { id: 2, name: 'Bêta', color: 'violet' },
+  ];
 
   beforeEach(() => {
     columnsService = {
@@ -97,7 +104,7 @@ describe('Board', () => {
         { provide: CardsService, useValue: cardsService },
         { provide: UsersService, useValue: usersService },
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
-        { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
+        { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue(epics) } },
         { provide: Router, useValue: { navigate } },
         {
           provide: ActivatedRoute,
@@ -400,5 +407,86 @@ describe('Board', () => {
     component.onDragEnded();
 
     expect(component.toastMessage()).toBeNull();
+  });
+
+  describe('tri', () => {
+    const sortCards: Card[] = [
+      { ...baseCards[0], id: 100, title: 'Zebra', priority: 'low', due_date: null, tag_id: null, epic_id: null, column_id: 1, position: 0 },
+      { ...baseCards[0], id: 101, title: 'Mango', priority: 'high', due_date: '2026-01-10', tag_id: 1, epic_id: 2, column_id: 1, position: 1 },
+      { ...baseCards[0], id: 102, title: 'Apple', priority: 'medium', due_date: '2026-01-05', tag_id: 2, epic_id: 1, column_id: 1, position: 2 },
+    ];
+
+    it('sans tri actif, garde l\'ordre personnalisé (position)', async () => {
+      cardsService.list.mockResolvedValue(sortCards);
+      await component.reload();
+      const group = component.groups()[0];
+
+      expect(component.visibleCards(group).map((c) => c.id)).toEqual([100, 101, 102]);
+    });
+
+    it('toggleSortKey() active puis désactive un critère', () => {
+      component.toggleSortKey('name');
+      expect(component.activeSortKeys().has('name')).toBe(true);
+      component.toggleSortKey('name');
+      expect(component.activeSortKeys().has('name')).toBe(false);
+    });
+
+    it('trie par nom (alphabétique)', async () => {
+      cardsService.list.mockResolvedValue(sortCards);
+      await component.reload();
+      component.toggleSortKey('name');
+
+      expect(component.visibleCards(component.groups()[0]).map((c) => c.title)).toEqual(['Apple', 'Mango', 'Zebra']);
+    });
+
+    it('trie par priorité (haute → basse)', async () => {
+      cardsService.list.mockResolvedValue(sortCards);
+      await component.reload();
+      component.toggleSortKey('priority');
+
+      expect(component.visibleCards(component.groups()[0]).map((c) => c.title)).toEqual(['Mango', 'Apple', 'Zebra']);
+    });
+
+    it("trie par échéance, les tickets sans date restant en ordre personnalisé en dessous", async () => {
+      cardsService.list.mockResolvedValue(sortCards);
+      await component.reload();
+      component.toggleSortKey('due_date');
+
+      // Apple (05/01) avant Mango (10/01) ; Zebra (pas de date) reste en dernier.
+      expect(component.visibleCards(component.groups()[0]).map((c) => c.title)).toEqual(['Apple', 'Mango', 'Zebra']);
+    });
+
+    it('trie par tag (alphabétique), les tickets sans tag restant en dernier', async () => {
+      cardsService.list.mockResolvedValue(sortCards);
+      await component.reload();
+      component.toggleSortKey('tag');
+
+      // Aventure (Apple) avant Minecraft (Mango) ; Zebra (pas de tag) reste en dernier.
+      expect(component.visibleCards(component.groups()[0]).map((c) => c.title)).toEqual(['Apple', 'Mango', 'Zebra']);
+    });
+
+    it('trie par EPIC (alphabétique), les tickets sans EPIC restant en dernier', async () => {
+      cardsService.list.mockResolvedValue(sortCards);
+      await component.reload();
+      component.toggleSortKey('epic');
+
+      // Bêta (Mango) avant Saison 2 (Apple) ; Zebra (pas d'EPIC) reste en dernier.
+      expect(component.visibleCards(component.groups()[0]).map((c) => c.title)).toEqual(['Mango', 'Apple', 'Zebra']);
+    });
+
+    it('combine plusieurs critères actifs : le second départage les égalités du premier', async () => {
+      const compoundCards: Card[] = [
+        { ...baseCards[0], id: 200, title: 'Q1', priority: 'high', due_date: '2026-02-01', column_id: 1, position: 0 },
+        { ...baseCards[0], id: 201, title: 'Q2', priority: 'high', due_date: '2026-01-01', column_id: 1, position: 1 },
+        { ...baseCards[0], id: 202, title: 'Q3', priority: 'low', due_date: '2026-01-01', column_id: 1, position: 2 },
+      ];
+      cardsService.list.mockResolvedValue(compoundCards);
+      await component.reload();
+      component.toggleSortKey('priority');
+      component.toggleSortKey('due_date');
+
+      // Priorité d'abord (high avant low) ; à priorité égale, échéance la plus proche d'abord.
+      expect(component.visibleCards(component.groups()[0]).map((c) => c.title)).toEqual(['Q2', 'Q1', 'Q3']);
+    });
   });
 });
