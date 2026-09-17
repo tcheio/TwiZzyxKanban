@@ -568,14 +568,49 @@
           <dl class="flex flex-col gap-3 text-sm">
             <div class="flex items-center justify-between gap-2">
               <dt class="text-gray-500">Assigné</dt>
-              <dd>
-                <app-search-select
-                  [options]="assigneeOptions()"
-                  [value]="t.assigned_user_id"
-                  nullLabel="— Non assigné —"
-                  searchPlaceholder="Rechercher une personne..."
-                  (valueChange)="updateAssignee($event)"
-                />
+              <dd class="flex flex-wrap items-center justify-end gap-1">
+                @if (primaryAssignee(); as primary) {
+                  <span
+                    class="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-500 text-[10px] font-semibold text-white ring-2 ring-blue-200"
+                    [title]="primary.username + ' — responsable principal'"
+                  >
+                    @if (primary.avatar_url; as avatar) {
+                      <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                    } @else {
+                      {{ primary.username.charAt(0).toUpperCase() }}
+                    }
+                  </span>
+                } @else {
+                  <span class="text-xs text-gray-400">— Non assigné —</span>
+                }
+                @for (assignee of assignees(); track assignee.id) {
+                  <span
+                    class="group relative flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-400 text-[10px] font-semibold text-white"
+                    [title]="assignee.username"
+                  >
+                    @if (assignee.avatar_url; as avatar) {
+                      <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                    } @else {
+                      {{ assignee.username.charAt(0).toUpperCase() }}
+                    }
+                    <button
+                      type="button"
+                      class="absolute inset-0 hidden items-center justify-center bg-black/50 text-[10px] text-white group-hover:flex"
+                      title="Retirer des responsables"
+                      (click)="removeAssignee(assignee.user_id)"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                }
+                <button
+                  type="button"
+                  class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 text-xs text-gray-400 hover:border-gray-400 hover:text-gray-600"
+                  title="Gérer les responsables"
+                  (click)="openAssignmentDialog()"
+                >
+                  +
+                </button>
               </dd>
             </div>
 
@@ -634,6 +669,51 @@
           </dl>
         </div>
 
+        @if (assignmentHistory().length > 0) {
+          <div class="mt-3 rounded-lg border border-gray-200 bg-white p-4">
+            <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Historique</h2>
+            <div class="flex flex-col gap-3 text-sm">
+              @for (entry of assignmentHistory(); track entry.id) {
+                <div class="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                  <p class="text-gray-700">
+                    <span class="font-medium">{{ entry.performed_by_username || 'Utilisateur supprimé' }}</span>
+                    @switch (entry.action) {
+                      @case ('add') {
+                        a ajouté <span class="font-medium">{{ entry.new_username }}</span> comme responsable
+                      }
+                      @case ('replace') {
+                        a remplacé
+                        @if (entry.previous_username) {
+                          <span class="font-medium">{{ entry.previous_username }}</span>
+                        } @else {
+                          <span class="italic text-gray-400">quelqu'un</span>
+                        }
+                        par <span class="font-medium">{{ entry.new_username }}</span>
+                      }
+                      @case ('remove') {
+                        a retiré
+                        @if (entry.previous_username) {
+                          <span class="font-medium">{{ entry.previous_username }}</span>
+                        } @else {
+                          <span class="italic text-gray-400">une personne</span>
+                        }
+                        des responsables
+                      }
+                    }
+                  </p>
+                  @if (entry.reason) {
+                    <p class="mt-0.5 text-xs italic text-gray-500">« {{ entry.reason }} »</p>
+                  }
+                  @if (entry.previous_status && entry.new_status) {
+                    <p class="mt-0.5 text-xs text-gray-500">Statut : {{ entry.previous_status }} → {{ entry.new_status }}</p>
+                  }
+                  <p class="mt-0.5 text-xs text-gray-400">{{ formatDateTime(entry.created_at) }}</p>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
         <div class="mt-3 flex flex-col gap-0.5 px-1 text-xs text-gray-400">
           @if (t.created_at) {
             <span>Créé le {{ formatDateTime(t.created_at) }}</span>
@@ -662,6 +742,19 @@
     submitLabel="Cloner"
     (save)="createClone($event)"
     (cancelled)="cloneDialogOpen.set(false)"
+  />
+}
+
+@if (assignmentDialogOpen()) {
+  <app-assignment-dialog
+    [users]="users()"
+    [currentAssignedUserId]="ticket()?.assigned_user_id ?? null"
+    [currentAssigneeIds]="assigneeUserIds()"
+    [statusOptions]="statusOptions()"
+    [currentStatusValue]="statusValue()"
+    [statusLocked]="isPublished()"
+    (save)="saveAssignment($event)"
+    (cancelled)="assignmentDialogOpen.set(false)"
   />
 }
 

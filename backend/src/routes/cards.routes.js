@@ -1,9 +1,11 @@
 const express = require('express');
 const requireKanbanModerator = require('../middleware/requireKanbanModerator');
 const { list, getOne, create, update, remove, move, cancel, restore } = require('../controllers/cards.controller');
+const { getAssignmentHistory } = require('../controllers/cardAssignees.controller');
 const commentsRoutes = require('./comments.routes');
 const cardLinksRoutes = require('./cardLinks.routes');
 const cardImagesRoutes = require('./cardImages.routes');
+const cardAssigneesRoutes = require('./cardAssignees.routes');
 
 const router = express.Router({ mergeParams: true });
 
@@ -15,9 +17,11 @@ router.patch('/:id/restore', restore);
 router.get('/:id', getOne);
 router.patch('/:id', update);
 router.delete('/:id', requireKanbanModerator, remove);
+router.get('/:id/assignment-history', getAssignmentHistory);
 
 router.use('/:id/comments', commentsRoutes);
 router.use('/:id/links', cardLinksRoutes);
 router.use('/:id/images', cardImagesRoutes);
+router.use('/:id/assignees', cardAssigneesRoutes);
 
 module.exports = router;

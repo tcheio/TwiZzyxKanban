@@ -8,6 +8,7 @@ import { UsersService } from '../../../services/users.service';
 import { CommentsService } from '../../../services/comments.service';
 import { CardLinksService } from '../../../services/card-links.service';
 import { CardImagesService } from '../../../services/card-images.service';
+import { CardAssigneesService } from '../../../services/card-assignees.service';
 import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
@@ -38,6 +39,12 @@ describe('TicketDetail', () => {
   let cardImagesService: {
     list: ReturnType<typeof vi.fn>;
     upload: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
+  };
+  let cardAssigneesService: {
+    list: ReturnType<typeof vi.fn>;
+    history: ReturnType<typeof vi.fn>;
+    upsert: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
   };
   let columnsService: { list: ReturnType<typeof vi.fn> };
@@ -94,6 +101,12 @@ describe('TicketDetail', () => {
       create: vi.fn().mockResolvedValue({}),
       remove: vi.fn().mockResolvedValue(undefined),
     };
+    cardAssigneesService = {
+      list: vi.fn().mockResolvedValue([]),
+      history: vi.fn().mockResolvedValue([]),
+      upsert: vi.fn().mockResolvedValue({ ...ticket, assigned_user_id: 2 }),
+      remove: vi.fn().mockResolvedValue(undefined),
+    };
     cardImagesService = {
       list: vi.fn().mockResolvedValue([]),
       upload: vi.fn().mockResolvedValue({ id: 1, card_id: 5, data_url: 'data:image/jpeg;base64,AAA' }),
@@ -111,6 +124,7 @@ describe('TicketDetail', () => {
         { provide: CommentsService, useValue: commentsService },
         { provide: CardLinksService, useValue: cardLinksService },
         { provide: CardImagesService, useValue: cardImagesService },
+        { provide: CardAssigneesService, useValue: cardAssigneesService },
         { provide: AuthService, useValue: { currentUser } },
         { provide: Router, useValue: { navigate } },
         {
@@ -140,10 +154,20 @@ describe('TicketDetail', () => {
     expect(component.descriptionDraftHtml()).toBe('Notes existantes');
   });
 
-  it('assigneeOptions()/tagOptions() exposent les libellés pour le search-select', async () => {
+  it('tagOptions() expose les libellés pour le search-select', async () => {
     await component.reload();
-    expect(component.assigneeOptions()).toEqual([{ id: 1, label: 'alice', avatarUrl: null, avatarInitial: 'A' }]);
     expect(component.tagOptions().map((o) => o.label)).toEqual(['Minecraft', 'Pokémon']);
+  });
+
+  it('primaryAssignee() résout le responsable principal depuis assigned_user_id', async () => {
+    await component.reload();
+    expect(component.primaryAssignee()).toEqual({ id: 1, username: 'alice' });
+  });
+
+  it('primaryAssignee() vaut null si le ticket n\'est pas assigné', async () => {
+    cardsService.get.mockResolvedValue({ ...ticket, assigned_user_id: null });
+    await component.reload();
+    expect(component.primaryAssignee()).toBeNull();
   });
 
   it('updateTitle() ignore une valeur vide', async () => {
@@ -159,14 +183,47 @@ describe('TicketDetail', () => {
     expect(cardsService.update).toHaveBeenCalledWith(5, 5, { title: 'Nouveau titre' });
   });
 
-  it('updatePriority()/updateAssignee() persistent le bon champ', async () => {
+  it('updatePriority() persiste le bon champ', async () => {
     await component.reload();
     component.updatePriority('high');
-    component.updateAssignee(null);
     await Promise.resolve();
 
     expect(cardsService.update).toHaveBeenCalledWith(5, 5, { priority: 'high' });
-    expect(cardsService.update).toHaveBeenCalledWith(5, 5, { assigned_user_id: null });
+  });
+
+  it('saveAssignment() appelle le service, recharge assignees/historique et ferme le dialog', async () => {
+    await component.reload();
+    component.assignmentDialogOpen.set(true);
+
+    await component.saveAssignment({ action: 'replace', user_id: 2, reason: 'Bob est en congés' });
+
+    expect(cardAssigneesService.upsert).toHaveBeenCalledWith(5, 5, {
+      action: 'replace',
+      user_id: 2,
+      reason: 'Bob est en congés',
+    });
+    expect(component.ticket()?.assigned_user_id).toBe(2);
+    expect(cardAssigneesService.list).toHaveBeenCalledWith(5, 5);
+    expect(cardAssigneesService.history).toHaveBeenCalledWith(5, 5);
+    expect(component.assignmentDialogOpen()).toBe(false);
+  });
+
+  it('removeAssignee() demande confirmation puis retire la personne', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await component.reload();
+
+    await component.removeAssignee(2);
+
+    expect(cardAssigneesService.remove).toHaveBeenCalledWith(5, 5, 2);
+  });
+
+  it("removeAssignee() ne fait rien si l'utilisateur annule la confirmation", async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await component.reload();
+
+    await component.removeAssignee(2);
+
+    expect(cardAssigneesService.remove).not.toHaveBeenCalled();
   });
 
   it('updateTag() persiste le nouveau tag', async () => {

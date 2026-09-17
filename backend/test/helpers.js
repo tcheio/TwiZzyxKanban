@@ -13,7 +13,8 @@ const request = require('supertest');
 function resetDb() {
   migrate(); // garantit que le schéma existe (CREATE TABLE IF NOT EXISTS)
   db.exec(
-    `DELETE FROM comments; DELETE FROM card_links; DELETE FROM card_images; DELETE FROM cards;
+    `DELETE FROM comments; DELETE FROM card_links; DELETE FROM card_images;
+     DELETE FROM card_assignment_history; DELETE FROM card_assignees; DELETE FROM cards;
      DELETE FROM epics; DELETE FROM tags; DELETE FROM columns;
      DELETE FROM kanban_members; DELETE FROM kanbans; DELETE FROM users;`
   );

@@ -1,17 +1,8 @@
 const db = require('../db/connection');
 const { sanitizeRichText } = require('../utils/rich-text');
+const { PUBLISHED_COLUMN_NAME, isPublishedColumn, withKey } = require('../utils/card-status');
 
 const VALID_PRIORITIES = ['low', 'medium', 'high'];
-const PUBLISHED_COLUMN_NAME = '✅Publié';
-
-function isPublishedColumn(columnId) {
-  const column = db.prepare('SELECT name FROM columns WHERE id = ?').get(columnId);
-  return column?.name === PUBLISHED_COLUMN_NAME;
-}
-
-function withKey(card, kanbanCode) {
-  return { ...card, key: `${kanbanCode}-${card.id}` };
-}
 
 function list(req, res) {
   const cards = db
