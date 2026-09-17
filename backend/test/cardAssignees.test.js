@@ -257,7 +257,8 @@ test('DELETE /assignees/:userId retire un responsable additionnel et le trace', 
 
   const res = await request(app)
     .delete(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees/${aliceId}`)
-    .set('Authorization', `Bearer ${adminToken}`);
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ reason: 'Fin de son intervention' });
   assert.equal(res.status, 204);
 
   const list = await request(app)
@@ -270,12 +271,26 @@ test('DELETE /assignees/:userId retire un responsable additionnel et le trace', 
     .set('Authorization', `Bearer ${adminToken}`);
   assert.equal(history.body[0].action, 'remove');
   assert.equal(history.body[0].previous_user_id, aliceId);
+  assert.equal(history.body[0].reason, 'Fin de son intervention');
+});
+
+test('DELETE /assignees/:userId sans reason retourne 400', async () => {
+  await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ action: 'add', user_id: aliceId, reason: 'Renfort' });
+
+  const res = await request(app)
+    .delete(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees/${aliceId}`)
+    .set('Authorization', `Bearer ${adminToken}`);
+  assert.equal(res.status, 400);
 });
 
 test('DELETE /assignees/:userId sur une assignation inexistante retourne 404', async () => {
   const res = await request(app)
     .delete(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees/${aliceId}`)
-    .set('Authorization', `Bearer ${adminToken}`);
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ reason: 'Test' });
   assert.equal(res.status, 404);
 });
 

@@ -141,3 +141,19 @@ CREATE TABLE IF NOT EXISTS card_assignment_history (
 );
 
 CREATE INDEX IF NOT EXISTS idx_card_assignment_history_card ON card_assignment_history(card_id);
+
+-- Notifications adressées aux responsables (principal + additionnels) d'un ticket, à
+-- chaque changement de tag, de responsable, de statut ou nouveau commentaire.
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kanban_id INTEGER NOT NULL REFERENCES kanbans(id) ON DELETE CASCADE,
+  card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  actor_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK(type IN ('tag','assignee','comment','status')),
+  message TEXT NOT NULL,
+  read_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read_at);

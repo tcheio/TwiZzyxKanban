@@ -1,5 +1,6 @@
 const db = require('../db/connection');
 const { withKey, fetchCardWithRelations } = require('../utils/card-status');
+const { notifyWatchersAndTargets } = require('../utils/notify');
 
 function getCardOr404(req, res) {
   const cardId = Number(req.params.id);
@@ -22,7 +23,7 @@ function addCardTag(req, res) {
     return res.status(400).json({ error: 'tag_id requis' });
   }
 
-  const tag = db.prepare('SELECT id FROM tags WHERE id = ? AND kanban_id = ?').get(tag_id, req.kanbanId);
+  const tag = db.prepare('SELECT id, name FROM tags WHERE id = ? AND kanban_id = ?').get(tag_id, req.kanbanId);
   if (!tag) {
     return res.status(400).json({ error: 'tag_id invalide' });
   }
@@ -36,6 +37,13 @@ function addCardTag(req, res) {
 
   db.prepare('INSERT INTO card_tags (card_id, tag_id) VALUES (?, ?)').run(card.id, tag_id);
 
+  notifyWatchersAndTargets(card.id, {
+    kanbanId: req.kanbanId,
+    actorUserId: req.user.id,
+    type: 'tag',
+    watcherMessage: `${req.user.username} a ajouté le tag « ${tag.name} » au ticket « ${card.title} »`,
+  });
+
   const updated = fetchCardWithRelations(card.id);
   res.status(201).json(withKey(updated, req.kanbanCode));
 }
@@ -45,12 +53,20 @@ function removeCardTag(req, res) {
   if (!card) return;
   const tagId = Number(req.params.tagId);
 
+  const tag = db.prepare('SELECT name FROM tags WHERE id = ?').get(tagId);
   const existing = db.prepare('SELECT 1 FROM card_tags WHERE card_id = ? AND tag_id = ?').get(card.id, tagId);
   if (!existing) {
     return res.status(404).json({ error: 'Association introuvable' });
   }
 
   db.prepare('DELETE FROM card_tags WHERE card_id = ? AND tag_id = ?').run(card.id, tagId);
+
+  notifyWatchersAndTargets(card.id, {
+    kanbanId: req.kanbanId,
+    actorUserId: req.user.id,
+    type: 'tag',
+    watcherMessage: `${req.user.username} a retiré le tag « ${tag?.name ?? '?'} » du ticket « ${card.title} »`,
+  });
 
   const updated = fetchCardWithRelations(card.id);
   res.json(withKey(updated, req.kanbanCode));

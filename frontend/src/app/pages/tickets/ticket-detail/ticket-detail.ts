@@ -432,9 +432,10 @@ export class TicketDetail implements OnInit {
   }
 
   async removeAssignee(userId: number): Promise<void> {
-    if (!confirm('Retirer cette personne des responsables du ticket ?')) return;
+    const reason = prompt('Raison du retrait de cette personne des responsables du ticket :')?.trim();
+    if (!reason) return;
     try {
-      await this.cardAssigneesService.remove(this.kanbanId, this.ticketId, userId);
+      await this.cardAssigneesService.remove(this.kanbanId, this.ticketId, userId, reason);
       const [assignees, assignmentHistory] = await Promise.all([
         this.cardAssigneesService.list(this.kanbanId, this.ticketId),
         this.cardAssigneesService.history(this.kanbanId, this.ticketId),

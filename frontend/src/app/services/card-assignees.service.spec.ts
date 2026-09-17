@@ -44,10 +44,11 @@ describe('CardAssigneesService', () => {
     await promise;
   });
 
-  it('remove() effectue un DELETE /api/kanbans/:kanbanId/cards/:cardId/assignees/:userId', async () => {
-    const promise = service.remove(kanbanId, 5, 3);
+  it('remove() effectue un DELETE avec la raison dans le body', async () => {
+    const promise = service.remove(kanbanId, 5, 3, 'Fin de son intervention');
     const req = httpMock.expectOne('/api/kanbans/1/cards/5/assignees/3');
     expect(req.request.method).toBe('DELETE');
+    expect(req.request.body).toEqual({ reason: 'Fin de son intervention' });
     req.flush(null);
     await promise;
   });
