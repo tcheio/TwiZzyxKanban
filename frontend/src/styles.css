@@ -77,6 +77,33 @@
   }
 }
 
+/* Scrollbars discrètes : fines, sans piste visible, et dont la teinte suit les jetons
+   de couleur ci-dessus (donc automatiquement adaptées au clair/sombre sans dark:). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-strong);
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-faint);
+}
+
 /* Mise en forme du contenu riche (description de ticket, commentaires) : le HTML est
    généré par execCommand/insertion manuelle sans classes sur <a>/<ul>/<ol>/<li>, donc on
    les stylise ici plutôt que de dupliquer des classes Tailwind à chaque endroit où ce
