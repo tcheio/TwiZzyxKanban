@@ -80,7 +80,7 @@ describe('TicketDetail', () => {
       get: vi.fn().mockResolvedValue({ ...ticket }),
       list: vi.fn().mockResolvedValue([ticket]),
       create: vi.fn().mockResolvedValue({ ...ticket, id: 99 }),
-      update: vi.fn().mockImplementation((id, partial) => Promise.resolve({ ...ticket, ...partial })),
+      update: vi.fn().mockImplementation((kanbanId, cardId, partial) => Promise.resolve({ ...ticket, ...partial })),
       move: vi.fn().mockResolvedValue({ ...ticket, column_id: 2 }),
       remove: vi.fn().mockResolvedValue(undefined),
     };
@@ -232,12 +232,35 @@ describe('TicketDetail', () => {
     expect(component.ticket()?.column_id).toBe(2);
   });
 
-  it('saveDescription() persiste le brouillon courant', async () => {
+  it('la description démarre en lecture seule ; startEditingDescription() ouvre le mode édition', async () => {
     await component.reload();
+    expect(component.descriptionEditing()).toBe(false);
+
+    component.startEditingDescription();
+
+    expect(component.descriptionEditing()).toBe(true);
+    expect(component.descriptionDraftHtml()).toBe(component.descriptionHtml());
+  });
+
+  it('cancelEditingDescription() referme le mode édition sans sauvegarder', async () => {
+    await component.reload();
+    component.startEditingDescription();
+    component.descriptionDraftHtml.set('Modif non enregistrée');
+
+    component.cancelEditingDescription();
+
+    expect(component.descriptionEditing()).toBe(false);
+    expect(cardsService.update).not.toHaveBeenCalled();
+  });
+
+  it('saveDescription() persiste le brouillon courant et referme le mode édition', async () => {
+    await component.reload();
+    component.startEditingDescription();
     component.descriptionDraftHtml.set('Nouvelle description');
-    component.saveDescription();
-    await Promise.resolve();
+    await component.saveDescription();
     expect(cardsService.update).toHaveBeenCalledWith(5, 5, { description: 'Nouvelle description' });
+    expect(component.descriptionEditing()).toBe(false);
+    expect(component.descriptionHtml()).toBe('Nouvelle description');
   });
 
   it('saveDescription() retire le src des images avant sauvegarde', async () => {
@@ -291,8 +314,9 @@ describe('TicketDetail', () => {
     Object.defineProperty(input, 'files', { value: [file] });
     await component.onCommentImageSelected({ target: input } as unknown as Event);
 
-    // La description est le premier contenteditable de la page, la zone de commentaire le second.
-    const editor = (fixture.nativeElement as HTMLElement).querySelectorAll('[contenteditable]')[1] as HTMLElement;
+    // La description est en lecture seule par défaut (non contenteditable) : la zone de
+    // commentaire est donc le seul contenteditable présent dans la page.
+    const editor = (fixture.nativeElement as HTMLElement).querySelectorAll('[contenteditable]')[0] as HTMLElement;
     expect(editor.innerHTML).toContain('data-card-image-id');
 
     await component.addComment();

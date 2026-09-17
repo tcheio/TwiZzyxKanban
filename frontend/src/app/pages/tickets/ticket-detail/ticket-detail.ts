@@ -23,7 +23,7 @@ import { Epic } from '../../../models/epic.model';
 import { epicBadgeClass, epicDotClass } from '../../../shared/epic-colors';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { stripCardImageSrc, hydrateCardImages } from '../../../shared/card-image-html';
-import { RICH_TEXT_COLORS, applyRichTextCommand, RichTextCommand } from '../../../shared/rich-text';
+import { RICH_TEXT_COLORS, applyRichTextCommand, openRichTextLinkOnClick, RichTextCommand } from '../../../shared/rich-text';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
 import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from '../../../shared/ticket-status';
@@ -81,6 +81,7 @@ export class TicketDetail implements OnInit {
   // binding [innerHTML] ne réinitialise pas le curseur à chaque frappe.
   readonly descriptionHtml = signal('');
   readonly descriptionDraftHtml = signal('');
+  readonly descriptionEditing = signal(false);
   readonly newCommentDraftHtml = signal('');
   readonly cloneDialogOpen = signal(false);
   readonly newLinkTargetId = signal<number | null>(null);
@@ -113,9 +114,9 @@ export class TicketDetail implements OnInit {
       this.loading.set(true);
     }
     this.error.set(null);
-    // En rafraîchissement silencieux, si une description a été modifiée mais pas encore
-    // enregistrée, on ne veut pas écraser la saisie de l'utilisateur.
-    const hasUnsavedDescription = options.silent && this.descriptionDraftHtml() !== this.descriptionHtml();
+    // En rafraîchissement silencieux, si l'édition de la description est ouverte, on ne
+    // veut pas écraser la saisie de l'utilisateur.
+    const hasUnsavedDescription = options.silent && this.descriptionEditing();
     try {
       const [ticket, columns, users, tags, epics, comments, links, images, cards] = await Promise.all([
         this.cardsService.get(this.kanbanId, this.ticketId),
@@ -295,14 +296,16 @@ export class TicketDetail implements OnInit {
     tag_id?: number | null;
     epic_id?: number | null;
     due_date?: string | null;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const ticket = this.ticket();
-    if (!ticket) return;
+    if (!ticket) return false;
     try {
       const updated = await this.cardsService.update(this.kanbanId, ticket.id, partial);
       this.ticket.set(updated);
+      return true;
     } catch {
       this.error.set("Échec de l'enregistrement.");
+      return false;
     }
   }
 
@@ -385,14 +388,35 @@ export class TicketDetail implements OnInit {
     this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
   }
 
+  // Dans un `contenteditable`, un clic simple sur un lien place juste le curseur au lieu
+  // de naviguer : on l'ouvre nous-mêmes dans un nouvel onglet.
+  onEditableContentClick(event: MouseEvent): void {
+    openRichTextLinkOnClick(event);
+  }
+
   async onDescriptionPaste(event: ClipboardEvent): Promise<void> {
     await this.handleImagePaste(event, () => {
       this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
     });
   }
 
-  saveDescription(): void {
-    this.patch({ description: stripCardImageSrc(this.descriptionDraftHtml()) || null });
+  // La description est en lecture seule par défaut (pour éviter toute modification
+  // accidentelle) ; ces trois méthodes gèrent le bascule vers/depuis le mode édition.
+  startEditingDescription(): void {
+    this.descriptionDraftHtml.set(this.descriptionHtml());
+    this.descriptionEditing.set(true);
+  }
+
+  cancelEditingDescription(): void {
+    this.descriptionEditing.set(false);
+  }
+
+  async saveDescription(): Promise<void> {
+    const saved = await this.patch({ description: stripCardImageSrc(this.descriptionDraftHtml()) || null });
+    if (!saved) return;
+    const ticket = this.ticket();
+    this.descriptionHtml.set(hydrateCardImages(ticket?.description ?? '', this.images()));
+    this.descriptionEditing.set(false);
   }
 
   formatDescription(command: RichTextCommand): void {

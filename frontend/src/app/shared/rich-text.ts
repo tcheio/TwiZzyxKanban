@@ -18,7 +18,7 @@ export const RICH_TEXT_COLORS: RichTextColor[] = [
 
 export const CODE_CLASS = 'rounded bg-gray-100 px-1 py-0.5 font-mono text-sm text-pink-600';
 
-export type RichTextCommand = 'bold' | 'italic' | 'strike' | 'code' | string;
+export type RichTextCommand = 'bold' | 'italic' | 'strike' | 'underline' | 'code' | 'link' | 'ul' | 'ol' | string;
 
 function wrapSelection(editor: HTMLElement, tagName: string, className: string): boolean {
   const selection = window.getSelection();
@@ -39,6 +39,52 @@ function wrapSelection(editor: HTMLElement, tagName: string, className: string):
   return true;
 }
 
+// N'accepte que http(s)/mailto, et ajoute "https://" par défaut si l'utilisateur n'a
+// saisi qu'un nom de domaine (ex. "exemple.com") : évite les URLs "javascript:" et
+// autres schémas dangereux, en plus du filtrage fait côté backend à l'enregistrement.
+function normalizeLinkUrl(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (/^mailto:/i.test(trimmed)) return trimmed;
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const parsed = new URL(withScheme);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
+function findAnchorInSelection(editor: HTMLElement): HTMLAnchorElement | null {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return null;
+  let node: Node | null = selection.getRangeAt(0).startContainer;
+  while (node && node !== editor) {
+    if (node instanceof HTMLAnchorElement) return node;
+    node = node.parentNode;
+  }
+  return null;
+}
+
+function insertLink(editor: HTMLElement): void {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
+  if (!editor.contains(selection.getRangeAt(0).commonAncestorContainer)) return;
+
+  const raw = window.prompt('Adresse du lien (https://...)');
+  if (raw === null) return;
+  const url = normalizeLinkUrl(raw);
+  if (!url) return;
+
+  document.execCommand('createLink', false, url);
+  const anchor = findAnchorInSelection(editor);
+  if (anchor) {
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+  }
+}
+
 /** Applique une commande de mise en forme dans un `contenteditable` sur la sélection courante. */
 export function applyRichTextCommand(editor: HTMLElement, command: RichTextCommand): void {
   editor.focus();
@@ -52,11 +98,35 @@ export function applyRichTextCommand(editor: HTMLElement, command: RichTextComma
     case 'strike':
       document.execCommand('strikeThrough');
       return;
+    case 'underline':
+      document.execCommand('underline');
+      return;
+    case 'ul':
+      document.execCommand('insertUnorderedList');
+      return;
+    case 'ol':
+      document.execCommand('insertOrderedList');
+      return;
+    case 'link':
+      insertLink(editor);
+      return;
     case 'code':
       wrapSelection(editor, 'code', CODE_CLASS);
       return;
     default:
       // Toute autre valeur est traitée comme une classe de couleur (cf. RICH_TEXT_COLORS).
       wrapSelection(editor, 'span', command);
+  }
+}
+
+/**
+ * Ouvre dans un nouvel onglet le lien cliqué à l'intérieur d'une zone `contenteditable`
+ * (par défaut, un clic simple y place juste le curseur au lieu de naviguer).
+ */
+export function openRichTextLinkOnClick(event: MouseEvent): void {
+  const anchor = (event.target as HTMLElement).closest('a[href]');
+  if (anchor instanceof HTMLAnchorElement) {
+    event.preventDefault();
+    window.open(anchor.href, '_blank', 'noopener,noreferrer');
   }
 }

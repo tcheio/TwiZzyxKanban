@@ -5,3 +5,22 @@
     @apply bg-gray-100 font-sans text-gray-900;
   }
 }
+
+/* Mise en forme du contenu riche (description de ticket, commentaires) : le HTML est
+   généré par execCommand/insertion manuelle sans classes sur <a>/<ul>/<ol>/<li>, donc on
+   les stylise ici plutôt que de dupliquer des classes Tailwind à chaque endroit où ce
+   contenu est affiché ou édité. */
+@layer components {
+  .rich-text-content a {
+    @apply text-blue-600 underline decoration-blue-300 hover:text-blue-800;
+  }
+  .rich-text-content ul {
+    @apply list-disc pl-5;
+  }
+  .rich-text-content ol {
+    @apply list-decimal pl-5;
+  }
+  .rich-text-content li {
+    @apply my-0.5;
+  }
+}
