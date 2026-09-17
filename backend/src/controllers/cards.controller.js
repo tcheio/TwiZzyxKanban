@@ -8,6 +8,7 @@ const {
   mapCardRelations,
   fetchCardWithRelations,
 } = require('../utils/card-status');
+const { notifyWatchersAndTargets } = require('../utils/notify');
 
 const VALID_PRIORITIES = ['low', 'medium', 'high'];
 
@@ -129,6 +130,15 @@ function update(req, res) {
     id
   );
 
+  if (tag_id !== undefined && tag_id !== card.tag_id) {
+    const previousTag = card.tag_id ? db.prepare('SELECT name FROM tags WHERE id = ?').get(card.tag_id) : null;
+    const nextTag = tag_id ? db.prepare('SELECT name FROM tags WHERE id = ?').get(tag_id) : null;
+    const message = nextTag
+      ? `${req.user.username} a mis le tag « ${nextTag.name} » sur le ticket « ${card.title} »`
+      : `${req.user.username} a retiré le tag « ${previousTag?.name ?? '?'} » du ticket « ${card.title} »`;
+    notifyWatchersAndTargets(id, { kanbanId: req.kanbanId, actorUserId: req.user.id, type: 'tag', watcherMessage: message });
+  }
+
   const updated = fetchCardWithRelations(id);
   res.json(withKey(updated, req.kanbanCode));
 }
@@ -211,6 +221,16 @@ function move(req, res) {
   });
   moveTx();
 
+  if (columnId !== card.column_id) {
+    const previousColumn = db.prepare('SELECT name FROM columns WHERE id = ?').get(card.column_id);
+    notifyWatchersAndTargets(id, {
+      kanbanId: req.kanbanId,
+      actorUserId: req.user.id,
+      type: 'status',
+      watcherMessage: `${req.user.username} a déplacé le ticket « ${card.title} » de « ${previousColumn?.name ?? '?'} » vers « ${targetColumn.name} »`,
+    });
+  }
+
   const moved = fetchCardWithRelations(id);
   res.json(withKey(moved, req.kanbanCode));
 }
@@ -224,6 +244,16 @@ function setCancelled(req, res, isCancelled) {
 
   const cancelledAtExpr = isCancelled ? "datetime('now')" : 'NULL';
   db.prepare(`UPDATE cards SET cancelled_at = ${cancelledAtExpr}, updated_at = datetime('now') WHERE id = ?`).run(id);
+
+  notifyWatchersAndTargets(id, {
+    kanbanId: req.kanbanId,
+    actorUserId: req.user.id,
+    type: 'status',
+    watcherMessage: isCancelled
+      ? `${req.user.username} a annulé le ticket « ${card.title} »`
+      : `${req.user.username} a restauré le ticket « ${card.title} »`,
+  });
+
   res.json(withKey(fetchCardWithRelations(id), req.kanbanCode));
 }
 

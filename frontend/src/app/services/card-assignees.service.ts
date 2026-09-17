@@ -23,7 +23,9 @@ export class CardAssigneesService {
     return firstValueFrom(this.http.post<Card>(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees`, input));
   }
 
-  remove(kanbanId: number, cardId: number, userId: number): Promise<void> {
-    return firstValueFrom(this.http.delete<void>(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees/${userId}`));
+  remove(kanbanId: number, cardId: number, userId: number, reason: string): Promise<void> {
+    return firstValueFrom(
+      this.http.delete<void>(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees/${userId}`, { body: { reason } })
+    );
   }
 }

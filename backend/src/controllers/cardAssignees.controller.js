@@ -1,5 +1,6 @@
 const db = require('../db/connection');
 const { PUBLISHED_COLUMN_NAME, isPublishedColumn, statusLabelFor, withKey, fetchCardWithRelations } = require('../utils/card-status');
+const { notifyWatchersAndTargets } = require('../utils/notify');
 
 const VALID_ACTIONS = ['add', 'replace'];
 
@@ -55,20 +56,40 @@ function removeAssignee(req, res) {
   const card = getCardOr404(req, res);
   if (!card) return;
   const userId = Number(req.params.userId);
+  const { reason } = req.body || {};
+
+  if (!reason || !String(reason).trim()) {
+    return res.status(400).json({ error: 'reason requis' });
+  }
 
   const assignee = db.prepare('SELECT 1 FROM card_assignees WHERE card_id = ? AND user_id = ?').get(card.id, userId);
   if (!assignee) {
     return res.status(404).json({ error: 'Assignation introuvable' });
   }
 
+  const trimmedReason = String(reason).trim();
   const tx = db.transaction(() => {
     db.prepare('DELETE FROM card_assignees WHERE card_id = ? AND user_id = ?').run(card.id, userId);
     db.prepare(
-      `INSERT INTO card_assignment_history (card_id, action, previous_user_id, performed_by_user_id)
-       VALUES (?, 'remove', ?, ?)`
-    ).run(card.id, userId, req.user.id);
+      `INSERT INTO card_assignment_history (card_id, action, previous_user_id, reason, performed_by_user_id)
+       VALUES (?, 'remove', ?, ?, ?)`
+    ).run(card.id, userId, trimmedReason, req.user.id);
   });
   tx();
+
+  const removedUser = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+  notifyWatchersAndTargets(card.id, {
+    kanbanId: req.kanbanId,
+    actorUserId: req.user.id,
+    type: 'assignee',
+    watcherMessage: `${req.user.username} a retiré ${removedUser?.username ?? '?'} des responsables du ticket « ${card.title} »`,
+    targets: [
+      {
+        userId,
+        message: `Vous avez été retiré(e) des responsables du ticket « ${card.title} » — Raison : ${trimmedReason}`,
+      },
+    ],
+  });
 
   res.status(204).send();
 }
@@ -92,7 +113,7 @@ function upsertAssignment(req, res) {
     return res.status(400).json({ error: 'reason requis' });
   }
 
-  const user = db.prepare('SELECT id FROM users WHERE id = ?').get(user_id);
+  const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(user_id);
   if (!user) {
     return res.status(400).json({ error: 'user_id invalide' });
   }
@@ -126,6 +147,8 @@ function upsertAssignment(req, res) {
 
   const previousStatus = statusLabelFor(card);
   const previousUserId = action === 'replace' ? card.assigned_user_id : null;
+  let statusChanged = false;
+  let newStatus = previousStatus;
 
   const tx = db.transaction(() => {
     if (action === 'add') {
@@ -160,8 +183,8 @@ function upsertAssignment(req, res) {
     db.prepare("UPDATE cards SET updated_at = datetime('now') WHERE id = ?").run(card.id);
 
     const updatedCard = db.prepare('SELECT * FROM cards WHERE id = ?').get(card.id);
-    const newStatus = statusLabelFor(updatedCard);
-    const statusChanged = newStatus !== previousStatus;
+    newStatus = statusLabelFor(updatedCard);
+    statusChanged = newStatus !== previousStatus;
 
     db.prepare(
       `INSERT INTO card_assignment_history
@@ -179,6 +202,40 @@ function upsertAssignment(req, res) {
     );
   });
   tx();
+
+  const targets = [];
+  if (action === 'add') {
+    targets.push({ userId: user_id, message: `Vous avez été ajouté(e) comme responsable du ticket « ${card.title} »` });
+  } else {
+    targets.push({
+      userId: user_id,
+      message: `Vous êtes désormais responsable principal du ticket « ${card.title} »`,
+    });
+    if (previousUserId && previousUserId !== Number(user_id)) {
+      targets.push({
+        userId: previousUserId,
+        message: `Vous n'êtes plus responsable du ticket « ${card.title} » — Raison : ${String(reason).trim()}`,
+      });
+    }
+  }
+  notifyWatchersAndTargets(card.id, {
+    kanbanId: req.kanbanId,
+    actorUserId: req.user.id,
+    type: 'assignee',
+    watcherMessage:
+      action === 'add'
+        ? `${req.user.username} a ajouté ${user.username} comme responsable du ticket « ${card.title} »`
+        : `${req.user.username} a désigné ${user.username} responsable principal du ticket « ${card.title} »`,
+    targets,
+  });
+  if (statusChanged) {
+    notifyWatchersAndTargets(card.id, {
+      kanbanId: req.kanbanId,
+      actorUserId: req.user.id,
+      type: 'status',
+      watcherMessage: `Le ticket « ${card.title} » est passé de « ${previousStatus} » à « ${newStatus} »`,
+    });
+  }
 
   const updated = fetchCardWithRelations(card.id);
   res.status(201).json(withKey(updated, req.kanbanCode));

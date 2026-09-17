@@ -1,5 +1,6 @@
 const db = require('../db/connection');
 const { sanitizeRichText } = require('../utils/rich-text');
+const { notifyWatchersAndTargets } = require('../utils/notify');
 
 function list(req, res) {
   const cardId = Number(req.params.id);
@@ -25,7 +26,7 @@ function create(req, res) {
   const cardId = Number(req.params.id);
   const { body } = req.body || {};
 
-  const card = db.prepare('SELECT id FROM cards WHERE id = ? AND kanban_id = ?').get(cardId, req.kanbanId);
+  const card = db.prepare('SELECT id, title FROM cards WHERE id = ? AND kanban_id = ?').get(cardId, req.kanbanId);
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
@@ -36,6 +37,13 @@ function create(req, res) {
   const result = db
     .prepare('INSERT INTO comments (card_id, user_id, body) VALUES (?, ?, ?)')
     .run(cardId, req.user.id, sanitizeRichText(body.trim()));
+
+  notifyWatchersAndTargets(cardId, {
+    kanbanId: req.kanbanId,
+    actorUserId: req.user.id,
+    type: 'comment',
+    watcherMessage: `${req.user.username} a commenté le ticket « ${card.title} »`,
+  });
 
   const comment = db
     .prepare(

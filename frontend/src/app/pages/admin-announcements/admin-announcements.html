@@ -1,0 +1,152 @@
+<div class="mx-auto max-w-3xl px-4 py-6 sm:px-6">
+  <h1 class="mb-1 text-xl font-bold text-text">Annonces</h1>
+  <p class="mb-4 text-sm text-text-muted">
+    Messages affichés en bandeau d'avertissement dans la navbar, pour toute l'application ou un kanban précis.
+  </p>
+
+  @if (error()) {
+    <p class="mb-3 text-sm text-danger">{{ error() }}</p>
+  }
+  @if (loading()) {
+    <p class="text-sm text-text-muted">Chargement...</p>
+  }
+  @if (!loading() && announcements().length === 0) {
+    <p class="text-sm text-text-muted">Aucune annonce pour le moment.</p>
+  }
+
+  @if (announcements().length > 0) {
+    <div class="overflow-hidden rounded-lg border border-border bg-surface">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
+            <th class="px-4 py-2.5">Message</th>
+            <th class="px-4 py-2.5">Portée</th>
+            <th class="px-4 py-2.5"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          @for (announcement of announcements(); track announcement.id) {
+            <tr>
+              @if (editingId() === announcement.id) {
+                <td colspan="3" class="px-4 py-3">
+                  <form class="flex flex-wrap items-center gap-2" [formGroup]="editForm" (ngSubmit)="saveEdit(announcement)">
+                    <label for="edit-message-{{ announcement.id }}" class="sr-only">Message</label>
+                    <input
+                      id="edit-message-{{ announcement.id }}"
+                      type="text"
+                      formControlName="message"
+                      class="min-w-0 flex-1 rounded-md border border-border px-2.5 py-1.5 text-sm text-text-soft focus:border-brand focus:outline-none"
+                    />
+                    <label for="edit-scope-{{ announcement.id }}" class="sr-only">Portée</label>
+                    <select
+                      id="edit-scope-{{ announcement.id }}"
+                      formControlName="kanbanId"
+                      class="rounded-md border border-border px-2.5 py-1.5 text-sm text-text-soft focus:border-brand focus:outline-none"
+                    >
+                      <option value="">Toute l'application</option>
+                      @for (kanban of kanbans(); track kanban.id) {
+                        <option [value]="kanban.id">{{ kanban.name }}</option>
+                      }
+                    </select>
+                    <button
+                      type="submit"
+                      [disabled]="editForm.invalid"
+                      class="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-surface-muted"
+                    >
+                      Enregistrer
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-md border border-border px-3 py-1.5 text-sm text-text-muted hover:bg-surface-alt"
+                      (click)="cancelEdit()"
+                    >
+                      Annuler
+                    </button>
+                  </form>
+                </td>
+              } @else {
+                <td class="max-w-xs px-4 py-2.5">
+                  <span class="text-text" [title]="announcement.message">{{ announcement.message }}</span>
+                </td>
+                <td class="px-4 py-2.5">
+                  <span
+                    class="rounded-full px-2 py-0.5 text-xs font-medium"
+                    [class]="announcement.kanban_id === null ? 'bg-warning-soft text-warning-text' : 'bg-surface-muted text-text-muted'"
+                  >
+                    {{ scopeLabel(announcement) }}
+                  </span>
+                </td>
+                <td class="px-4 py-2.5">
+                  <div class="flex justify-end gap-1">
+                    <button type="button" class="rounded px-2 py-1 text-xs text-text-muted hover:bg-surface-muted" (click)="startEdit(announcement)">
+                      Modifier
+                    </button>
+                    <button type="button" class="rounded px-2 py-1 text-xs text-danger hover:bg-danger-soft" (click)="deleteAnnouncement(announcement)">
+                      Supprimer
+                    </button>
+                  </div>
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (creating()) {
+    <form
+      class="mt-4 flex flex-col gap-3 rounded-lg border border-border bg-surface p-4"
+      [formGroup]="createForm"
+      (ngSubmit)="createAnnouncement()"
+    >
+      <h2 class="text-sm font-semibold text-text-soft">Nouvelle annonce</h2>
+      <label for="new-announcement-message" class="flex flex-col gap-1 text-xs text-text-muted">
+        Message
+        <textarea
+          id="new-announcement-message"
+          formControlName="message"
+          rows="2"
+          class="resize-none rounded-md border border-border px-2.5 py-1.5 text-sm text-text-soft focus:border-brand focus:outline-none"
+        ></textarea>
+      </label>
+      <label for="new-announcement-scope" class="flex flex-col gap-1 text-xs text-text-muted">
+        Portée
+        <select
+          id="new-announcement-scope"
+          formControlName="kanbanId"
+          class="rounded-md border border-border px-2.5 py-1.5 text-sm text-text-soft focus:border-brand focus:outline-none"
+        >
+          <option value="">Toute l'application</option>
+          @for (kanban of kanbans(); track kanban.id) {
+            <option [value]="kanban.id">{{ kanban.name }}</option>
+          }
+        </select>
+      </label>
+      <div class="flex justify-end gap-2">
+        <button
+          type="submit"
+          [disabled]="createForm.invalid"
+          class="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-surface-muted"
+        >
+          Créer
+        </button>
+        <button
+          type="button"
+          class="rounded-md border border-border px-3 py-1.5 text-sm text-text-muted hover:bg-surface-alt"
+          (click)="creating.set(false)"
+        >
+          Annuler
+        </button>
+      </div>
+    </form>
+  } @else {
+    <button
+      type="button"
+      class="mt-4 w-full rounded-md border border-dashed border-border-strong py-2.5 text-sm text-text-muted hover:bg-surface-alt"
+      (click)="creating.set(true)"
+    >
+      + Nouvelle annonce
+    </button>
+  }
+</div>

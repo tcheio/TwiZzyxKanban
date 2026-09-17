@@ -272,17 +272,17 @@ describe('TicketDetail', () => {
     expect(component.assignmentDialogOpen()).toBe(false);
   });
 
-  it('removeAssignee() demande confirmation puis retire la personne', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('removeAssignee() demande la raison puis retire la personne', async () => {
+    vi.spyOn(window, 'prompt').mockReturnValue('Fin de son intervention');
     await component.reload();
 
     await component.removeAssignee(2);
 
-    expect(cardAssigneesService.remove).toHaveBeenCalledWith(5, 5, 2);
+    expect(cardAssigneesService.remove).toHaveBeenCalledWith(5, 5, 2, 'Fin de son intervention');
   });
 
-  it("removeAssignee() ne fait rien si l'utilisateur annule la confirmation", async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+  it("removeAssignee() ne fait rien si la raison est vide ou annulée", async () => {
+    vi.spyOn(window, 'prompt').mockReturnValue(null);
     await component.reload();
 
     await component.removeAssignee(2);

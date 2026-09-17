@@ -43,6 +43,11 @@
   --color-success: #16a34a;
   --color-success-soft: #f0fdf4;
 
+  /* Avertissement (bandeau d'annonces) */
+  --color-warning: #d97706;
+  --color-warning-soft: #fffbeb;
+  --color-warning-text: #92400e;
+
   /* Accent (bandeau header/footer) */
   --color-accent: #c4b5fd;
   --color-accent-text: #1f2937;
@@ -73,6 +78,10 @@
 
   --color-success: #4ade80;
   --color-success-soft: #14291d;
+
+  --color-warning: #fbbf24;
+  --color-warning-soft: #2c2410;
+  --color-warning-text: #fcd34d;
 
   --color-accent: #3f3763;
   --color-accent-text: #e5e7eb;
