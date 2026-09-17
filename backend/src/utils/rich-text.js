@@ -7,17 +7,26 @@ const COLOR_CLASS_RE = /^text-(red|amber|green|blue|purple)-600$/;
 const CODE_CLASSES = ['rounded', 'bg-gray-100', 'px-1', 'py-0.5', 'font-mono', 'text-sm', 'text-pink-600'];
 
 const RICH_TEXT_OPTIONS = {
-  allowedTags: ['b', 'strong', 'i', 'em', 's', 'strike', 'del', 'code', 'span', 'br', 'p', 'div', 'img'],
+  allowedTags: [
+    'b', 'strong', 'i', 'em', 's', 'strike', 'del', 'u', 'code', 'span', 'br', 'p', 'div', 'img',
+    'a', 'ul', 'ol', 'li',
+  ],
   allowedAttributes: {
     span: ['class'],
     code: ['class'],
     img: ['src', 'alt', 'class', 'data-card-image-id'],
+    a: ['href', 'target', 'rel'],
   },
   allowedClasses: {
     span: [COLOR_CLASS_RE],
     code: CODE_CLASSES,
   },
-  allowedSchemesByTag: { img: ['data', 'http', 'https'] },
+  allowedSchemesByTag: { img: ['data', 'http', 'https'], a: ['http', 'https', 'mailto'] },
+  // Forcé indépendamment de ce qu'envoie le client : évite qu'un lien ouvre l'app dans son
+  // propre onglet (perte de contexte) ou garde un accès à `window.opener` vers l'app.
+  transformTags: {
+    a: sanitizeHtml.simpleTransform('a', { target: '_blank', rel: 'noopener noreferrer' }, true),
+  },
   nonTextTags: ['style', 'script', 'textarea', 'option'],
 };
 

@@ -8,6 +8,7 @@ import { UsersService } from '../../../services/users.service';
 import { CommentsService } from '../../../services/comments.service';
 import { CardLinksService } from '../../../services/card-links.service';
 import { CardImagesService } from '../../../services/card-images.service';
+import { CardAssigneesService } from '../../../services/card-assignees.service';
 import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
@@ -18,14 +19,23 @@ import { UserLite } from '../../../models/user.model';
 import { Comment } from '../../../models/comment.model';
 import { CardLink, CardLinkType } from '../../../models/card-link.model';
 import { CardImage } from '../../../models/card-image.model';
+import { AssignmentInput, CardAssignee } from '../../../models/card-assignee.model';
+import { CardAssignmentHistoryEntry } from '../../../models/card-assignment-history.model';
 import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
 import { epicBadgeClass, epicDotClass } from '../../../shared/epic-colors';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { stripCardImageSrc, hydrateCardImages } from '../../../shared/card-image-html';
-import { RICH_TEXT_COLORS, applyRichTextCommand, RichTextCommand } from '../../../shared/rich-text';
+import {
+  RICH_TEXT_COLORS,
+  applyRichTextCommand,
+  openRichTextLinkOnClick,
+  linkifyPastedUrl,
+  RichTextCommand,
+} from '../../../shared/rich-text';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
+import { AssignmentDialog } from '../assignment-dialog/assignment-dialog';
 import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from '../../../shared/ticket-status';
 import { startAutoRefresh } from '../../../shared/auto-refresh';
 
@@ -42,7 +52,7 @@ export interface LinkedTicket {
 
 @Component({
   selector: 'app-ticket-detail',
-  imports: [RouterLink, FormsModule, SearchSelect, NewTicketDialog],
+  imports: [RouterLink, FormsModule, SearchSelect, NewTicketDialog, AssignmentDialog],
   templateUrl: './ticket-detail.html',
 })
 export class TicketDetail implements OnInit {
@@ -55,6 +65,7 @@ export class TicketDetail implements OnInit {
   private readonly commentsService = inject(CommentsService);
   private readonly cardLinksService = inject(CardLinksService);
   private readonly cardImagesService = inject(CardImagesService);
+  private readonly cardAssigneesService = inject(CardAssigneesService);
   private readonly tagsService = inject(TagsService);
   private readonly epicsService = inject(EpicsService);
   private readonly destroyRef = inject(DestroyRef);
@@ -75,12 +86,16 @@ export class TicketDetail implements OnInit {
   readonly links = signal<CardLink[]>([]);
   readonly images = signal<CardImage[]>([]);
   readonly cards = signal<Card[]>([]);
+  readonly assignees = signal<CardAssignee[]>([]);
+  readonly assignmentHistory = signal<CardAssignmentHistoryEntry[]>([]);
+  readonly assignmentDialogOpen = signal(false);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   // descriptionHtml n'est modifié que par reload() (jamais par la saisie) pour que le
   // binding [innerHTML] ne réinitialise pas le curseur à chaque frappe.
   readonly descriptionHtml = signal('');
   readonly descriptionDraftHtml = signal('');
+  readonly descriptionEditing = signal(false);
   readonly newCommentDraftHtml = signal('');
   readonly cloneDialogOpen = signal(false);
   readonly newLinkTargetId = signal<number | null>(null);
@@ -113,21 +128,24 @@ export class TicketDetail implements OnInit {
       this.loading.set(true);
     }
     this.error.set(null);
-    // En rafraîchissement silencieux, si une description a été modifiée mais pas encore
-    // enregistrée, on ne veut pas écraser la saisie de l'utilisateur.
-    const hasUnsavedDescription = options.silent && this.descriptionDraftHtml() !== this.descriptionHtml();
+    // En rafraîchissement silencieux, si l'édition de la description est ouverte, on ne
+    // veut pas écraser la saisie de l'utilisateur.
+    const hasUnsavedDescription = options.silent && this.descriptionEditing();
     try {
-      const [ticket, columns, users, tags, epics, comments, links, images, cards] = await Promise.all([
-        this.cardsService.get(this.kanbanId, this.ticketId),
-        this.columnsService.list(this.kanbanId),
-        this.usersService.liteForKanban(this.kanbanId),
-        this.tagsService.list(this.kanbanId),
-        this.epicsService.list(this.kanbanId),
-        this.commentsService.list(this.kanbanId, this.ticketId),
-        this.cardLinksService.list(this.kanbanId, this.ticketId),
-        this.cardImagesService.list(this.kanbanId, this.ticketId),
-        this.cardsService.list(this.kanbanId),
-      ]);
+      const [ticket, columns, users, tags, epics, comments, links, images, cards, assignees, assignmentHistory] =
+        await Promise.all([
+          this.cardsService.get(this.kanbanId, this.ticketId),
+          this.columnsService.list(this.kanbanId),
+          this.usersService.liteForKanban(this.kanbanId),
+          this.tagsService.list(this.kanbanId),
+          this.epicsService.list(this.kanbanId),
+          this.commentsService.list(this.kanbanId, this.ticketId),
+          this.cardLinksService.list(this.kanbanId, this.ticketId),
+          this.cardImagesService.list(this.kanbanId, this.ticketId),
+          this.cardsService.list(this.kanbanId),
+          this.cardAssigneesService.list(this.kanbanId, this.ticketId),
+          this.cardAssigneesService.history(this.kanbanId, this.ticketId),
+        ]);
       this.ticket.set(ticket);
       this.columns.set(columns);
       this.users.set(users);
@@ -137,6 +155,8 @@ export class TicketDetail implements OnInit {
       this.links.set(links);
       this.images.set(images);
       this.cards.set(cards);
+      this.assignees.set(assignees);
+      this.assignmentHistory.set(assignmentHistory);
       const hydratedDescription = hydrateCardImages(ticket.description ?? '', images);
       this.descriptionHtml.set(hydratedDescription);
       if (!hasUnsavedDescription) {
@@ -148,6 +168,16 @@ export class TicketDetail implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  primaryAssignee(): UserLite | null {
+    const ticket = this.ticket();
+    if (!ticket?.assigned_user_id) return null;
+    return this.users().find((u) => u.id === ticket.assigned_user_id) ?? null;
+  }
+
+  assigneeUserIds(): number[] {
+    return this.assignees().map((a) => a.user_id);
   }
 
   epicName(epicId: number | null): string | null {
@@ -165,15 +195,6 @@ export class TicketDetail implements OnInit {
     if (!epicId) return '';
     const color = this.epics().find((e) => e.id === epicId)?.color;
     return epicDotClass(color);
-  }
-
-  assigneeOptions(): SearchSelectOption<number>[] {
-    return this.users().map((u) => ({
-      id: u.id,
-      label: u.username,
-      avatarUrl: u.avatar_url ?? null,
-      avatarInitial: u.username.charAt(0).toUpperCase(),
-    }));
   }
 
   tagOptions(): SearchSelectOption<number>[] {
@@ -295,14 +316,16 @@ export class TicketDetail implements OnInit {
     tag_id?: number | null;
     epic_id?: number | null;
     due_date?: string | null;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const ticket = this.ticket();
-    if (!ticket) return;
+    if (!ticket) return false;
     try {
       const updated = await this.cardsService.update(this.kanbanId, ticket.id, partial);
       this.ticket.set(updated);
+      return true;
     } catch {
       this.error.set("Échec de l'enregistrement.");
+      return false;
     }
   }
 
@@ -316,10 +339,6 @@ export class TicketDetail implements OnInit {
     this.patch({ priority: value });
   }
 
-  updateAssignee(userId: number | null): void {
-    this.patch({ assigned_user_id: userId });
-  }
-
   updateTag(tagId: number | null): void {
     this.patch({ tag_id: tagId });
   }
@@ -330,6 +349,41 @@ export class TicketDetail implements OnInit {
 
   updateDueDate(value: string): void {
     this.patch({ due_date: value || null });
+  }
+
+  openAssignmentDialog(): void {
+    this.assignmentDialogOpen.set(true);
+  }
+
+  async saveAssignment(input: AssignmentInput): Promise<void> {
+    try {
+      const updated = await this.cardAssigneesService.upsert(this.kanbanId, this.ticketId, input);
+      this.ticket.set(updated);
+      const [assignees, assignmentHistory] = await Promise.all([
+        this.cardAssigneesService.list(this.kanbanId, this.ticketId),
+        this.cardAssigneesService.history(this.kanbanId, this.ticketId),
+      ]);
+      this.assignees.set(assignees);
+      this.assignmentHistory.set(assignmentHistory);
+      this.assignmentDialogOpen.set(false);
+    } catch {
+      this.error.set("Échec de la mise à jour des responsables.");
+    }
+  }
+
+  async removeAssignee(userId: number): Promise<void> {
+    if (!confirm('Retirer cette personne des responsables du ticket ?')) return;
+    try {
+      await this.cardAssigneesService.remove(this.kanbanId, this.ticketId, userId);
+      const [assignees, assignmentHistory] = await Promise.all([
+        this.cardAssigneesService.list(this.kanbanId, this.ticketId),
+        this.cardAssigneesService.history(this.kanbanId, this.ticketId),
+      ]);
+      this.assignees.set(assignees);
+      this.assignmentHistory.set(assignmentHistory);
+    } catch {
+      this.error.set("Échec du retrait du responsable.");
+    }
   }
 
   isPublished(): boolean {
@@ -385,14 +439,35 @@ export class TicketDetail implements OnInit {
     this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
   }
 
-  async onDescriptionPaste(event: ClipboardEvent): Promise<void> {
-    await this.handleImagePaste(event, () => {
-      this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
-    });
+  // Dans un `contenteditable`, un clic simple sur un lien place juste le curseur au lieu
+  // de naviguer : on l'ouvre nous-mêmes dans un nouvel onglet.
+  onEditableContentClick(event: MouseEvent): void {
+    openRichTextLinkOnClick(event);
   }
 
-  saveDescription(): void {
-    this.patch({ description: stripCardImageSrc(this.descriptionDraftHtml()) || null });
+  async onDescriptionPaste(event: ClipboardEvent): Promise<void> {
+    const onInsert = () => this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
+    if (await this.handleImagePaste(event, onInsert)) return;
+    this.handleLinkPaste(event, onInsert);
+  }
+
+  // La description est en lecture seule par défaut (pour éviter toute modification
+  // accidentelle) ; ces trois méthodes gèrent le bascule vers/depuis le mode édition.
+  startEditingDescription(): void {
+    this.descriptionDraftHtml.set(this.descriptionHtml());
+    this.descriptionEditing.set(true);
+  }
+
+  cancelEditingDescription(): void {
+    this.descriptionEditing.set(false);
+  }
+
+  async saveDescription(): Promise<void> {
+    const saved = await this.patch({ description: stripCardImageSrc(this.descriptionDraftHtml()) || null });
+    if (!saved) return;
+    const ticket = this.ticket();
+    this.descriptionHtml.set(hydrateCardImages(ticket?.description ?? '', this.images()));
+    this.descriptionEditing.set(false);
   }
 
   formatDescription(command: RichTextCommand): void {
@@ -422,9 +497,9 @@ export class TicketDetail implements OnInit {
   }
 
   async onCommentPaste(event: ClipboardEvent): Promise<void> {
-    await this.handleImagePaste(event, () => {
-      this.newCommentDraftHtml.set((event.target as HTMLElement).innerHTML);
-    });
+    const onInsert = () => this.newCommentDraftHtml.set((event.target as HTMLElement).innerHTML);
+    if (await this.handleImagePaste(event, onInsert)) return;
+    this.handleLinkPaste(event, onInsert);
   }
 
   async onCommentImageSelected(event: Event): Promise<void> {
@@ -512,13 +587,15 @@ export class TicketDetail implements OnInit {
     return `<img src="${image.data_url}" data-card-image-id="${image.id}" alt="" class="max-w-full rounded">`;
   }
 
-  private async handleImagePaste(event: ClipboardEvent, onInsert: () => void): Promise<void> {
+  // Renvoie true si le collage a été pris en charge (image trouvée), pour que l'appelant
+  // sache qu'il ne doit pas retenter d'autres traitements (ex. auto-détection de lien).
+  private async handleImagePaste(event: ClipboardEvent, onInsert: () => void): Promise<boolean> {
     const items = event.clipboardData?.items;
-    if (!items) return;
+    if (!items) return false;
     const imageItem = Array.from(items).find((item) => item.type.startsWith('image/'));
-    if (!imageItem) return;
+    if (!imageItem) return false;
     const file = imageItem.getAsFile();
-    if (!file) return;
+    if (!file) return false;
     event.preventDefault();
     try {
       const image = await this.cardImagesService.upload(this.kanbanId, this.ticketId, file);
@@ -528,6 +605,21 @@ export class TicketDetail implements OnInit {
     } catch {
       this.error.set("Échec de l'ajout de l'image.");
     }
+    return true;
+  }
+
+  // Si le texte collé est entièrement une URL, on l'insère directement comme lien cliquable
+  // plutôt qu'en texte brut. Renvoie true si pris en charge (sinon le collage par défaut du
+  // navigateur suit son cours, ex. pour un texte enrichi copié depuis une autre page).
+  private handleLinkPaste(event: ClipboardEvent, onInsert: () => void): boolean {
+    const text = event.clipboardData?.getData?.('text/plain');
+    if (!text) return false;
+    const linkHtml = linkifyPastedUrl(text);
+    if (!linkHtml) return false;
+    event.preventDefault();
+    document.execCommand('insertHTML', false, linkHtml);
+    onInsert();
+    return true;
   }
 
   canDeleteComment(comment: Comment): boolean {

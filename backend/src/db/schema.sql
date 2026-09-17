@@ -98,3 +98,33 @@ CREATE TABLE IF NOT EXISTS card_images (
 );
 
 CREATE INDEX IF NOT EXISTS idx_card_images_card ON card_images(card_id);
+
+-- Responsables additionnels d'un ticket, en plus du responsable principal
+-- (cards.assigned_user_id). Une personne ne peut pas être à la fois responsable
+-- principal et responsable additionnel du même ticket (géré côté applicatif).
+CREATE TABLE IF NOT EXISTS card_assignees (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (card_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_assignees_card ON card_assignees(card_id);
+
+-- Historique des ajouts/remplacements/retraits de responsable, avec la raison donnée et
+-- l'éventuel changement de statut effectué dans la même action.
+CREATE TABLE IF NOT EXISTS card_assignment_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  action TEXT NOT NULL CHECK(action IN ('add','replace','remove')),
+  previous_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  new_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  reason TEXT,
+  previous_status TEXT,
+  new_status TEXT,
+  performed_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_assignment_history_card ON card_assignment_history(card_id);

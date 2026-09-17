@@ -38,66 +38,132 @@
         />
 
         <section class="mt-4 rounded-lg border border-gray-200 bg-white p-4">
-          <h2 class="mb-2 text-sm font-semibold text-gray-700">Description</h2>
-          <div class="mb-1 flex flex-wrap items-center gap-1">
-            <button
-              type="button"
-              class="rounded border border-gray-200 px-2 py-1 text-xs font-bold text-gray-600 hover:bg-gray-50"
-              title="Gras"
-              (click)="formatDescription('bold')"
-            >
-              G
-            </button>
-            <button
-              type="button"
-              class="rounded border border-gray-200 px-2 py-1 text-xs italic text-gray-600 hover:bg-gray-50"
-              title="Italique"
-              (click)="formatDescription('italic')"
-            >
-              I
-            </button>
-            <button
-              type="button"
-              class="rounded border border-gray-200 px-2 py-1 text-xs line-through text-gray-600 hover:bg-gray-50"
-              title="Barré"
-              (click)="formatDescription('strike')"
-            >
-              B
-            </button>
-            <button
-              type="button"
-              class="rounded border border-gray-200 px-2 py-1 text-xs font-mono text-gray-600 hover:bg-gray-50"
-              title="Code"
-              (click)="formatDescription('code')"
-            >
-              &lt;/&gt;
-            </button>
-            <span class="mx-1 h-4 w-px bg-gray-200"></span>
-            @for (color of richTextColors; track color.className) {
+          <div class="mb-2 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-gray-700">Description</h2>
+            @if (!descriptionEditing()) {
               <button
                 type="button"
-                class="h-5 w-5 rounded-full border border-gray-200"
-                [class]="color.swatchClass"
-                [title]="color.label"
-                (click)="formatDescription(color.className)"
-              ></button>
+                class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                title="Modifier la description"
+                (click)="startEditingDescription()"
+              >
+                ✏️
+              </button>
             }
           </div>
-          <div
-            #descriptionEditor
-            contenteditable="true"
-            class="min-h-[8rem] w-full rounded-md border border-gray-200 p-2 text-sm whitespace-pre-wrap text-gray-800 focus:border-blue-400 focus:outline-none"
-            [innerHTML]="descriptionHtml()"
-            (input)="onDescriptionInput($event)"
-            (paste)="onDescriptionPaste($event)"
-          ></div>
-          <button
-            type="button"
-            class="mt-2 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-            (click)="saveDescription()"
-          >
-            Enregistrer
-          </button>
+
+          @if (descriptionEditing()) {
+            <div class="mb-1 flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs font-bold text-gray-600 hover:bg-gray-50"
+                title="Gras"
+                (click)="formatDescription('bold')"
+              >
+                G
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs italic text-gray-600 hover:bg-gray-50"
+                title="Italique"
+                (click)="formatDescription('italic')"
+              >
+                I
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs line-through text-gray-600 hover:bg-gray-50"
+                title="Barré"
+                (click)="formatDescription('strike')"
+              >
+                B
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs underline text-gray-600 hover:bg-gray-50"
+                title="Souligné"
+                (click)="formatDescription('underline')"
+              >
+                U
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs font-mono text-gray-600 hover:bg-gray-50"
+                title="Code"
+                (click)="formatDescription('code')"
+              >
+                &lt;/&gt;
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                title="Lien"
+                (click)="formatDescription('link')"
+              >
+                🔗
+              </button>
+              <span class="mx-1 h-4 w-px bg-gray-200"></span>
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                title="Liste à puces"
+                (click)="formatDescription('ul')"
+              >
+                •—
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                title="Liste numérotée"
+                (click)="formatDescription('ol')"
+              >
+                1.
+              </button>
+              <span class="mx-1 h-4 w-px bg-gray-200"></span>
+              @for (color of richTextColors; track color.className) {
+                <button
+                  type="button"
+                  class="h-5 w-5 rounded-full border border-gray-200"
+                  [class]="color.swatchClass"
+                  [title]="color.label"
+                  (click)="formatDescription(color.className)"
+                ></button>
+              }
+            </div>
+            <div
+              #descriptionEditor
+              contenteditable="true"
+              class="rich-text-content min-h-[8rem] w-full rounded-md border border-gray-200 p-2 text-sm whitespace-pre-wrap text-gray-800 focus:border-blue-400 focus:outline-none"
+              [innerHTML]="descriptionHtml()"
+              (input)="onDescriptionInput($event)"
+              (paste)="onDescriptionPaste($event)"
+              (click)="onEditableContentClick($event)"
+            ></div>
+            <div class="mt-2 flex gap-2">
+              <button
+                type="button"
+                class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                (click)="saveDescription()"
+              >
+                Enregistrer
+              </button>
+              <button
+                type="button"
+                class="rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                (click)="cancelEditingDescription()"
+              >
+                Annuler
+              </button>
+            </div>
+          } @else if (descriptionHtml()) {
+            <div
+              class="rich-text-content min-h-[2rem] w-full rounded-md p-2 text-sm whitespace-pre-wrap text-gray-800"
+              [innerHTML]="descriptionHtml()"
+              (click)="onCommentContentClick($event)"
+            ></div>
+          } @else {
+            <p class="p-2 text-sm text-gray-400">Aucune description.</p>
+          }
         </section>
 
         @if (clonedFrom() || clones().length > 0) {
@@ -326,7 +392,7 @@
                   }
                 </div>
                 <div
-                  class="mt-1 whitespace-pre-wrap text-sm text-gray-800"
+                  class="rich-text-content mt-1 whitespace-pre-wrap text-sm text-gray-800"
                   [innerHTML]="comment.body"
                   (click)="onCommentContentClick($event)"
                 ></div>
@@ -365,11 +431,44 @@
               </button>
               <button
                 type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs underline text-gray-600 hover:bg-gray-50"
+                title="Souligné"
+                (click)="formatComment('underline')"
+              >
+                U
+              </button>
+              <button
+                type="button"
                 class="rounded border border-gray-200 px-2 py-1 text-xs font-mono text-gray-600 hover:bg-gray-50"
                 title="Code"
                 (click)="formatComment('code')"
               >
                 &lt;/&gt;
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                title="Lien"
+                (click)="formatComment('link')"
+              >
+                🔗
+              </button>
+              <span class="mx-1 h-4 w-px bg-gray-200"></span>
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                title="Liste à puces"
+                (click)="formatComment('ul')"
+              >
+                •—
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                title="Liste numérotée"
+                (click)="formatComment('ol')"
+              >
+                1.
               </button>
               <span class="mx-1 h-4 w-px bg-gray-200"></span>
               @for (color of richTextColors; track color.className) {
@@ -391,9 +490,10 @@
               <div
                 #commentEditor
                 contenteditable="true"
-                class="min-h-[4.5rem] w-full rounded-md border border-gray-200 p-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
+                class="rich-text-content min-h-[4.5rem] w-full rounded-md border border-gray-200 p-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
                 (input)="onCommentInput($event)"
                 (paste)="onCommentPaste($event)"
+                (click)="onEditableContentClick($event)"
               ></div>
             </div>
             <div class="flex items-center justify-between">
@@ -468,14 +568,49 @@
           <dl class="flex flex-col gap-3 text-sm">
             <div class="flex items-center justify-between gap-2">
               <dt class="text-gray-500">Assigné</dt>
-              <dd>
-                <app-search-select
-                  [options]="assigneeOptions()"
-                  [value]="t.assigned_user_id"
-                  nullLabel="— Non assigné —"
-                  searchPlaceholder="Rechercher une personne..."
-                  (valueChange)="updateAssignee($event)"
-                />
+              <dd class="flex flex-wrap items-center justify-end gap-1">
+                @if (primaryAssignee(); as primary) {
+                  <span
+                    class="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-500 text-[10px] font-semibold text-white ring-2 ring-blue-200"
+                    [title]="primary.username + ' — responsable principal'"
+                  >
+                    @if (primary.avatar_url; as avatar) {
+                      <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                    } @else {
+                      {{ primary.username.charAt(0).toUpperCase() }}
+                    }
+                  </span>
+                } @else {
+                  <span class="text-xs text-gray-400">— Non assigné —</span>
+                }
+                @for (assignee of assignees(); track assignee.id) {
+                  <span
+                    class="group relative flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-400 text-[10px] font-semibold text-white"
+                    [title]="assignee.username"
+                  >
+                    @if (assignee.avatar_url; as avatar) {
+                      <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                    } @else {
+                      {{ assignee.username.charAt(0).toUpperCase() }}
+                    }
+                    <button
+                      type="button"
+                      class="absolute inset-0 hidden items-center justify-center bg-black/50 text-[10px] text-white group-hover:flex"
+                      title="Retirer des responsables"
+                      (click)="removeAssignee(assignee.user_id)"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                }
+                <button
+                  type="button"
+                  class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 text-xs text-gray-400 hover:border-gray-400 hover:text-gray-600"
+                  title="Gérer les responsables"
+                  (click)="openAssignmentDialog()"
+                >
+                  +
+                </button>
               </dd>
             </div>
 
@@ -534,6 +669,51 @@
           </dl>
         </div>
 
+        @if (assignmentHistory().length > 0) {
+          <div class="mt-3 rounded-lg border border-gray-200 bg-white p-4">
+            <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Historique</h2>
+            <div class="flex flex-col gap-3 text-sm">
+              @for (entry of assignmentHistory(); track entry.id) {
+                <div class="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                  <p class="text-gray-700">
+                    <span class="font-medium">{{ entry.performed_by_username || 'Utilisateur supprimé' }}</span>
+                    @switch (entry.action) {
+                      @case ('add') {
+                        a ajouté <span class="font-medium">{{ entry.new_username }}</span> comme responsable
+                      }
+                      @case ('replace') {
+                        a remplacé
+                        @if (entry.previous_username) {
+                          <span class="font-medium">{{ entry.previous_username }}</span>
+                        } @else {
+                          <span class="italic text-gray-400">quelqu'un</span>
+                        }
+                        par <span class="font-medium">{{ entry.new_username }}</span>
+                      }
+                      @case ('remove') {
+                        a retiré
+                        @if (entry.previous_username) {
+                          <span class="font-medium">{{ entry.previous_username }}</span>
+                        } @else {
+                          <span class="italic text-gray-400">une personne</span>
+                        }
+                        des responsables
+                      }
+                    }
+                  </p>
+                  @if (entry.reason) {
+                    <p class="mt-0.5 text-xs italic text-gray-500">« {{ entry.reason }} »</p>
+                  }
+                  @if (entry.previous_status && entry.new_status) {
+                    <p class="mt-0.5 text-xs text-gray-500">Statut : {{ entry.previous_status }} → {{ entry.new_status }}</p>
+                  }
+                  <p class="mt-0.5 text-xs text-gray-400">{{ formatDateTime(entry.created_at) }}</p>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
         <div class="mt-3 flex flex-col gap-0.5 px-1 text-xs text-gray-400">
           @if (t.created_at) {
             <span>Créé le {{ formatDateTime(t.created_at) }}</span>
@@ -562,6 +742,19 @@
     submitLabel="Cloner"
     (save)="createClone($event)"
     (cancelled)="cloneDialogOpen.set(false)"
+  />
+}
+
+@if (assignmentDialogOpen()) {
+  <app-assignment-dialog
+    [users]="users()"
+    [currentAssignedUserId]="ticket()?.assigned_user_id ?? null"
+    [currentAssigneeIds]="assigneeUserIds()"
+    [statusOptions]="statusOptions()"
+    [currentStatusValue]="statusValue()"
+    [statusLocked]="isPublished()"
+    (save)="saveAssignment($event)"
+    (cancelled)="assignmentDialogOpen.set(false)"
   />
 }
 
