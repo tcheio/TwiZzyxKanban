@@ -56,6 +56,29 @@ function normalizeLinkUrl(raw: string): string | null {
   }
 }
 
+// Ne matche que si le texte collé est *entièrement* une URL (rien d'autre autour) : on
+// évite ainsi de transformer par erreur un mot ordinaire contenant un point au milieu
+// d'une phrase collée.
+const STANDALONE_URL_RE = /^(?:https?:\/\/\S+|www\.\S+|mailto:\S+)$/i;
+
+function escapeHtmlText(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Si le texte collé est entièrement une URL, renvoie le HTML du lien correspondant
+ * (prêt à insérer via `execCommand('insertHTML', ...)`) ; sinon `null`, pour laisser le
+ * collage suivre son cours normal.
+ */
+export function linkifyPastedUrl(text: string): string | null {
+  const trimmed = text.trim();
+  if (!STANDALONE_URL_RE.test(trimmed)) return null;
+  const url = normalizeLinkUrl(trimmed);
+  if (!url) return null;
+  const href = url.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  return `<a href="${href}" target="_blank" rel="noopener noreferrer">${escapeHtmlText(trimmed)}</a>`;
+}
+
 function findAnchorInSelection(editor: HTMLElement): HTMLAnchorElement | null {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) return null;

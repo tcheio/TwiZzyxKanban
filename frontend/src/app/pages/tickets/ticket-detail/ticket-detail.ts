@@ -23,7 +23,13 @@ import { Epic } from '../../../models/epic.model';
 import { epicBadgeClass, epicDotClass } from '../../../shared/epic-colors';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { stripCardImageSrc, hydrateCardImages } from '../../../shared/card-image-html';
-import { RICH_TEXT_COLORS, applyRichTextCommand, openRichTextLinkOnClick, RichTextCommand } from '../../../shared/rich-text';
+import {
+  RICH_TEXT_COLORS,
+  applyRichTextCommand,
+  openRichTextLinkOnClick,
+  linkifyPastedUrl,
+  RichTextCommand,
+} from '../../../shared/rich-text';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
 import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from '../../../shared/ticket-status';
@@ -395,9 +401,9 @@ export class TicketDetail implements OnInit {
   }
 
   async onDescriptionPaste(event: ClipboardEvent): Promise<void> {
-    await this.handleImagePaste(event, () => {
-      this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
-    });
+    const onInsert = () => this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
+    if (await this.handleImagePaste(event, onInsert)) return;
+    this.handleLinkPaste(event, onInsert);
   }
 
   // La description est en lecture seule par défaut (pour éviter toute modification
@@ -446,9 +452,9 @@ export class TicketDetail implements OnInit {
   }
 
   async onCommentPaste(event: ClipboardEvent): Promise<void> {
-    await this.handleImagePaste(event, () => {
-      this.newCommentDraftHtml.set((event.target as HTMLElement).innerHTML);
-    });
+    const onInsert = () => this.newCommentDraftHtml.set((event.target as HTMLElement).innerHTML);
+    if (await this.handleImagePaste(event, onInsert)) return;
+    this.handleLinkPaste(event, onInsert);
   }
 
   async onCommentImageSelected(event: Event): Promise<void> {
@@ -536,13 +542,15 @@ export class TicketDetail implements OnInit {
     return `<img src="${image.data_url}" data-card-image-id="${image.id}" alt="" class="max-w-full rounded">`;
   }
 
-  private async handleImagePaste(event: ClipboardEvent, onInsert: () => void): Promise<void> {
+  // Renvoie true si le collage a été pris en charge (image trouvée), pour que l'appelant
+  // sache qu'il ne doit pas retenter d'autres traitements (ex. auto-détection de lien).
+  private async handleImagePaste(event: ClipboardEvent, onInsert: () => void): Promise<boolean> {
     const items = event.clipboardData?.items;
-    if (!items) return;
+    if (!items) return false;
     const imageItem = Array.from(items).find((item) => item.type.startsWith('image/'));
-    if (!imageItem) return;
+    if (!imageItem) return false;
     const file = imageItem.getAsFile();
-    if (!file) return;
+    if (!file) return false;
     event.preventDefault();
     try {
       const image = await this.cardImagesService.upload(this.kanbanId, this.ticketId, file);
@@ -552,6 +560,21 @@ export class TicketDetail implements OnInit {
     } catch {
       this.error.set("Échec de l'ajout de l'image.");
     }
+    return true;
+  }
+
+  // Si le texte collé est entièrement une URL, on l'insère directement comme lien cliquable
+  // plutôt qu'en texte brut. Renvoie true si pris en charge (sinon le collage par défaut du
+  // navigateur suit son cours, ex. pour un texte enrichi copié depuis une autre page).
+  private handleLinkPaste(event: ClipboardEvent, onInsert: () => void): boolean {
+    const text = event.clipboardData?.getData?.('text/plain');
+    if (!text) return false;
+    const linkHtml = linkifyPastedUrl(text);
+    if (!linkHtml) return false;
+    event.preventDefault();
+    document.execCommand('insertHTML', false, linkHtml);
+    onInsert();
+    return true;
   }
 
   canDeleteComment(comment: Comment): boolean {

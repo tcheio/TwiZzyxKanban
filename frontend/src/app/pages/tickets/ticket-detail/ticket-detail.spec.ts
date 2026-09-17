@@ -511,6 +511,14 @@ describe('TicketDetail', () => {
     } as unknown as ClipboardEvent;
   }
 
+  function fakeTextPasteEvent(target: HTMLElement, text: string): ClipboardEvent {
+    return {
+      clipboardData: { items: [{ type: 'text/plain', getAsFile: () => null }], getData: () => text },
+      preventDefault: vi.fn(),
+      target,
+    } as unknown as ClipboardEvent;
+  }
+
   it('onDescriptionPaste() uploade une image collée et l\'insère via execCommand', async () => {
     await component.reload();
     const editor = document.createElement('div');
@@ -546,6 +554,52 @@ describe('TicketDetail', () => {
 
     expect(event.preventDefault).not.toHaveBeenCalled();
     expect(cardImagesService.upload).not.toHaveBeenCalled();
+  });
+
+  it('onDescriptionPaste() transforme une URL collée seule en lien cliquable', async () => {
+    await component.reload();
+    const editor = document.createElement('div');
+    const event = fakeTextPasteEvent(editor, 'https://exemple.com/doc');
+    const execSpy = ((document as unknown as { execCommand: typeof vi.fn }).execCommand = vi
+      .fn()
+      .mockReturnValue(true));
+
+    await component.onDescriptionPaste(event);
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(execSpy).toHaveBeenCalledWith(
+      'insertHTML',
+      false,
+      '<a href="https://exemple.com/doc" target="_blank" rel="noopener noreferrer">https://exemple.com/doc</a>'
+    );
+  });
+
+  it('onCommentPaste() transforme une URL collée seule en lien cliquable', async () => {
+    await component.reload();
+    const editor = document.createElement('div');
+    const event = fakeTextPasteEvent(editor, 'www.exemple.com');
+    const execSpy = ((document as unknown as { execCommand: typeof vi.fn }).execCommand = vi
+      .fn()
+      .mockReturnValue(true));
+
+    await component.onCommentPaste(event);
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(execSpy).toHaveBeenCalledWith(
+      'insertHTML',
+      false,
+      '<a href="https://www.exemple.com/" target="_blank" rel="noopener noreferrer">www.exemple.com</a>'
+    );
+  });
+
+  it('onCommentPaste() laisse passer un collage de texte qui contient juste un mot avec un point', async () => {
+    await component.reload();
+    const editor = document.createElement('div');
+    const event = fakeTextPasteEvent(editor, 'e.g. ceci est une phrase normale');
+
+    await component.onCommentPaste(event);
+
+    expect(event.preventDefault).not.toHaveBeenCalled();
   });
 
   it('onCommentPaste() uploade une image collée dans le commentaire', async () => {
