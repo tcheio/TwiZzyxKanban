@@ -299,4 +299,12 @@ export class Board implements OnInit {
   openTicket(card: Card): void {
     this.router.navigate(['/kanbans', `${this.kanban.code}-${card.id}`]);
   }
+
+  goToTag(tagId: number): void {
+    this.router.navigate(['/kanbans', this.kanban.code, 'tags', tagId]);
+  }
+
+  goToEpic(epicId: number): void {
+    this.router.navigate(['/kanbans', this.kanban.code, 'epics', epicId]);
+  }
 }

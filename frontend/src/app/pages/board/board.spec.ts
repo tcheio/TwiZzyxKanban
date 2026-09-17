@@ -143,6 +143,16 @@ describe('Board', () => {
     expect(navigate).toHaveBeenCalledWith(['/kanbans', `TK-TEST-${baseCards[0].id}`]);
   });
 
+  it('goToTag() navigue vers la page du tag sélectionné', () => {
+    component.goToTag(1);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST', 'tags', 1]);
+  });
+
+  it('goToEpic() navigue vers la page de l\'EPIC sélectionnée', () => {
+    component.goToEpic(3);
+    expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST', 'epics', 3]);
+  });
+
   it('drop() réordonne dans la même colonne et appelle move() avec le bon index', async () => {
     await component.reload();
     const containerData = component.groups()[0].cards;
