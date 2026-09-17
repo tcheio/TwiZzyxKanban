@@ -1,0 +1,48 @@
+<div class="relative inline-block text-left">
+  <button
+    type="button"
+    class="flex h-7 items-center gap-1.5 rounded-md border border-border-strong px-1.5 text-xs text-text-soft hover:bg-surface-muted"
+    title="Émote du tag"
+    (click)="toggle()"
+  >
+    <span class="flex h-5 w-5 shrink-0 items-center justify-center">
+      @if (value) {
+        <img [src]="value" alt="" class="h-4 w-4 object-contain" />
+      } @else {
+        <span class="text-[10px] text-text-faint">✕</span>
+      }
+    </span>
+    <span class="max-w-20 truncate">{{ selectedLabel ?? 'Aucun émote' }}</span>
+    <svg viewBox="0 0 20 20" class="h-3 w-3 shrink-0 fill-text-faint">
+      <path d="M5.5 7.5l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </button>
+
+  @if (open()) {
+    <div class="absolute left-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-md border border-border bg-surface shadow-lg">
+      <ul class="max-h-56 overflow-y-auto py-1">
+        <li
+          class="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-sm text-text-soft hover:bg-surface-alt"
+          [class.bg-brand-soft]="value === null"
+          (click)="choose(null)"
+        >
+          <span class="flex h-5 w-5 shrink-0 items-center justify-center text-[10px] text-text-faint">✕</span>
+          Aucun émote
+        </li>
+        @for (emote of emotes(); track emote.path) {
+          <li
+            class="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-sm text-text-soft hover:bg-surface-alt"
+            [class.bg-brand-soft]="value === emote.path"
+            (click)="choose(emote.path)"
+          >
+            <img [src]="emote.path" [alt]="emote.label" class="h-5 w-5 shrink-0 object-contain" />
+            <span class="truncate">{{ emote.label }}</span>
+          </li>
+        }
+        @if (emotes().length === 0) {
+          <li class="px-2.5 py-1.5 text-sm text-text-faint">Aucun émote disponible</li>
+        }
+      </ul>
+    </div>
+  }
+</div>

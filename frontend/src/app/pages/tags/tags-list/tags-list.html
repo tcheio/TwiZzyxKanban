@@ -49,6 +49,7 @@
           ></button>
         }
       </div>
+      <app-emote-picker [value]="newTagEmote()" (valueChange)="newTagEmote.set($event)" />
       <button type="submit" class="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-hover">
         Créer
       </button>
@@ -92,6 +93,7 @@
                   ></button>
                 }
               </div>
+              <app-emote-picker [value]="editEmote()" (valueChange)="editEmote.set($event)" />
               <button type="submit" class="rounded-md bg-brand px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-hover">
                 Enregistrer
               </button>
@@ -104,7 +106,12 @@
               </button>
             </form>
           } @else {
-            <span class="tag-name rounded px-2 py-0.5 text-xs font-medium" [class]="tagClass(tag)">{{ tag.name }}</span>
+            <span class="tag-name inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium" [class]="tagClass(tag)">
+              @if (tag.emote_url) {
+                <img [src]="tag.emote_url" alt="" class="h-3.5 w-3.5 shrink-0 object-contain" />
+              }
+              {{ tag.name }}
+            </span>
             <span class="ticket-count ml-auto shrink-0 text-xs text-text-faint">{{ ticketCount(tag.id) }} ticket(s)</span>
             @if (canManage) {
               <div class="actions flex shrink-0 items-center gap-1" (click)="$event.stopPropagation()">

@@ -13,8 +13,8 @@ describe('NewTicketDialog', () => {
   ];
   const users = [{ id: 1, username: 'alice' }];
   const tags = [
-    { id: 1, name: 'Minecraft', color: 'emerald' },
-    { id: 2, name: 'Pokémon', color: 'red' },
+    { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null },
+    { id: 2, name: 'Pokémon', color: 'red', emote_url: null },
   ];
   const epics = [
     { id: 1, name: 'TwiZzyx', color: 'red' },

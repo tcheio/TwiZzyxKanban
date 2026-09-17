@@ -120,10 +120,13 @@
               </div>
               @if (tagName(card.tag_id); as tag) {
                 <span
-                  class="mb-1.5 mt-1 inline-block cursor-pointer rounded px-2 py-0.5 text-[11px] font-medium hover:underline"
+                  class="mb-1.5 mt-1 inline-flex cursor-pointer items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium hover:underline"
                   [class]="tagClass(card.tag_id)"
                   (click)="$event.stopPropagation(); goToTag(card.tag_id!)"
                 >
+                  @if (tagEmote(card.tag_id); as emote) {
+                    <img [src]="emote" alt="" class="h-3 w-3 shrink-0 object-contain" />
+                  }
                   {{ tag }}
                 </span>
               }

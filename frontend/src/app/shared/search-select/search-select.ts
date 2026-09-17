@@ -18,6 +18,7 @@ export interface SearchSelectOption<T> {
   dotClass?: string;
   avatarUrl?: string | null;
   avatarInitial?: string;
+  iconUrl?: string | null;
 }
 
 interface SearchSelectEntry<T> {
@@ -27,6 +28,7 @@ interface SearchSelectEntry<T> {
   dotClass?: string;
   avatarUrl?: string | null;
   avatarInitial?: string;
+  iconUrl?: string | null;
 }
 
 let nextInstanceId = 0;

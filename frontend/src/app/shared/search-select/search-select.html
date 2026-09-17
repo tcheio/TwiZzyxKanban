@@ -20,7 +20,12 @@
       </span>
       <span class="truncate">{{ selected?.label }}</span>
     } @else if (selected?.badgeClass) {
-      <span class="rounded px-1.5 py-0.5 text-xs font-medium" [class]="selected?.badgeClass">{{ selected?.label }}</span>
+      <span class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium" [class]="selected?.badgeClass">
+        @if (selected?.iconUrl; as icon) {
+          <img [src]="icon" alt="" class="h-3 w-3 shrink-0 object-contain" />
+        }
+        {{ selected?.label }}
+      </span>
     } @else {
       @if (selected?.dotClass) {
         <span class="h-2 w-2 shrink-0 rounded-sm" [class]="selected?.dotClass"></span>
@@ -71,7 +76,12 @@
               <span class="h-2 w-2 shrink-0 rounded-sm" [class]="entry.dotClass"></span>
             }
             @if (entry.badgeClass) {
-              <span class="rounded px-1.5 py-0.5 text-xs font-medium" [class]="entry.badgeClass">{{ entry.label }}</span>
+              <span class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium" [class]="entry.badgeClass">
+                @if (entry.iconUrl; as icon) {
+                  <img [src]="icon" alt="" class="h-3 w-3 shrink-0 object-contain" />
+                }
+                {{ entry.label }}
+              </span>
             } @else {
               <span class="truncate" [class.text-text-faint]="entry.id === null">{{ entry.label }}</span>
             }

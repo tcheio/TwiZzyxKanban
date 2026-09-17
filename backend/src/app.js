@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const kanbansRoutes = require('./routes/kanbans.routes');
 const searchRoutes = require('./routes/search.routes');
+const emotesRoutes = require('./routes/emotes.routes');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', requireAuth, usersRoutes);
 app.use('/api/kanbans', requireAuth, kanbansRoutes);
 app.use('/api/search', requireAuth, searchRoutes);
+app.use('/api/tag-emotes', requireAuth, emotesRoutes);
 
 // --- Service du frontend Angular buildé ---
 // Angular 17+ (et donc Angular 21 utilisé ici) génère la sortie dans un

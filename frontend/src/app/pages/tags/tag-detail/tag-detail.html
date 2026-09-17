@@ -13,7 +13,12 @@
     </a>
 
     <div class="mb-6 flex items-center gap-3">
-      <span class="rounded px-2.5 py-1 text-base font-semibold" [class]="tagClass()">{{ t.name }}</span>
+      <span class="inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-base font-semibold" [class]="tagClass()">
+        @if (t.emote_url) {
+          <img [src]="t.emote_url" alt="" class="h-5 w-5 shrink-0 object-contain" />
+        }
+        {{ t.name }}
+      </span>
       <span class="text-sm text-text-faint">{{ tickets().length }} ticket(s)</span>
     </div>
 

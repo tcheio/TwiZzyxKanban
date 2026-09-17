@@ -160,6 +160,11 @@ export class TicketsList implements OnInit {
     return tagBadgeClass(this.tags().find((t) => t.id === tagId)?.color);
   }
 
+  tagEmote(tagId: number | null): string | null {
+    if (!tagId) return null;
+    return this.tags().find((t) => t.id === tagId)?.emote_url ?? null;
+  }
+
   epicClass(epicId: number | null): string {
     if (!epicId) return '';
     const color = this.epics().find((e) => e.id === epicId)?.color;
@@ -171,7 +176,7 @@ export class TicketsList implements OnInit {
   }
 
   tagFilterOptions(): SearchSelectOption<number>[] {
-    return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.color) }));
+    return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.color), iconUrl: t.emote_url }));
   }
 
   epicFilterOptions(): SearchSelectOption<number>[] {

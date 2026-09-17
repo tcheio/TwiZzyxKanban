@@ -245,6 +245,11 @@ export class Board implements OnInit {
     return tagBadgeClass(color);
   }
 
+  tagEmote(tagId: number | null): string | null {
+    if (!tagId) return null;
+    return this.tags().find((t) => t.id === tagId)?.emote_url ?? null;
+  }
+
   epicName(epicId: number | null): string | null {
     if (!epicId) return null;
     return this.epics().find((e) => e.id === epicId)?.name ?? null;

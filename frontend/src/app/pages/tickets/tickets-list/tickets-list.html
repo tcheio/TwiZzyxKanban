@@ -100,7 +100,10 @@
               </td>
               <td class="px-4 py-2.5">
                 @if (ticket.tag_id) {
-                  <span class="tag-badge rounded px-1.5 py-0.5 text-xs font-medium" [class]="tagClass(ticket.tag_id)">
+                  <span class="tag-badge inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium" [class]="tagClass(ticket.tag_id)">
+                    @if (tagEmote(ticket.tag_id); as emote) {
+                      <img [src]="emote" alt="" class="h-3 w-3 shrink-0 object-contain" />
+                    }
                     {{ tagName(ticket.tag_id) }}
                   </span>
                 } @else {

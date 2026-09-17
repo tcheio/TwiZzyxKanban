@@ -7,10 +7,11 @@ import { Tag } from '../../../models/tag.model';
 import { Card } from '../../../models/card.model';
 import { Kanban } from '../../../models/kanban.model';
 import { TAG_COLORS, tagBadgeClass, tagDotClass } from '../../../shared/tag-colors';
+import { EmotePicker } from '../../../shared/emote-picker/emote-picker';
 
 @Component({
   selector: 'app-tags-list',
-  imports: [FormsModule],
+  imports: [FormsModule, EmotePicker],
   templateUrl: './tags-list.html',
 })
 export class TagsList implements OnInit {
@@ -33,10 +34,12 @@ export class TagsList implements OnInit {
   readonly creating = signal(false);
   readonly newTagName = signal('');
   readonly newTagColor = signal(TAG_COLORS[0]);
+  readonly newTagEmote = signal<string | null>(null);
 
   readonly editingId = signal<number | null>(null);
   readonly editName = signal('');
   readonly editColor = signal('');
+  readonly editEmote = signal<string | null>(null);
 
   async ngOnInit(): Promise<void> {
     await this.reload();
@@ -75,9 +78,10 @@ export class TagsList implements OnInit {
     const name = this.newTagName().trim();
     if (!name) return;
     try {
-      await this.tagsService.create(this.kanbanId, name, this.newTagColor());
+      await this.tagsService.create(this.kanbanId, name, this.newTagColor(), this.newTagEmote());
       this.newTagName.set('');
       this.newTagColor.set(TAG_COLORS[0]);
+      this.newTagEmote.set(null);
       this.creating.set(false);
       await this.reload();
     } catch {
@@ -89,6 +93,7 @@ export class TagsList implements OnInit {
     this.editingId.set(tag.id);
     this.editName.set(tag.name);
     this.editColor.set(tag.color);
+    this.editEmote.set(tag.emote_url);
   }
 
   cancelEdit(): void {
@@ -98,10 +103,11 @@ export class TagsList implements OnInit {
   async saveEdit(tag: Tag): Promise<void> {
     const trimmed = this.editName().trim();
     const color = this.editColor();
+    const emote = this.editEmote();
     this.editingId.set(null);
-    if (!trimmed || (trimmed === tag.name && color === tag.color)) return;
+    if (!trimmed || (trimmed === tag.name && color === tag.color && emote === tag.emote_url)) return;
     try {
-      await this.tagsService.update(this.kanbanId, tag.id, { name: trimmed, color });
+      await this.tagsService.update(this.kanbanId, tag.id, { name: trimmed, color, emote_url: emote });
       await this.reload();
     } catch {
       this.error.set('Échec du renommage du tag.');
