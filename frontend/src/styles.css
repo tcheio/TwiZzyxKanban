@@ -39,6 +39,10 @@
   --color-danger-hover: #b91c1c;
   --color-danger-soft: #fef2f2;
 
+  /* Succès / éléments publiés */
+  --color-success: #16a34a;
+  --color-success-soft: #f0fdf4;
+
   /* Accent (bandeau header/footer) */
   --color-accent: #c4b5fd;
   --color-accent-text: #1f2937;
@@ -66,6 +70,9 @@
   --color-danger: #f87171;
   --color-danger-hover: #fca5a5;
   --color-danger-soft: #3f1d1d;
+
+  --color-success: #4ade80;
+  --color-success-soft: #14291d;
 
   --color-accent: #3f3763;
   --color-accent-text: #e5e7eb;

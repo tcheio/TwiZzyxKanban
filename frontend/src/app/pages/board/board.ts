@@ -273,7 +273,7 @@ export class Board implements OnInit {
     return ageDays < PUBLISHED_RETENTION_DAYS;
   }
 
-  private isPublished(card: Card): boolean {
+  isPublished(card: Card): boolean {
     return this.groups().find((g) => g.column.id === card.column_id)?.column.name === PUBLISHED_COLUMN_NAME;
   }
 

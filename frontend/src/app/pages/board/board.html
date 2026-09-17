@@ -96,7 +96,8 @@
         >
           @for (card of visibleCards(group); track card.id) {
             <div
-              class="cursor-grab rounded-md border border-border bg-surface p-3 shadow-md transition-shadow hover:shadow-lg"
+              class="cursor-grab rounded-md bg-surface p-3 shadow-md transition-shadow hover:shadow-lg"
+              [class]="isPublished(card) ? 'border-2 border-success' : 'border border-border'"
               cdkDrag
               [cdkDragData]="card"
               (cdkDragStarted)="onDragStarted()"
@@ -128,9 +129,8 @@
               }
               @if (card.due_date) {
                 <div
-                  class="mt-1.5 text-xs text-text-muted"
-                  [class.text-danger]="isDueSoon(card.due_date)"
-                  [class.font-semibold]="isDueSoon(card.due_date)"
+                  class="mt-1.5 text-xs"
+                  [class]="isDueSoon(card.due_date) ? 'font-semibold text-danger' : 'text-text-muted'"
                 >
                   Échéance : {{ formatDate(card.due_date) }}
                 </div>
