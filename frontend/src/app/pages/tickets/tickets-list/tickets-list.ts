@@ -72,7 +72,7 @@ export class TicketsList implements OnInit {
     const assigneeId = this.filterAssigneeId();
     const columnId = this.filterColumnId();
     return this.tickets().filter((ticket) => {
-      if (tagId !== null && ticket.tag_id !== tagId) return false;
+      if (tagId !== null && ticket.tag_id !== tagId && !(ticket.tag_ids ?? []).includes(tagId)) return false;
       if (epicId !== null && ticket.epic_id !== epicId) return false;
       if (assigneeId !== null && ticket.assigned_user_id !== assigneeId) return false;
       if (columnId === CANCELLED_STATUS_ID) return !!ticket.cancelled_at;

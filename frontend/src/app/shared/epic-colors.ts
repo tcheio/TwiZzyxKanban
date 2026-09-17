@@ -1,6 +1,3 @@
-// Le bg très clair (ex. bg-red-50) est peu lisible sur fond sombre : chaque couleur a donc
-// sa propre variante dark: (fond teinté à faible opacité + texte plus clair) plutôt que de
-// dépendre des jetons neutres (qui ne portent pas la teinte de la couleur choisie).
 export const EPIC_BADGE_CLASSES: Record<string, string> = {
   red: 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300',
   orange: 'bg-orange-50 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',

@@ -1,7 +1,3 @@
-// Palette fixe : les classes doivent apparaître littéralement quelque part dans le code
-// scanné par Tailwind (JIT) pour ne pas être purgées du CSS final, d'où l'absence de
-// concaténation dynamique de type `text-${color}-600`. La même liste de classes est
-// dupliquée côté backend (backend/src/utils/rich-text.js) pour la sanitization.
 export interface RichTextColor {
   label: string;
   className: string;

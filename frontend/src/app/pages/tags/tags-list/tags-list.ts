@@ -63,7 +63,7 @@ export class TagsList implements OnInit {
   }
 
   ticketCount(tagId: number): number {
-    return this.cards().filter((c) => c.tag_id === tagId).length;
+    return this.cards().filter((c) => c.tag_id === tagId || (c.tag_ids ?? []).includes(tagId)).length;
   }
 
   tagClass(tag: Tag): string {

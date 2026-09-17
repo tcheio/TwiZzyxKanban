@@ -19,4 +19,32 @@ function withKey(card, kanbanCode) {
   return { ...card, key: `${kanbanCode}-${card.id}` };
 }
 
-module.exports = { PUBLISHED_COLUMN_NAME, CANCELLED_STATUS_LABEL, isPublishedColumn, statusLabelFor, withKey };
+// Les tags additionnels (card_tags) sont ramenés en un tableau `tag_ids` embarqué sur la
+// carte elle-même (plutôt qu'un appel séparé comme pour les responsables) : le tableau
+// (board) affiche toutes les cartes d'un coup et doit pouvoir montrer ces tags sans
+// multiplier les requêtes par carte.
+function mapCardTags(card) {
+  const { extra_tag_ids, ...rest } = card;
+  return { ...rest, tag_ids: extra_tag_ids ? extra_tag_ids.split(',').map(Number) : [] };
+}
+
+function fetchCardWithTags(id) {
+  const card = db
+    .prepare(
+      `SELECT cards.*,
+              (SELECT GROUP_CONCAT(tag_id) FROM card_tags WHERE card_tags.card_id = cards.id) AS extra_tag_ids
+       FROM cards WHERE cards.id = ?`
+    )
+    .get(id);
+  return card ? mapCardTags(card) : card;
+}
+
+module.exports = {
+  PUBLISHED_COLUMN_NAME,
+  CANCELLED_STATUS_LABEL,
+  isPublishedColumn,
+  statusLabelFor,
+  withKey,
+  mapCardTags,
+  fetchCardWithTags,
+};
