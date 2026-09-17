@@ -1,5 +1,5 @@
 const db = require('../db/connection');
-const { PUBLISHED_COLUMN_NAME, isPublishedColumn, statusLabelFor, withKey, fetchCardWithTags } = require('../utils/card-status');
+const { PUBLISHED_COLUMN_NAME, isPublishedColumn, statusLabelFor, withKey, fetchCardWithRelations } = require('../utils/card-status');
 
 const VALID_ACTIONS = ['add', 'replace'];
 
@@ -180,7 +180,7 @@ function upsertAssignment(req, res) {
   });
   tx();
 
-  const updated = fetchCardWithTags(card.id);
+  const updated = fetchCardWithRelations(card.id);
   res.status(201).json(withKey(updated, req.kanbanCode));
 }
 

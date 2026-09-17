@@ -72,7 +72,11 @@ describe('Board', () => {
       due_date: null,
     },
   ];
-  const users = [{ id: 1, username: 'alice', avatar_url: 'data:image/jpeg;base64,abc' }];
+  const users = [
+    { id: 1, username: 'alice', avatar_url: 'data:image/jpeg;base64,abc' },
+    { id: 2, username: 'bob', avatar_url: null },
+    { id: 3, username: 'carol', avatar_url: null },
+  ];
   const tags = [
     { id: 1, name: 'Minecraft', color: 'emerald' },
     { id: 2, name: 'Aventure', color: 'sky' },
@@ -236,6 +240,29 @@ describe('Board', () => {
     expect(component.userAvatar(1)).toBe('data:image/jpeg;base64,abc');
     expect(component.userAvatar(null)).toBeNull();
     expect(component.userAvatar(999)).toBeNull();
+  });
+
+  it('cardAssigneeIds() combine responsable principal et additionnels, null si personne', async () => {
+    await component.reload();
+
+    expect(component.cardAssigneeIds({ ...baseCards[2], assigned_user_id: 1, assignee_ids: [2, 3] })).toEqual([
+      1, 2, 3,
+    ]);
+    expect(component.cardAssigneeIds({ ...baseCards[2], assigned_user_id: 1 })).toEqual([1]);
+    expect(component.cardAssigneeIds({ ...baseCards[0], assigned_user_id: null, assignee_ids: [] })).toBeNull();
+  });
+
+  it('assigneeNames() joint les noms résolus', async () => {
+    await component.reload();
+    expect(component.assigneeNames([1, 2])).toBe('alice, bob');
+  });
+
+  it('visibleCards() filtre aussi sur un responsable additionnel', async () => {
+    cardsService.list.mockResolvedValue([{ ...baseCards[0], assigned_user_id: 3, assignee_ids: [2] }]);
+    await component.reload();
+    component.toggleAssigneeFilter(2);
+
+    expect(component.visibleCards(component.groups()[0]).map((c) => c.id)).toEqual([10]);
   });
 
   it('visibleCards() retourne toutes les cartes sans filtre, puis seulement celles du destinataire choisi', async () => {

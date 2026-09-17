@@ -155,11 +155,27 @@ export class Board implements OnInit {
     return this.users().find((u) => u.id === id)?.avatar_url ?? null;
   }
 
+  // Responsable principal + additionnels, dans cet ordre. null si personne n'est assigné,
+  // pour permettre `@if (cardAssigneeIds(card); as ids)` dans le template (un tableau vide
+  // serait toujours "vrai").
+  cardAssigneeIds(card: Card): number[] | null {
+    const ids = [card.assigned_user_id, ...(card.assignee_ids ?? [])].filter(
+      (id): id is number => id !== null
+    );
+    return ids.length ? ids : null;
+  }
+
+  assigneeNames(ids: number[]): string {
+    return ids.map((id) => this.userName(id)).join(', ');
+  }
+
   visibleCards(group: ColumnGroup): Card[] {
     const assigneeId = this.selectedAssigneeId();
     const query = this.searchQuery().trim().toLowerCase();
     const filtered = group.cards.filter((c) => {
-      if (assigneeId !== null && c.assigned_user_id !== assigneeId) return false;
+      if (assigneeId !== null && c.assigned_user_id !== assigneeId && !(c.assignee_ids ?? []).includes(assigneeId)) {
+        return false;
+      }
       if (query && !c.title.toLowerCase().includes(query)) return false;
       return true;
     });

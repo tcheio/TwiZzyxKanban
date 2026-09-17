@@ -1,5 +1,5 @@
 const db = require('../db/connection');
-const { withKey, fetchCardWithTags } = require('../utils/card-status');
+const { withKey, fetchCardWithRelations } = require('../utils/card-status');
 
 function getCardOr404(req, res) {
   const cardId = Number(req.params.id);
@@ -36,7 +36,7 @@ function addCardTag(req, res) {
 
   db.prepare('INSERT INTO card_tags (card_id, tag_id) VALUES (?, ?)').run(card.id, tag_id);
 
-  const updated = fetchCardWithTags(card.id);
+  const updated = fetchCardWithRelations(card.id);
   res.status(201).json(withKey(updated, req.kanbanCode));
 }
 
@@ -52,7 +52,7 @@ function removeCardTag(req, res) {
 
   db.prepare('DELETE FROM card_tags WHERE card_id = ? AND tag_id = ?').run(card.id, tagId);
 
-  const updated = fetchCardWithTags(card.id);
+  const updated = fetchCardWithRelations(card.id);
   res.json(withKey(updated, req.kanbanCode));
 }
 
