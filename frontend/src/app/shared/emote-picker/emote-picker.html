@@ -1,8 +1,9 @@
 <div class="relative inline-block text-left">
   <button
+    #trigger
     type="button"
     class="flex h-7 items-center gap-1.5 rounded-md border border-border-strong px-1.5 text-xs text-text-soft hover:bg-surface-muted"
-    title="Émote du tag"
+    title="Émote"
     (click)="toggle()"
   >
     <span class="flex h-5 w-5 shrink-0 items-center justify-center">
@@ -19,7 +20,11 @@
   </button>
 
   @if (open()) {
-    <div class="absolute left-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-md border border-border bg-surface shadow-lg">
+    <div
+      class="fixed z-20 w-48 overflow-hidden rounded-md border border-border bg-surface shadow-lg"
+      [style.top.px]="panelPosition().top"
+      [style.left.px]="panelPosition().left"
+    >
       <ul class="max-h-56 overflow-y-auto py-1">
         <li
           class="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-sm text-text-soft hover:bg-surface-alt"

@@ -2,16 +2,16 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
-export interface TagEmote {
+export interface Emote {
   path: string;
   label: string;
 }
 
 @Injectable({ providedIn: 'root' })
-export class TagEmotesService {
+export class EmotesService {
   constructor(private readonly http: HttpClient) {}
 
-  list(): Promise<TagEmote[]> {
-    return firstValueFrom(this.http.get<TagEmote[]>('/api/tag-emotes'));
+  list(): Promise<Emote[]> {
+    return firstValueFrom(this.http.get<Emote[]>('/api/emotes'));
   }
 }

@@ -17,8 +17,8 @@ describe('NewTicketDialog', () => {
     { id: 2, name: 'Pokémon', color: 'red', emote_url: null },
   ];
   const epics = [
-    { id: 1, name: 'TwiZzyx', color: 'red' },
-    { id: 2, name: 'Twitch', color: 'violet' },
+    { id: 1, name: 'TwiZzyx', color: 'red', emote_url: null },
+    { id: 2, name: 'Twitch', color: 'violet', emote_url: null },
   ];
 
   function configure(): void {

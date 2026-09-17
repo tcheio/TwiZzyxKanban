@@ -15,6 +15,9 @@
     <div class="mb-6 flex items-center gap-3">
       <span class="inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-base font-semibold" [class]="epicClass()">
         <span class="h-2 w-2 rounded-full" [class]="epicDot()"></span>
+        @if (e.emote_url) {
+          <img [src]="e.emote_url" alt="" class="h-5 w-5 object-contain" />
+        }
         {{ e.name }}
       </span>
       <span class="text-sm text-text-faint">{{ tickets().length }} ticket(s)</span>

@@ -6,10 +6,11 @@ import {
   Input,
   OnInit,
   Output,
+  ViewChild,
   inject,
   signal,
 } from '@angular/core';
-import { TagEmote, TagEmotesService } from '../../services/tag-emotes.service';
+import { Emote, EmotesService } from '../../services/emotes.service';
 
 @Component({
   selector: 'app-emote-picker',
@@ -17,18 +18,24 @@ import { TagEmote, TagEmotesService } from '../../services/tag-emotes.service';
   templateUrl: './emote-picker.html',
 })
 export class EmotePicker implements OnInit {
-  private readonly tagEmotesService = inject(TagEmotesService);
+  private readonly emotesService = inject(EmotesService);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
 
   @Input() value: string | null = null;
   @Output() valueChange = new EventEmitter<string | null>();
 
-  readonly emotes = signal<TagEmote[]>([]);
+  @ViewChild('trigger') private readonly triggerRef?: ElementRef<HTMLButtonElement>;
+
+  readonly emotes = signal<Emote[]>([]);
   readonly open = signal(false);
+  // Position calculée dynamiquement (position: fixed) plutôt qu'un simple `absolute` :
+  // le picker est utilisé dans des listes avec `overflow-hidden` (lignes de tags/EPICs)
+  // qui, sinon, rognent le panneau déroulant au lieu de le laisser dépasser.
+  readonly panelPosition = signal({ top: 0, left: 0 });
 
   async ngOnInit(): Promise<void> {
     try {
-      this.emotes.set(await this.tagEmotesService.list());
+      this.emotes.set(await this.emotesService.list());
     } catch {
       this.emotes.set([]);
     }
@@ -39,6 +46,12 @@ export class EmotePicker implements OnInit {
   }
 
   toggle(): void {
+    if (!this.open()) {
+      const rect = this.triggerRef?.nativeElement.getBoundingClientRect();
+      if (rect) {
+        this.panelPosition.set({ top: rect.bottom + 4, left: rect.left });
+      }
+    }
     this.open.update((o) => !o);
   }
 

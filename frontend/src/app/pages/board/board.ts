@@ -261,6 +261,11 @@ export class Board implements OnInit {
     return epicBadgeClass(color);
   }
 
+  epicEmote(epicId: number | null): string | null {
+    if (!epicId) return null;
+    return this.epics().find((e) => e.id === epicId)?.emote_url ?? null;
+  }
+
   formatDate(dateStr: string): string {
     const [year, month, day] = dateStr.split('-');
     return `${day}-${month}-${year}`;

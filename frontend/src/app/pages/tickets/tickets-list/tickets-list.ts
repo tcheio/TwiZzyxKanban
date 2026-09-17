@@ -171,6 +171,11 @@ export class TicketsList implements OnInit {
     return epicBadgeClass(color);
   }
 
+  epicEmote(epicId: number | null): string | null {
+    if (!epicId) return null;
+    return this.epics().find((e) => e.id === epicId)?.emote_url ?? null;
+  }
+
   priorityDotClass(priority: string): string {
     return PRIORITY_DOT_CLASSES[priority] ?? PRIORITY_DOT_CLASSES['low'];
   }
@@ -180,7 +185,7 @@ export class TicketsList implements OnInit {
   }
 
   epicFilterOptions(): SearchSelectOption<number>[] {
-    return this.epics().map((e) => ({ id: e.id, label: e.name, badgeClass: epicBadgeClass(e.color) }));
+    return this.epics().map((e) => ({ id: e.id, label: e.name, badgeClass: epicBadgeClass(e.color), iconUrl: e.emote_url }));
   }
 
   assigneeFilterOptions(): SearchSelectOption<number>[] {

@@ -126,6 +126,9 @@
                   class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-text-soft hover:bg-surface-muted"
                 >
                   <span class="h-2.5 w-2.5 shrink-0 rounded-full" [class]="epicDotClass(epic.color)"></span>
+                  @if (epic.emote_url) {
+                    <img [src]="epic.emote_url" alt="" class="h-4 w-4 shrink-0 object-contain" />
+                  }
                   {{ epic.name }}
                 </a>
               }

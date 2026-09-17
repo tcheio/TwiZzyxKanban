@@ -202,7 +202,7 @@ export class TicketDetail implements OnInit {
   }
 
   epicOptions(): SearchSelectOption<number>[] {
-    return this.epics().map((e) => ({ id: e.id, label: e.name, badgeClass: epicBadgeClass(e.color) }));
+    return this.epics().map((e) => ({ id: e.id, label: e.name, badgeClass: epicBadgeClass(e.color), iconUrl: e.emote_url }));
   }
 
   readonly priorityOptions = PRIORITY_OPTIONS;

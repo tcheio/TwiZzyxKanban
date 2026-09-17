@@ -10,13 +10,13 @@ beforeEach(async () => {
   adminToken = await loginAs('admin', 'admin123');
 });
 
-test('GET /api/tag-emotes sans token retourne 401', async () => {
-  const res = await request(app).get('/api/tag-emotes');
+test('GET /api/emotes sans token retourne 401', async () => {
+  const res = await request(app).get('/api/emotes');
   assert.equal(res.status, 401);
 });
 
-test('GET /api/tag-emotes retourne les fichiers présents dans frontend/public/emote', async () => {
-  const res = await request(app).get('/api/tag-emotes').set('Authorization', `Bearer ${adminToken}`);
+test('GET /api/emotes retourne les fichiers présents dans frontend/public/emote', async () => {
+  const res = await request(app).get('/api/emotes').set('Authorization', `Bearer ${adminToken}`);
   assert.equal(res.status, 200);
   assert.ok(Array.isArray(res.body));
   assert.ok(res.body.every((e) => typeof e.path === 'string' && typeof e.label === 'string'));
