@@ -6,9 +6,11 @@ export interface Card {
   title: string;
   description: string | null;
   tag_id: number | null;
+  tag_ids?: number[];
   epic_id: number | null;
   cloned_from_id: number | null;
   assigned_user_id: number | null;
+  assignee_ids?: number[];
   priority: Priority;
   column_id: number;
   position: number;

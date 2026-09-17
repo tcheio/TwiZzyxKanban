@@ -121,17 +121,33 @@
               >
                 {{ card.title }}
               </div>
-              @if (tagName(card.tag_id); as tag) {
-                <span
-                  class="mb-1.5 mt-1 inline-flex cursor-pointer items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium hover:underline"
-                  [class]="tagClass(card.tag_id)"
-                  (click)="$event.stopPropagation(); goToTag(card.tag_id!)"
-                >
-                  @if (tagEmote(card.tag_id); as emote) {
-                    <img [src]="emote" alt="" class="h-3 w-3 shrink-0 object-contain" />
+              @if (tagName(card.tag_id) || card.tag_ids?.length) {
+                <div class="mb-1.5 mt-1 flex flex-wrap gap-1">
+                  @if (tagName(card.tag_id); as tag) {
+                    <span
+                      class="inline-flex cursor-pointer items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium hover:underline"
+                      [class]="tagClass(card.tag_id)"
+                      (click)="$event.stopPropagation(); goToTag(card.tag_id!)"
+                    >
+                      @if (tagEmote(card.tag_id); as emote) {
+                        <img [src]="emote" alt="" class="h-3 w-3 shrink-0 object-contain" />
+                      }
+                      {{ tag }}
+                    </span>
                   }
-                  {{ tag }}
-                </span>
+                  @for (extraTagId of card.tag_ids ?? []; track extraTagId) {
+                    <span
+                      class="inline-flex cursor-pointer items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium hover:underline"
+                      [class]="tagClass(extraTagId)"
+                      (click)="$event.stopPropagation(); goToTag(extraTagId)"
+                    >
+                      @if (tagEmote(extraTagId); as emote) {
+                        <img [src]="emote" alt="" class="h-3 w-3 shrink-0 object-contain" />
+                      }
+                      {{ tagName(extraTagId) }}
+                    </span>
+                  }
+                </div>
               }
               @if (card.due_date) {
                 <div
@@ -146,21 +162,46 @@
                   <span class="h-2 w-2 rounded-sm" [class]="priorityClass(card.priority)"></span>
                   {{ card.priority }}
                 </span>
-                @if (card.assigned_user_id) {
-                  <button
-                    type="button"
-                    class="inline-flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2 text-[11px] font-medium text-text-muted hover:bg-surface-muted"
-                    (click)="$event.stopPropagation(); toggleAssigneeFilter(card.assigned_user_id)"
-                  >
-                    <span class="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-brand text-[10px] font-semibold text-white">
-                      @if (userAvatar(card.assigned_user_id); as avatar) {
-                        <img [src]="avatar" class="h-full w-full object-cover" alt="" />
-                      } @else {
-                        {{ userInitial(card.assigned_user_id) }}
-                      }
-                    </span>
-                    {{ userName(card.assigned_user_id) }}
-                  </button>
+                @if (cardAssigneeIds(card); as assigneeIds) {
+                  @if (assigneeIds.length === 1) {
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2 text-[11px] font-medium text-text-muted hover:bg-surface-muted"
+                      (click)="$event.stopPropagation(); toggleAssigneeFilter(assigneeIds[0])"
+                    >
+                      <span class="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-brand text-[10px] font-semibold text-white">
+                        @if (userAvatar(assigneeIds[0]); as avatar) {
+                          <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                        } @else {
+                          {{ userInitial(assigneeIds[0]) }}
+                        }
+                      </span>
+                      {{ userName(assigneeIds[0]) }}
+                    </button>
+                  } @else {
+                    <!-- Plusieurs responsables : la carte garde sa taille, donc on ne peut pas se permettre
+                         un badge "nom complet" par personne — on retombe sur la pile d'avatars superposés
+                         (même style que le filtre en haut du tableau) + un résumé textuel court. -->
+                    <button
+                      type="button"
+                      class="inline-flex min-w-0 items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2 text-[11px] font-medium text-text-muted hover:bg-surface-muted"
+                      [title]="assigneeIds.length + ' responsables : ' + assigneeNames(assigneeIds)"
+                      (click)="$event.stopPropagation(); toggleAssigneeFilter(assigneeIds[0])"
+                    >
+                      <span class="flex -space-x-1.5">
+                        @for (uid of assigneeIds.slice(0, 3); track uid) {
+                          <span class="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-surface bg-brand text-[9px] font-semibold text-white">
+                            @if (userAvatar(uid); as avatar) {
+                              <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                            } @else {
+                              {{ userInitial(uid) }}
+                            }
+                          </span>
+                        }
+                      </span>
+                      <span class="truncate">{{ userName(assigneeIds[0]) }} et {{ assigneeIds.length - 1 }} autre{{ assigneeIds.length > 2 ? 's' : '' }}</span>
+                    </button>
+                  }
                 }
               </div>
             </div>

@@ -9,6 +9,7 @@ import { CommentsService } from '../../../services/comments.service';
 import { CardLinksService } from '../../../services/card-links.service';
 import { CardImagesService } from '../../../services/card-images.service';
 import { CardAssigneesService } from '../../../services/card-assignees.service';
+import { CardTagsService } from '../../../services/card-tags.service';
 import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
@@ -66,6 +67,7 @@ export class TicketDetail implements OnInit {
   private readonly cardLinksService = inject(CardLinksService);
   private readonly cardImagesService = inject(CardImagesService);
   private readonly cardAssigneesService = inject(CardAssigneesService);
+  private readonly cardTagsService = inject(CardTagsService);
   private readonly tagsService = inject(TagsService);
   private readonly epicsService = inject(EpicsService);
   private readonly destroyRef = inject(DestroyRef);
@@ -197,8 +199,66 @@ export class TicketDetail implements OnInit {
     return epicDotClass(color);
   }
 
-  tagOptions(): SearchSelectOption<number>[] {
-    return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.color), iconUrl: t.emote_url }));
+  primaryTag(): Tag | null {
+    const ticket = this.ticket();
+    if (!ticket?.tag_id) return null;
+    return this.tags().find((t) => t.id === ticket.tag_id) ?? null;
+  }
+
+  extraTags(): Tag[] {
+    const ticket = this.ticket();
+    if (!ticket) return [];
+    const ids = ticket.tag_ids ?? [];
+    return this.tags().filter((t) => ids.includes(t.id));
+  }
+
+  tagChipClass(tag: Tag): string {
+    return tagBadgeClass(tag.color);
+  }
+
+  addableTagOptions(): SearchSelectOption<number>[] {
+    const ticket = this.ticket();
+    if (!ticket) return [];
+    const used = new Set([ticket.tag_id, ...(ticket.tag_ids ?? [])]);
+    return this.tags()
+      .filter((t) => !used.has(t.id))
+      .map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.color), iconUrl: t.emote_url }));
+  }
+
+  // Point d'entrée unique du picker "+ Ajouter" : si le ticket n'a pas encore de tag
+  // principal, le nouveau tag le devient ; sinon il rejoint les tags additionnels.
+  // Ça évite d'avoir deux contrôles séparés (un pour le tag principal, un pour les
+  // autres) alors que pour l'utilisateur il s'agit juste d'"ajouter un tag".
+  async addTag(tagId: number | null): Promise<void> {
+    if (tagId === null) return;
+    const ticket = this.ticket();
+    if (!ticket) return;
+    if (!ticket.tag_id) {
+      await this.patch({ tag_id: tagId });
+      return;
+    }
+    await this.addExtraTag(tagId);
+  }
+
+  async addExtraTag(tagId: number | null): Promise<void> {
+    if (tagId === null) return;
+    const ticket = this.ticket();
+    if (!ticket) return;
+    try {
+      this.ticket.set(await this.cardTagsService.add(this.kanbanId, ticket.id, tagId));
+    } catch {
+      this.error.set("Échec de l'ajout du tag.");
+    }
+  }
+
+  async removeExtraTag(tagId: number): Promise<void> {
+    const ticket = this.ticket();
+    if (!ticket) return;
+    try {
+      this.ticket.set(await this.cardTagsService.remove(this.kanbanId, ticket.id, tagId));
+    } catch {
+      this.error.set('Échec du retrait du tag.');
+    }
   }
 
   epicOptions(): SearchSelectOption<number>[] {

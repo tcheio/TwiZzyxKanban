@@ -103,6 +103,25 @@ test('POST /assignees (add) ajoute un responsable additionnel', async () => {
   assert.equal(list.body[0].username, 'alice');
 });
 
+test('POST /assignees (add) reflète le responsable additionnel dans assignee_ids de la réponse', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ action: 'add', user_id: aliceId, reason: 'Renfort sur ce ticket' });
+  assert.deepEqual(res.body.assignee_ids, [aliceId]);
+});
+
+test('GET /api/kanbans/:id/cards inclut assignee_ids sur chaque carte', async () => {
+  await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ action: 'add', user_id: aliceId, reason: 'Renfort sur ce ticket' });
+
+  const res = await request(app).get(`/api/kanbans/${kanbanId}/cards`).set('Authorization', `Bearer ${adminToken}`);
+  const card = res.body.find((c) => c.id === cardId);
+  assert.deepEqual(card.assignee_ids, [aliceId]);
+});
+
 test('POST /assignees (add) en double retourne 400', async () => {
   await request(app)
     .post(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees`)

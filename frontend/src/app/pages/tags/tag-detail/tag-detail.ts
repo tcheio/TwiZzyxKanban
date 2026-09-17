@@ -107,7 +107,7 @@ export class TagDetail implements OnInit {
 
       const columnPosition = new Map(columns.map((c) => [c.id, c.position]));
       const ticketsForTag = cards
-        .filter((c) => c.tag_id === tag.id)
+        .filter((c) => c.tag_id === tag.id || (c.tag_ids ?? []).includes(tag.id))
         .sort((a, b) => {
           const colDiff = (columnPosition.get(a.column_id) ?? 0) - (columnPosition.get(b.column_id) ?? 0);
           return colDiff !== 0 ? colDiff : a.position - b.position;

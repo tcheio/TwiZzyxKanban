@@ -114,6 +114,17 @@ CREATE TABLE IF NOT EXISTS card_assignees (
 
 CREATE INDEX IF NOT EXISTS idx_card_assignees_card ON card_assignees(card_id);
 
+-- Tags additionnels d'un ticket (en plus du tag_id principal), sans historique ni raison :
+-- simple ajout/retrait, contrairement aux responsables additionnels.
+CREATE TABLE IF NOT EXISTS card_tags (
+  card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (card_id, tag_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_tags_card ON card_tags(card_id);
+
 -- Historique des ajouts/remplacements/retraits de responsable, avec la raison donnée et
 -- l'éventuel changement de statut effectué dans la même action.
 CREATE TABLE IF NOT EXISTS card_assignment_history (

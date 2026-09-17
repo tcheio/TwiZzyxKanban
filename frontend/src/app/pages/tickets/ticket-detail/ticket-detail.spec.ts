@@ -9,6 +9,7 @@ import { CommentsService } from '../../../services/comments.service';
 import { CardLinksService } from '../../../services/card-links.service';
 import { CardImagesService } from '../../../services/card-images.service';
 import { CardAssigneesService } from '../../../services/card-assignees.service';
+import { CardTagsService } from '../../../services/card-tags.service';
 import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
 import { AuthService } from '../../../core/auth.service';
@@ -45,6 +46,10 @@ describe('TicketDetail', () => {
     list: ReturnType<typeof vi.fn>;
     history: ReturnType<typeof vi.fn>;
     upsert: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
+  };
+  let cardTagsService: {
+    add: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
   };
   let columnsService: { list: ReturnType<typeof vi.fn> };
@@ -107,6 +112,10 @@ describe('TicketDetail', () => {
       upsert: vi.fn().mockResolvedValue({ ...ticket, assigned_user_id: 2 }),
       remove: vi.fn().mockResolvedValue(undefined),
     };
+    cardTagsService = {
+      add: vi.fn().mockResolvedValue({ ...ticket, tag_ids: [2] }),
+      remove: vi.fn().mockResolvedValue({ ...ticket, tag_ids: [] }),
+    };
     cardImagesService = {
       list: vi.fn().mockResolvedValue([]),
       upload: vi.fn().mockResolvedValue({ id: 1, card_id: 5, data_url: 'data:image/jpeg;base64,AAA' }),
@@ -125,6 +134,7 @@ describe('TicketDetail', () => {
         { provide: CardLinksService, useValue: cardLinksService },
         { provide: CardImagesService, useValue: cardImagesService },
         { provide: CardAssigneesService, useValue: cardAssigneesService },
+        { provide: CardTagsService, useValue: cardTagsService },
         { provide: AuthService, useValue: { currentUser } },
         { provide: Router, useValue: { navigate } },
         {
@@ -154,9 +164,63 @@ describe('TicketDetail', () => {
     expect(component.descriptionDraftHtml()).toBe('Notes existantes');
   });
 
-  it('tagOptions() expose les libellés pour le search-select', async () => {
+  it('primaryTag() résout le tag principal depuis tag_id', async () => {
     await component.reload();
-    expect(component.tagOptions().map((o) => o.label)).toEqual(['Minecraft', 'Pokémon']);
+    expect(component.primaryTag()?.name).toBe('Minecraft');
+  });
+
+  it('primaryTag() vaut null si le ticket n\'a pas de tag principal', async () => {
+    cardsService.get.mockResolvedValue({ ...ticket, tag_id: null });
+    await component.reload();
+    expect(component.primaryTag()).toBeNull();
+  });
+
+  it("addTag() devient le tag principal si le ticket n'en a pas encore", async () => {
+    cardsService.get.mockResolvedValue({ ...ticket, tag_id: null });
+    await component.reload();
+    await component.addTag(1);
+    expect(cardsService.update).toHaveBeenCalledWith(5, 5, { tag_id: 1 });
+    expect(cardTagsService.add).not.toHaveBeenCalled();
+  });
+
+  it('addTag() rejoint les tags additionnels si un tag principal existe déjà', async () => {
+    await component.reload();
+    await component.addTag(2);
+    expect(cardTagsService.add).toHaveBeenCalledWith(5, 5, 2);
+    expect(cardsService.update).not.toHaveBeenCalled();
+  });
+
+  it('extraTags() résout les tags additionnels depuis tag_ids', async () => {
+    cardsService.get.mockResolvedValue({ ...ticket, tag_ids: [2] });
+    await component.reload();
+    expect(component.extraTags().map((t) => t.name)).toEqual(['Pokémon']);
+  });
+
+  it('addableTagOptions() exclut le tag principal et les tags déjà additionnels', async () => {
+    cardsService.get.mockResolvedValue({ ...ticket, tag_id: 1, tag_ids: [] });
+    await component.reload();
+    expect(component.addableTagOptions().map((o) => o.label)).toEqual(['Pokémon']);
+  });
+
+  it('addExtraTag() appelle le service et met à jour le ticket', async () => {
+    await component.reload();
+    await component.addExtraTag(2);
+    expect(cardTagsService.add).toHaveBeenCalledWith(5, 5, 2);
+    expect(component.ticket()?.tag_ids).toEqual([2]);
+  });
+
+  it('addExtraTag(null) ne fait rien', async () => {
+    await component.reload();
+    await component.addExtraTag(null);
+    expect(cardTagsService.add).not.toHaveBeenCalled();
+  });
+
+  it('removeExtraTag() appelle le service et met à jour le ticket', async () => {
+    cardsService.get.mockResolvedValue({ ...ticket, tag_ids: [2] });
+    await component.reload();
+    await component.removeExtraTag(2);
+    expect(cardTagsService.remove).toHaveBeenCalledWith(5, 5, 2);
+    expect(component.ticket()?.tag_ids).toEqual([]);
   });
 
   it('primaryAssignee() résout le responsable principal depuis assigned_user_id', async () => {
