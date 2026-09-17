@@ -305,7 +305,11 @@
               <span
                 class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-500 text-xs font-semibold text-white"
               >
-                {{ (comment.username || '?').charAt(0).toUpperCase() }}
+                @if (comment.avatar_url; as avatar) {
+                  <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                } @else {
+                  {{ (comment.username || '?').charAt(0).toUpperCase() }}
+                }
               </span>
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2 text-xs text-gray-500">

@@ -67,8 +67,8 @@ describe('TicketDetail', () => {
     due_date: null,
   };
   const comments: Comment[] = [
-    { id: 1, card_id: 5, user_id: 1, username: 'alice', body: 'Salut', created_at: '2026-01-01' },
-    { id: 2, card_id: 5, user_id: 2, username: 'bob', body: 'Re', created_at: '2026-01-02' },
+    { id: 1, card_id: 5, user_id: 1, username: 'alice', avatar_url: null, body: 'Salut', created_at: '2026-01-01' },
+    { id: 2, card_id: 5, user_id: 2, username: 'bob', avatar_url: null, body: 'Re', created_at: '2026-01-02' },
   ];
   let kanbanData: { id: number; name: string; code: string; is_moderator: boolean };
 
