@@ -229,27 +229,67 @@ export class Board implements OnInit {
     this.toastTimeout = setTimeout(() => this.toastMessage.set(null), TOAST_DURATION_MS);
   }
 
+  private groupForContainerId(containerId: string): ColumnGroup | undefined {
+    return this.groups().find((g) => 'col-' + g.column.id === containerId);
+  }
+
+  // Quand une recherche/un filtre destinataire est actif, l'index donné par CDK
+  // (previousIndex/currentIndex) est relatif aux cartes VISIBLES, pas à la liste
+  // complète de la colonne (`[cdkDropListData]="group.cards"`). On traduit donc la
+  // position choisie parmi les cartes visibles en index réel dans la liste complète,
+  // pour ne pas désynchroniser l'ordre stocké quand certaines cartes sont masquées.
+  private resolveRealTargetIndex(
+    targetFullList: Card[],
+    targetVisibleList: Card[],
+    visibleIndex: number,
+    draggedCardId: number
+  ): number {
+    const others = targetFullList.filter((c) => c.id !== draggedCardId);
+    const visibleOthers = targetVisibleList.filter((c) => c.id !== draggedCardId);
+
+    if (visibleIndex >= visibleOthers.length) {
+      const last = visibleOthers[visibleOthers.length - 1];
+      const lastRealIndex = last ? others.findIndex((c) => c.id === last.id) : -1;
+      return lastRealIndex === -1 ? others.length : lastRealIndex + 1;
+    }
+
+    const neighbor = visibleOthers[visibleIndex];
+    const idx = others.findIndex((c) => c.id === neighbor.id);
+    return idx === -1 ? others.length : idx;
+  }
+
   async drop(event: CdkDragDrop<Card[]>): Promise<void> {
-    const card = event.previousContainer.data[event.previousIndex];
+    // `event.item.data` (le `[cdkDragData]` de la carte réellement saisie) est fiable
+    // même filtré, contrairement à un index dans `previousContainer.data`.
+    const card = event.item.data as Card;
     if (event.previousContainer !== event.container && this.isPublished(card)) {
       return;
     }
 
-    if (event.previousContainer === event.container) {
-      moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+    const previousGroup = this.groupForContainerId(event.previousContainer.id);
+    const targetGroup = this.groupForContainerId(event.container.id);
+    if (!previousGroup || !targetGroup) return;
+
+    const realPreviousIndex = previousGroup.cards.findIndex((c) => c.id === card.id);
+    if (realPreviousIndex === -1) return;
+
+    const targetVisible = this.visibleCards(targetGroup);
+    const realCurrentIndex = this.resolveRealTargetIndex(
+      targetGroup.cards,
+      targetVisible,
+      event.currentIndex,
+      card.id
+    );
+
+    if (previousGroup === targetGroup) {
+      moveItemInArray(previousGroup.cards, realPreviousIndex, realCurrentIndex);
     } else {
-      transferArrayItem(
-        event.previousContainer.data,
-        event.container.data,
-        event.previousIndex,
-        event.currentIndex
-      );
+      transferArrayItem(previousGroup.cards, targetGroup.cards, realPreviousIndex, realCurrentIndex);
     }
     this.groups.set([...this.groups()]);
 
-    const targetColumnId = Number(event.container.id.replace('col-', ''));
     try {
-      await this.cardsService.move(this.kanbanId, card.id, targetColumnId, event.currentIndex);
+      await this.cardsService.move(this.kanbanId, card.id, targetGroup.column.id, realCurrentIndex);
     } catch {
       this.error.set('Le déplacement a échoué, rechargement du tableau...');
       await this.reload();

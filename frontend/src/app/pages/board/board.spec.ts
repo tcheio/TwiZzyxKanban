@@ -148,6 +148,7 @@ describe('Board', () => {
     const containerData = component.groups()[0].cards;
     const container = { data: containerData, id: 'col-1' };
     const event = {
+      item: { data: containerData[0] },
       previousContainer: container,
       container,
       previousIndex: 0,
@@ -163,6 +164,7 @@ describe('Board', () => {
     await component.reload();
     const groups = component.groups();
     const event = {
+      item: { data: groups[0].cards[0] },
       previousContainer: { data: groups[0].cards, id: 'col-1' },
       container: { data: groups[1].cards, id: 'col-2' },
       previousIndex: 0,
@@ -172,6 +174,35 @@ describe('Board', () => {
     await component.drop(event);
 
     expect(cardsService.move).toHaveBeenCalledWith(1, 10, 2, 1);
+  });
+
+  it('drop() déplace la bonne carte quand une recherche masque des cartes intermédiaires (bug rapporté)', async () => {
+    // Colonne réelle : A, B, C — une recherche sur "c" ne rend visible que C, en
+    // première (et seule) position visuelle. La glisser ne doit pas déplacer A (la
+    // première carte de la liste complète) mais bien C (la carte réellement saisie).
+    await component.reload();
+    const group = component.groups()[0];
+    const extraCard: Card = { ...baseCards[0], id: 13, title: 'C', column_id: 1, position: 2 };
+    cardsService.list.mockResolvedValue([...baseCards, extraCard]);
+    await component.reload();
+    const reloadedGroup = component.groups()[0];
+
+    component.searchQuery.set('c');
+    expect(component.visibleCards(reloadedGroup).map((c) => c.id)).toEqual([13]);
+
+    const container = { data: reloadedGroup.cards, id: 'col-1' };
+    const event = {
+      item: { data: extraCard },
+      previousContainer: container,
+      container,
+      previousIndex: 0,
+      currentIndex: 0,
+    } as unknown as CdkDragDrop<Card[]>;
+
+    await component.drop(event);
+
+    expect(cardsService.move).toHaveBeenCalledWith(1, 13, 1, expect.any(Number));
+    expect(cardsService.move).not.toHaveBeenCalledWith(1, 10, expect.anything(), expect.anything());
   });
 
   it('userInitial() retourne la première lettre du username ou "?"', async () => {
@@ -310,6 +341,7 @@ describe('Board', () => {
     const publishedGroupCards = component.groups().find((g) => g.column.id === 3)!.cards;
     const targetCards = component.groups()[0].cards;
     const event = {
+      item: { data: publishedCard },
       previousContainer: { data: publishedGroupCards, id: 'col-3' },
       container: { data: targetCards, id: 'col-1' },
       previousIndex: 0,
