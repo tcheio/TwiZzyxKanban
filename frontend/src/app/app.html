@@ -36,6 +36,8 @@
       </div>
     </header>
 
+    <app-announcements-banner [kanbanId]="currentKanban()?.id ?? null" />
+
     <div class="flex min-h-0 flex-1">
       <aside
         class="flex shrink-0 flex-col overflow-hidden border-border transition-all duration-200"
@@ -146,6 +148,14 @@
                   </svg>
                   Utilisateurs
                 </a>
+                <a
+                  routerLink="/admin/announcements"
+                  routerLinkActive="bg-brand-soft text-brand-soft-text"
+                  class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-text-soft hover:bg-surface-muted"
+                >
+                  <span class="w-4 shrink-0 text-center" aria-hidden="true">📢</span>
+                  Annonces
+                </a>
               }
               <a
                 [routerLink]="['/kanbans', kanban.code, 'members']"
@@ -179,6 +189,14 @@
                 <rect x="14.5" y="13.5" width="8" height="6" rx="3" />
               </svg>
               Utilisateurs
+            </a>
+            <a
+              routerLink="/admin/announcements"
+              routerLinkActive="bg-brand-soft text-brand-soft-text"
+              class="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-text-soft hover:bg-surface-muted"
+            >
+              <span class="w-4 shrink-0 text-center" aria-hidden="true">📢</span>
+              Annonces
             </a>
           </div>
         }

@@ -1,0 +1,18 @@
+@for (announcement of visibleAnnouncements(); track announcement.id) {
+  <div class="flex items-center gap-2 border-b border-warning/30 bg-warning-soft px-4 py-1.5 text-sm text-warning-text">
+    <svg viewBox="0 0 24 24" class="h-4 w-4 shrink-0 fill-warning">
+      <path d="M12 2.5a1.5 1.5 0 011.32.79l9 16.5A1.5 1.5 0 0121 22H3a1.5 1.5 0 01-1.32-2.21l9-16.5A1.5 1.5 0 0112 2.5z" />
+      <rect x="11.1" y="8.5" width="1.8" height="6" rx="0.9" fill="var(--color-warning-soft)" />
+      <circle cx="12" cy="17" r="1.1" fill="var(--color-warning-soft)" />
+    </svg>
+    <span class="min-w-0 flex-1 truncate" [title]="announcement.message">{{ announcement.message }}</span>
+    <button
+      type="button"
+      class="shrink-0 text-warning-text opacity-70 hover:opacity-100"
+      title="Masquer"
+      (click)="dismiss(announcement.id)"
+    >
+      ✕
+    </button>
+  </div>
+}

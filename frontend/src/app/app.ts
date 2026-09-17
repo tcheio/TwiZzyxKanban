@@ -10,10 +10,11 @@ import { epicDotClass } from './shared/epic-colors';
 import { GlobalSearch } from './shared/global-search/global-search';
 import { ThemeToggle } from './shared/theme-toggle/theme-toggle';
 import { NotificationsBell } from './shared/notifications-bell/notifications-bell';
+import { AnnouncementsBanner } from './shared/announcements-banner/announcements-banner';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, GlobalSearch, ThemeToggle, NotificationsBell],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, GlobalSearch, ThemeToggle, NotificationsBell, AnnouncementsBanner],
   templateUrl: './app.html',
 })
 export class App implements OnInit {
