@@ -1,20 +1,20 @@
 <div class="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-  <h1 class="mb-4 text-xl font-bold text-gray-900">Gestion des utilisateurs</h1>
+  <h1 class="mb-4 text-xl font-bold text-text">Gestion des utilisateurs</h1>
 
   @if (error()) {
-    <p class="mb-3 text-sm text-red-600">{{ error() }}</p>
+    <p class="mb-3 text-sm text-danger">{{ error() }}</p>
   }
 
-  <div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
+  <div class="overflow-hidden rounded-lg border border-border bg-surface">
     <table class="w-full text-sm">
       <thead>
-        <tr class="border-b border-gray-100 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+        <tr class="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
           <th class="px-4 py-2.5">Utilisateur</th>
           <th class="px-4 py-2.5">Rôle</th>
           <th class="px-4 py-2.5"></th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-gray-100">
+      <tbody class="divide-y divide-border">
         @for (user of users(); track user.id) {
           <tr>
             @if (editingId() === user.id) {
@@ -25,13 +25,13 @@
                     id="edit-username-{{ user.id }}"
                     type="text"
                     formControlName="username"
-                    class="rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
+                    class="rounded-md border border-border px-2.5 py-1.5 text-sm text-text-soft focus:border-brand focus:outline-none"
                   />
                   <label for="edit-role-{{ user.id }}" class="sr-only">Rôle</label>
                   <select
                     id="edit-role-{{ user.id }}"
                     formControlName="role"
-                    class="rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
+                    class="rounded-md border border-border px-2.5 py-1.5 text-sm text-text-soft focus:border-brand focus:outline-none"
                   >
                     <option value="user">Utilisateur</option>
                     <option value="admin">Admin</option>
@@ -42,18 +42,18 @@
                     type="password"
                     formControlName="password"
                     placeholder="Nouveau mot de passe (optionnel)"
-                    class="rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
+                    class="rounded-md border border-border px-2.5 py-1.5 text-sm text-text-soft focus:border-brand focus:outline-none"
                   />
                   <button
                     type="submit"
                     [disabled]="editForm.invalid"
-                    class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                    class="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-surface-muted"
                   >
                     Enregistrer
                   </button>
                   <button
                     type="button"
-                    class="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+                    class="rounded-md border border-border px-3 py-1.5 text-sm text-text-muted hover:bg-surface-alt"
                     (click)="cancelEdit()"
                   >
                     Annuler
@@ -64,7 +64,7 @@
               <td class="px-4 py-2.5">
                 <div class="flex items-center gap-2">
                   <span
-                    class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-500 text-xs font-semibold text-white"
+                    class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-xs font-semibold text-white"
                   >
                     @if (user.avatar_url; as avatar) {
                       <img [src]="avatar" class="h-full w-full object-cover" alt="" />
@@ -72,25 +72,25 @@
                       {{ user.username.charAt(0).toUpperCase() }}
                     }
                   </span>
-                  <span class="font-medium text-gray-900">{{ user.username }}</span>
+                  <span class="font-medium text-text">{{ user.username }}</span>
                 </div>
               </td>
               <td class="px-4 py-2.5">
                 <span
                   class="rounded-full px-2 py-0.5 text-xs font-medium"
-                  [class]="user.role === 'admin' ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-100 text-gray-600'"
+                  [class]="user.role === 'admin' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300' : 'bg-surface-muted text-text-muted'"
                 >
                   {{ user.role === 'admin' ? 'Admin' : 'Utilisateur' }}
                 </span>
               </td>
               <td class="actions px-4 py-2.5">
                 <div class="flex justify-end gap-1">
-                  <button type="button" class="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100" (click)="startEdit(user)">
+                  <button type="button" class="rounded px-2 py-1 text-xs text-text-muted hover:bg-surface-muted" (click)="startEdit(user)">
                     Modifier
                   </button>
                   <button
                     type="button"
-                    class="danger rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    class="danger rounded px-2 py-1 text-xs text-danger hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-40"
                     [disabled]="user.id === authService.currentUser()?.id"
                     (click)="deleteUser(user)"
                   >
@@ -107,35 +107,35 @@
 
   @if (creating()) {
     <form
-      class="create-form mt-4 flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-4"
+      class="create-form mt-4 flex flex-col gap-3 rounded-lg border border-border bg-surface p-4"
       [formGroup]="createForm"
       (ngSubmit)="createUser()"
     >
-      <h2 class="text-sm font-semibold text-gray-700">Nouveau compte</h2>
-      <label for="new-user-username" class="flex flex-col gap-1 text-xs text-gray-500">
+      <h2 class="text-sm font-semibold text-text-soft">Nouveau compte</h2>
+      <label for="new-user-username" class="flex flex-col gap-1 text-xs text-text-muted">
         Nom d'utilisateur
         <input
           id="new-user-username"
           type="text"
           formControlName="username"
-          class="rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
+          class="rounded-md border border-border px-2.5 py-1.5 text-sm text-text-soft focus:border-brand focus:outline-none"
         />
       </label>
-      <label for="new-user-password" class="flex flex-col gap-1 text-xs text-gray-500">
+      <label for="new-user-password" class="flex flex-col gap-1 text-xs text-text-muted">
         Mot de passe
         <input
           id="new-user-password"
           type="password"
           formControlName="password"
-          class="rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
+          class="rounded-md border border-border px-2.5 py-1.5 text-sm text-text-soft focus:border-brand focus:outline-none"
         />
       </label>
-      <label for="new-user-role" class="flex flex-col gap-1 text-xs text-gray-500">
+      <label for="new-user-role" class="flex flex-col gap-1 text-xs text-text-muted">
         Rôle
         <select
           id="new-user-role"
           formControlName="role"
-          class="rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
+          class="rounded-md border border-border px-2.5 py-1.5 text-sm text-text-soft focus:border-brand focus:outline-none"
         >
           <option value="user">Utilisateur</option>
           <option value="admin">Admin</option>
@@ -145,13 +145,13 @@
         <button
           type="submit"
           [disabled]="createForm.invalid"
-          class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+          class="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-surface-muted"
         >
           Créer
         </button>
         <button
           type="button"
-          class="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+          class="rounded-md border border-border px-3 py-1.5 text-sm text-text-muted hover:bg-surface-alt"
           (click)="creating.set(false)"
         >
           Annuler
@@ -161,7 +161,7 @@
   } @else {
     <button
       type="button"
-      class="new-account-btn mt-4 w-full rounded-md border border-dashed border-gray-300 py-2.5 text-sm text-gray-500 hover:bg-gray-50"
+      class="new-account-btn mt-4 w-full rounded-md border border-dashed border-border-strong py-2.5 text-sm text-text-muted hover:bg-surface-alt"
       (click)="creating.set(true)"
     >
       + Nouveau compte

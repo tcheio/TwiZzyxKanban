@@ -40,9 +40,9 @@ import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from
 import { startAutoRefresh } from '../../../shared/auto-refresh';
 
 const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = [
-  { id: 'low', label: 'Basse', dotClass: 'bg-gray-400' },
+  { id: 'low', label: 'Basse', dotClass: 'bg-text-faint' },
   { id: 'medium', label: 'Moyenne', dotClass: 'bg-amber-500' },
-  { id: 'high', label: 'Haute', dotClass: 'bg-red-600' },
+  { id: 'high', label: 'Haute', dotClass: 'bg-danger' },
 ];
 
 export interface LinkedTicket {
@@ -397,7 +397,7 @@ export class TicketDetail implements OnInit {
   statusOptions(): SearchSelectOption<number>[] {
     return [
       ...this.columns().map((c) => ({ id: c.id, label: c.name })),
-      { id: CANCELLED_STATUS_ID, label: CANCELLED_STATUS_LABEL, dotClass: 'bg-red-600' },
+      { id: CANCELLED_STATUS_ID, label: CANCELLED_STATUS_LABEL, dotClass: 'bg-danger' },
     ];
   }
 
@@ -409,9 +409,9 @@ export class TicketDetail implements OnInit {
 
   statusTriggerClass(): string {
     const base = 'w-full justify-between rounded-full border px-3 py-1.5 font-semibold';
-    if (this.isPublished()) return `${base} border-gray-200 bg-gray-100 text-gray-500`;
-    if (this.isCancelled()) return `${base} border-red-200 bg-red-50 text-red-700`;
-    return `${base} border-blue-200 bg-blue-50 text-blue-700`;
+    if (this.isPublished()) return `${base} border-border bg-surface-muted text-text-muted`;
+    if (this.isCancelled()) return `${base} border-danger bg-danger-soft text-danger`;
+    return `${base} border-brand bg-brand-soft text-brand-soft-text`;
   }
 
   async updateStatus(value: number | null): Promise<void> {

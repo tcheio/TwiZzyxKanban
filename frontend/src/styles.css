@@ -1,8 +1,79 @@
 @import 'tailwindcss';
 
+/* Le mode sombre est piloté par une classe `.dark` sur <html> (posée par ThemeService),
+   pas par la préférence système seule : ça permet les 4 modes (Jour/Nuit/Système/Horaire)
+   au lieu du seul `prefers-color-scheme`. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------------
+ * Palette centralisée : chaque jeton ci-dessous génère automatiquement les utilitaires
+ * Tailwind correspondants (bg-surface, text-text, border-border, ...). Pour changer une
+ * couleur de l'appli, il suffit de modifier sa valeur ici (clair) et/ou dans le bloc
+ * `:root.dark` plus bas (sombre) — aucun template n'a de couleur "en dur" à retoucher.
+ * --------------------------------------------------------------------------------- */
+@theme {
+  /* Surfaces */
+  --color-app-bg: #f3f4f6; /* fond général de la page */
+  --color-surface: #ffffff; /* cartes, panneaux, header/footer */
+  --color-surface-alt: #f9fafb; /* zones secondaires (hover léger, sidebar interne) */
+  --color-surface-muted: #f3f4f6; /* zones désactivées / badges neutres */
+
+  /* Bordures */
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+
+  /* Texte */
+  --color-text: #111827; /* texte principal */
+  --color-text-soft: #1f2937; /* texte secondaire un peu plus marqué */
+  --color-text-muted: #6b7280; /* texte discret (labels, métadonnées) */
+  --color-text-faint: #9ca3af; /* texte très discret (placeholders, icônes) */
+
+  /* Marque / actions primaires */
+  --color-brand: #2563eb;
+  --color-brand-hover: #1d4ed8;
+  --color-brand-soft: #eff6ff;
+  --color-brand-soft-text: #1d4ed8;
+
+  /* Danger / suppression */
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-danger-soft: #fef2f2;
+
+  /* Accent (bandeau header/footer) */
+  --color-accent: #c4b5fd;
+  --color-accent-text: #1f2937;
+}
+
+:root.dark {
+  --color-app-bg: #16161b;
+  --color-surface: #1e1e24;
+  --color-surface-alt: #26262e;
+  --color-surface-muted: #2c2c35;
+
+  --color-border: #35353f;
+  --color-border-strong: #45454f;
+
+  --color-text: #f3f4f6;
+  --color-text-soft: #e5e7eb;
+  --color-text-muted: #a1a1aa;
+  --color-text-faint: #71717a;
+
+  --color-brand: #3b82f6;
+  --color-brand-hover: #60a5fa;
+  --color-brand-soft: #1e3a5f;
+  --color-brand-soft-text: #93c5fd;
+
+  --color-danger: #f87171;
+  --color-danger-hover: #fca5a5;
+  --color-danger-soft: #3f1d1d;
+
+  --color-accent: #3f3763;
+  --color-accent-text: #e5e7eb;
+}
+
 @layer base {
   body {
-    @apply bg-gray-100 font-sans text-gray-900;
+    @apply bg-app-bg font-sans text-text;
   }
 }
 
@@ -12,7 +83,7 @@
    contenu est affiché ou édité. */
 @layer components {
   .rich-text-content a {
-    @apply text-blue-600 underline decoration-blue-300 hover:text-blue-800;
+    @apply text-brand underline decoration-brand/40 hover:text-brand-hover;
   }
   .rich-text-content ul {
     @apply list-disc pl-5;

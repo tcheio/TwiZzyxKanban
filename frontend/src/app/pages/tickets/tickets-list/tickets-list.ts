@@ -21,9 +21,9 @@ import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from
 import { startAutoRefresh } from '../../../shared/auto-refresh';
 
 const PRIORITY_DOT_CLASSES: Record<string, string> = {
-  low: 'bg-gray-400',
+  low: 'bg-text-faint',
   medium: 'bg-amber-500',
-  high: 'bg-red-600',
+  high: 'bg-danger',
 };
 
 @Component({

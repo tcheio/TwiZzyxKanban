@@ -36,9 +36,9 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const TOAST_DURATION_MS = 6000;
 
 const PRIORITY_CLASSES: Record<Priority, string> = {
-  low: 'bg-gray-400',
+  low: 'bg-text-faint',
   medium: 'bg-amber-500',
-  high: 'bg-red-600',
+  high: 'bg-danger',
 };
 
 // Plus la valeur est basse, plus la carte remonte quand le tri "Priorité" est actif.
