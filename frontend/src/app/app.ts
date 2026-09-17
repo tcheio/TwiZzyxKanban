@@ -8,10 +8,11 @@ import { Kanban } from './models/kanban.model';
 import { Epic } from './models/epic.model';
 import { epicDotClass } from './shared/epic-colors';
 import { GlobalSearch } from './shared/global-search/global-search';
+import { ThemeToggle } from './shared/theme-toggle/theme-toggle';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, GlobalSearch],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, GlobalSearch, ThemeToggle],
   templateUrl: './app.html',
 })
 export class App implements OnInit {

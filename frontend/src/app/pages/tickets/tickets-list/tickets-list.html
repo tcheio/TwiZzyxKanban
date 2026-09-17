@@ -1,10 +1,10 @@
 <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
   <div class="header mb-4 flex items-center justify-between">
-    <h1 class="text-xl font-bold text-gray-900">Tickets</h1>
+    <h1 class="text-xl font-bold text-text">Tickets</h1>
     @if (canManage) {
       <button
         type="button"
-        class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+        class="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-hover"
         (click)="dialogOpen.set(true)"
       >
         + Nouveau ticket
@@ -13,15 +13,15 @@
   </div>
 
   @if (loading()) {
-    <p class="text-sm text-gray-500">Chargement...</p>
+    <p class="text-sm text-text-muted">Chargement...</p>
   }
   @if (error()) {
-    <p class="text-sm text-red-600">{{ error() }}</p>
+    <p class="text-sm text-danger">{{ error() }}</p>
   }
 
-  <div class="filters mb-4 flex flex-wrap items-end gap-4 rounded-lg border border-gray-200 bg-white p-3">
+  <div class="filters mb-4 flex flex-wrap items-end gap-4 rounded-lg border border-border bg-surface p-3">
     <div class="flex flex-col gap-1">
-      <label class="text-[11px] font-medium uppercase tracking-wide text-gray-400">Tag</label>
+      <label class="text-[11px] font-medium uppercase tracking-wide text-text-faint">Tag</label>
       <app-search-select
         [options]="tagFilterOptions()"
         [value]="filterTagId()"
@@ -31,7 +31,7 @@
       />
     </div>
     <div class="flex flex-col gap-1">
-      <label class="text-[11px] font-medium uppercase tracking-wide text-gray-400">EPIC</label>
+      <label class="text-[11px] font-medium uppercase tracking-wide text-text-faint">EPIC</label>
       <app-search-select
         [options]="epicFilterOptions()"
         [value]="filterEpicId()"
@@ -41,7 +41,7 @@
       />
     </div>
     <div class="flex flex-col gap-1">
-      <label class="text-[11px] font-medium uppercase tracking-wide text-gray-400">Assigné</label>
+      <label class="text-[11px] font-medium uppercase tracking-wide text-text-faint">Assigné</label>
       <app-search-select
         [options]="assigneeFilterOptions()"
         [value]="filterAssigneeId()"
@@ -51,7 +51,7 @@
       />
     </div>
     <div class="flex flex-col gap-1">
-      <label class="text-[11px] font-medium uppercase tracking-wide text-gray-400">Statut</label>
+      <label class="text-[11px] font-medium uppercase tracking-wide text-text-faint">Statut</label>
       <app-search-select
         [options]="statusFilterOptions()"
         [value]="filterColumnId()"
@@ -64,7 +64,7 @@
     @if (hasActiveFilters()) {
       <button
         type="button"
-        class="reset-filters ml-auto rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50"
+        class="reset-filters ml-auto rounded-md border border-border px-3 py-1.5 text-xs text-text-muted hover:bg-surface-alt"
         (click)="resetFilters()"
       >
         Réinitialiser les filtres
@@ -73,17 +73,17 @@
   </div>
 
   @if (!loading() && tickets().length === 0) {
-    <p class="text-sm text-gray-500">Aucun ticket pour le moment.</p>
+    <p class="text-sm text-text-muted">Aucun ticket pour le moment.</p>
   }
   @if (!loading() && tickets().length > 0 && filteredTickets().length === 0) {
-    <p class="text-sm text-gray-500">Aucun ticket ne correspond aux filtres.</p>
+    <p class="text-sm text-text-muted">Aucun ticket ne correspond aux filtres.</p>
   }
 
   @if (filteredTickets().length > 0) {
-    <div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
+    <div class="overflow-hidden rounded-lg border border-border bg-surface">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-gray-100 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <tr class="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
             <th class="px-4 py-2.5">Titre</th>
             <th class="px-4 py-2.5">Tag</th>
             <th class="px-4 py-2.5">EPIC</th>
@@ -92,28 +92,34 @@
             <th class="px-4 py-2.5">Priorité</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
+        <tbody class="divide-y divide-border">
           @for (ticket of filteredTickets(); track ticket.id) {
-            <tr class="cursor-pointer hover:bg-gray-50" (click)="openTicket(ticket)">
+            <tr class="cursor-pointer hover:bg-surface-alt" (click)="openTicket(ticket)">
               <td class="px-4 py-2.5 font-medium" [class]="cancelledTitleClass(ticket.cancelled_at)">
                 {{ ticket.title }}
               </td>
               <td class="px-4 py-2.5">
                 @if (ticket.tag_id) {
-                  <span class="tag-badge rounded px-1.5 py-0.5 text-xs font-medium" [class]="tagClass(ticket.tag_id)">
+                  <span class="tag-badge inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium" [class]="tagClass(ticket.tag_id)">
+                    @if (tagEmote(ticket.tag_id); as emote) {
+                      <img [src]="emote" alt="" class="h-3 w-3 shrink-0 object-contain" />
+                    }
                     {{ tagName(ticket.tag_id) }}
                   </span>
                 } @else {
-                  <span class="text-gray-400">—</span>
+                  <span class="text-text-faint">—</span>
                 }
               </td>
               <td class="px-4 py-2.5">
                 @if (ticket.epic_id) {
-                  <span class="tag-badge rounded px-1.5 py-0.5 text-xs font-medium" [class]="epicClass(ticket.epic_id)">
+                  <span class="tag-badge inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium" [class]="epicClass(ticket.epic_id)">
+                    @if (epicEmote(ticket.epic_id); as emote) {
+                      <img [src]="emote" alt="" class="h-3 w-3 shrink-0 object-contain" />
+                    }
                     {{ epicName(ticket.epic_id) }}
                   </span>
                 } @else {
-                  <span class="text-gray-400">—</span>
+                  <span class="text-text-faint">—</span>
                 }
               </td>
               <td class="px-4 py-2.5">
@@ -123,7 +129,7 @@
                 @if (ticket.assigned_user_id) {
                   <div class="flex items-center gap-1.5">
                     <span
-                      class="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-500 text-[10px] font-semibold text-white"
+                      class="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-[10px] font-semibold text-white"
                     >
                       @if (userAvatar(ticket.assigned_user_id); as avatar) {
                         <img [src]="avatar" class="h-full w-full object-cover" alt="" />
@@ -134,11 +140,11 @@
                     {{ userName(ticket.assigned_user_id) }}
                   </div>
                 } @else {
-                  <span class="text-gray-400">—</span>
+                  <span class="text-text-faint">—</span>
                 }
               </td>
               <td class="px-4 py-2.5">
-                <span class="priority inline-flex items-center gap-1 text-xs font-medium capitalize text-gray-600">
+                <span class="priority inline-flex items-center gap-1 text-xs font-medium capitalize text-text-muted">
                   <span class="h-2 w-2 rounded-sm" [class]="priorityDotClass(ticket.priority)"></span>
                   {{ ticket.priority }}
                 </span>

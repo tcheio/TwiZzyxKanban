@@ -23,9 +23,9 @@ const PRIORITY_LABELS: Record<Priority, string> = {
 };
 
 const PRIORITY_DOT_CLASSES: Record<Priority, string> = {
-  low: 'bg-gray-400',
+  low: 'bg-text-faint',
   medium: 'bg-amber-500',
-  high: 'bg-red-600',
+  high: 'bg-danger',
 };
 
 @Component({

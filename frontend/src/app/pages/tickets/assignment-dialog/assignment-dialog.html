@@ -1,11 +1,11 @@
 <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" (click)="cancelled.emit()">
   <form
-    class="flex w-[380px] flex-col gap-3 rounded-lg bg-white p-6"
+    class="flex w-[380px] flex-col gap-3 rounded-lg bg-surface p-6"
     [formGroup]="form"
     (click)="$event.stopPropagation()"
     (ngSubmit)="submit()"
   >
-    <h2 class="m-0 mb-1 text-lg font-semibold text-gray-900">Gérer les responsables</h2>
+    <h2 class="m-0 mb-1 text-lg font-semibold text-text">Gérer les responsables</h2>
 
     <div class="flex gap-2">
       <button
@@ -13,8 +13,8 @@
         class="flex-1 rounded-md border px-3 py-1.5 text-sm font-medium"
         [class]="
           form.value.action === 'add'
-            ? 'border-blue-400 bg-blue-50 text-blue-700'
-            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+            ? 'border-brand bg-brand-soft text-brand-soft-text'
+            : 'border-border text-text-muted hover:bg-surface-alt'
         "
         (click)="setAction('add')"
       >
@@ -25,15 +25,15 @@
         class="flex-1 rounded-md border px-3 py-1.5 text-sm font-medium"
         [class]="
           form.value.action === 'replace'
-            ? 'border-blue-400 bg-blue-50 text-blue-700'
-            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+            ? 'border-brand bg-brand-soft text-brand-soft-text'
+            : 'border-border text-text-muted hover:bg-surface-alt'
         "
         (click)="setAction('replace')"
       >
         Remplacer le resp.
       </button>
     </div>
-    <p class="-mt-2 text-xs text-gray-500">
+    <p class="-mt-2 text-xs text-text-muted">
       @if (form.value.action === 'add') {
         La personne choisie s'ajoute aux responsables actuels du ticket.
       } @else {
@@ -41,7 +41,7 @@
       }
     </p>
 
-    <div class="flex flex-col gap-1 text-sm text-gray-700">
+    <div class="flex flex-col gap-1 text-sm text-text-soft">
       <span>Personne</span>
       <app-search-select
         [options]="userOptions()"
@@ -54,19 +54,19 @@
       />
     </div>
 
-    <label for="assignment-reason" class="flex flex-col gap-1 text-sm text-gray-700">
+    <label for="assignment-reason" class="flex flex-col gap-1 text-sm text-text-soft">
       Raison
       <textarea
         id="assignment-reason"
         formControlName="reason"
         rows="2"
         placeholder="Pourquoi ce changement ?"
-        class="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none"
+        class="rounded-md border border-border-strong px-2.5 py-2 text-sm text-text focus:border-brand focus:outline-none"
       ></textarea>
     </label>
 
-    <div class="flex flex-col gap-2 rounded-md border border-gray-100 bg-gray-50 p-2.5">
-      <label class="flex items-center gap-2 text-sm text-gray-700">
+    <div class="flex flex-col gap-2 rounded-md border border-border bg-surface-alt p-2.5">
+      <label class="flex items-center gap-2 text-sm text-text-soft">
         <input
           type="checkbox"
           [checked]="form.value.changeStatus"
@@ -76,7 +76,7 @@
         Changer aussi le statut du ticket
       </label>
       @if (statusLocked) {
-        <p class="text-xs text-red-600">Un ticket publié ne peut plus changer de statut.</p>
+        <p class="text-xs text-danger">Un ticket publié ne peut plus changer de statut.</p>
       } @else if (form.value.changeStatus) {
         <app-search-select
           [options]="statusOptions"
@@ -92,7 +92,7 @@
     <div class="mt-2 flex justify-end gap-2">
       <button
         type="button"
-        class="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+        class="rounded-md border border-border-strong px-4 py-2 text-sm text-text-soft hover:bg-surface-alt"
         (click)="cancelled.emit()"
       >
         Annuler
@@ -100,7 +100,7 @@
       <button
         type="submit"
         [disabled]="form.invalid || reasonMissing()"
-        class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        class="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         Valider
       </button>

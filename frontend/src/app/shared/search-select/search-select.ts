@@ -18,6 +18,7 @@ export interface SearchSelectOption<T> {
   dotClass?: string;
   avatarUrl?: string | null;
   avatarInitial?: string;
+  iconUrl?: string | null;
 }
 
 interface SearchSelectEntry<T> {
@@ -27,6 +28,7 @@ interface SearchSelectEntry<T> {
   dotClass?: string;
   avatarUrl?: string | null;
   avatarInitial?: string;
+  iconUrl?: string | null;
 }
 
 let nextInstanceId = 0;
@@ -51,7 +53,7 @@ export class SearchSelect<T extends string | number> {
   @Input() panelClass = 'w-56';
   @Output() valueChange = new EventEmitter<T | null>();
 
-  readonly defaultTriggerClass = 'max-w-full rounded px-1.5 py-1 text-gray-800 hover:bg-gray-100';
+  readonly defaultTriggerClass = 'max-w-full rounded px-1.5 py-1 text-text-soft hover:bg-surface-muted';
 
   @ViewChild('searchInput') private readonly searchInputRef?: ElementRef<HTMLInputElement>;
 

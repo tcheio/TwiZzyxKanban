@@ -1,16 +1,16 @@
 <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
   @if (loading()) {
-    <p class="text-sm text-gray-500">Chargement...</p>
+    <p class="text-sm text-text-muted">Chargement...</p>
   }
   @if (error()) {
-    <p class="text-sm text-red-600">{{ error() }}</p>
+    <p class="text-sm text-danger">{{ error() }}</p>
   }
 
   @if (ticket(); as t) {
-    <nav class="mb-3 flex flex-wrap items-center gap-1.5 text-sm text-gray-500">
-      <a [routerLink]="['/kanbans', kanbanCode, 'tickets']" class="hover:text-gray-700 hover:underline">Tickets</a>
+    <nav class="mb-3 flex flex-wrap items-center gap-1.5 text-sm text-text-muted">
+      <a [routerLink]="['/kanbans', kanbanCode, 'tickets']" class="hover:text-text-soft hover:underline">Tickets</a>
       @if (epicName(t.epic_id); as epic) {
-        <span class="text-gray-300">/</span>
+        <span class="text-text-faint">/</span>
         <span
           class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
           [class]="epicClass(t.epic_id)"
@@ -19,10 +19,10 @@
           {{ epic }}
         </span>
       }
-      <span class="text-gray-300">/</span>
-      <span class="text-gray-400">Ticket #{{ t.id }}</span>
+      <span class="text-text-faint">/</span>
+      <span class="text-text-faint">Ticket #{{ t.id }}</span>
       @if (isCancelled()) {
-        <span class="rounded px-1.5 py-0.5 text-xs font-medium text-red-700 bg-red-50">Annulé</span>
+        <span class="rounded px-1.5 py-0.5 text-xs font-medium text-danger bg-danger-soft">Annulé</span>
       }
     </nav>
 
@@ -31,19 +31,19 @@
         <label for="ticket-title" class="sr-only">Titre du ticket</label>
         <input
           id="ticket-title"
-          class="w-full rounded-md border border-transparent px-1 py-1 text-2xl font-bold focus:border-gray-300 focus:outline-none"
+          class="w-full rounded-md border border-transparent px-1 py-1 text-2xl font-bold focus:border-border-strong focus:outline-none"
           [class]="cancelledTitleClass(t.cancelled_at)"
           [value]="t.title"
           (change)="updateTitle($any($event.target).value)"
         />
 
-        <section class="mt-4 rounded-lg border border-gray-200 bg-white p-4">
+        <section class="mt-4 rounded-lg border border-border bg-surface p-4">
           <div class="mb-2 flex items-center justify-between">
-            <h2 class="text-sm font-semibold text-gray-700">Description</h2>
+            <h2 class="text-sm font-semibold text-text-soft">Description</h2>
             @if (!descriptionEditing()) {
               <button
                 type="button"
-                class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                class="rounded p-1 text-text-faint hover:bg-surface-muted hover:text-text-muted"
                 title="Modifier la description"
                 (click)="startEditingDescription()"
               >
@@ -56,7 +56,7 @@
             <div class="mb-1 flex flex-wrap items-center gap-1">
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs font-bold text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs font-bold text-text-muted hover:bg-surface-alt"
                 title="Gras"
                 (click)="formatDescription('bold')"
               >
@@ -64,7 +64,7 @@
               </button>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs italic text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs italic text-text-muted hover:bg-surface-alt"
                 title="Italique"
                 (click)="formatDescription('italic')"
               >
@@ -72,7 +72,7 @@
               </button>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs line-through text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs line-through text-text-muted hover:bg-surface-alt"
                 title="Barré"
                 (click)="formatDescription('strike')"
               >
@@ -80,7 +80,7 @@
               </button>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs underline text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs underline text-text-muted hover:bg-surface-alt"
                 title="Souligné"
                 (click)="formatDescription('underline')"
               >
@@ -88,7 +88,7 @@
               </button>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs font-mono text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs font-mono text-text-muted hover:bg-surface-alt"
                 title="Code"
                 (click)="formatDescription('code')"
               >
@@ -96,16 +96,16 @@
               </button>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-alt"
                 title="Lien"
                 (click)="formatDescription('link')"
               >
                 🔗
               </button>
-              <span class="mx-1 h-4 w-px bg-gray-200"></span>
+              <span class="mx-1 h-4 w-px bg-border"></span>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-alt"
                 title="Liste à puces"
                 (click)="formatDescription('ul')"
               >
@@ -113,17 +113,17 @@
               </button>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-alt"
                 title="Liste numérotée"
                 (click)="formatDescription('ol')"
               >
                 1.
               </button>
-              <span class="mx-1 h-4 w-px bg-gray-200"></span>
+              <span class="mx-1 h-4 w-px bg-border"></span>
               @for (color of richTextColors; track color.className) {
                 <button
                   type="button"
-                  class="h-5 w-5 rounded-full border border-gray-200"
+                  class="h-5 w-5 rounded-full border border-border"
                   [class]="color.swatchClass"
                   [title]="color.label"
                   (click)="formatDescription(color.className)"
@@ -133,7 +133,7 @@
             <div
               #descriptionEditor
               contenteditable="true"
-              class="rich-text-content min-h-[8rem] w-full rounded-md border border-gray-200 p-2 text-sm whitespace-pre-wrap text-gray-800 focus:border-blue-400 focus:outline-none"
+              class="rich-text-content min-h-[8rem] w-full rounded-md border border-border p-2 text-sm whitespace-pre-wrap text-text-soft focus:border-brand focus:outline-none"
               [innerHTML]="descriptionHtml()"
               (input)="onDescriptionInput($event)"
               (paste)="onDescriptionPaste($event)"
@@ -142,14 +142,14 @@
             <div class="mt-2 flex gap-2">
               <button
                 type="button"
-                class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                class="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-hover"
                 (click)="saveDescription()"
               >
                 Enregistrer
               </button>
               <button
                 type="button"
-                class="rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                class="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-text-muted hover:bg-surface-alt"
                 (click)="cancelEditingDescription()"
               >
                 Annuler
@@ -157,25 +157,25 @@
             </div>
           } @else if (descriptionHtml()) {
             <div
-              class="rich-text-content min-h-[2rem] w-full rounded-md p-2 text-sm whitespace-pre-wrap text-gray-800"
+              class="rich-text-content min-h-[2rem] w-full rounded-md p-2 text-sm whitespace-pre-wrap text-text-soft"
               [innerHTML]="descriptionHtml()"
               (click)="onCommentContentClick($event)"
             ></div>
           } @else {
-            <p class="p-2 text-sm text-gray-400">Aucune description.</p>
+            <p class="p-2 text-sm text-text-faint">Aucune description.</p>
           }
         </section>
 
         @if (clonedFrom() || clones().length > 0) {
-          <section class="mt-4 rounded-lg border border-gray-200 bg-white p-4">
-            <h2 class="mb-2 text-sm font-semibold text-gray-700">Clonage</h2>
-            <div class="flex flex-col divide-y divide-gray-100">
+          <section class="mt-4 rounded-lg border border-border bg-surface p-4">
+            <h2 class="mb-2 text-sm font-semibold text-text-soft">Clonage</h2>
+            <div class="flex flex-col divide-y divide-border">
               @if (clonedFrom(); as source) {
                 <a
                   [routerLink]="['/kanbans', kanbanCode + '-' + source.id]"
-                  class="flex items-center gap-2 py-2 text-sm hover:bg-gray-50"
+                  class="flex items-center gap-2 py-2 text-sm hover:bg-surface-alt"
                 >
-                  <svg viewBox="0 0 20 20" class="h-4 w-4 shrink-0 fill-gray-400">
+                  <svg viewBox="0 0 20 20" class="h-4 w-4 shrink-0 fill-text-faint">
                     <path
                       d="M7 9a3 3 0 013-3h4a3 3 0 013 3v1a3 3 0 01-3 3h-1a1 1 0 110-2h1a1 1 0 001-1V9a1 1 0 00-1-1h-4a1 1 0 00-1 1v1a1 1 0 11-2 0V9z"
                     />
@@ -183,7 +183,7 @@
                       d="M13 11a3 3 0 01-3 3H6a3 3 0 01-3-3v-1a3 3 0 013-3h1a1 1 0 110 2H6a1 1 0 00-1 1v1a1 1 0 001 1h4a1 1 0 001-1v-1a1 1 0 112 0v1z"
                     />
                   </svg>
-                  <span class="shrink-0 text-gray-500">Cloné depuis</span>
+                  <span class="shrink-0 text-text-muted">Cloné depuis</span>
                   <span class="truncate font-medium" [class]="cancelledTitleClass(source.cancelled_at)">
                     {{ source.title }}
                   </span>
@@ -192,9 +192,9 @@
               @for (clone of clones(); track clone.id) {
                 <a
                   [routerLink]="['/kanbans', kanbanCode + '-' + clone.id]"
-                  class="flex items-center gap-2 py-2 text-sm hover:bg-gray-50"
+                  class="flex items-center gap-2 py-2 text-sm hover:bg-surface-alt"
                 >
-                  <svg viewBox="0 0 20 20" class="h-4 w-4 shrink-0 fill-gray-400">
+                  <svg viewBox="0 0 20 20" class="h-4 w-4 shrink-0 fill-text-faint">
                     <path
                       d="M7 9a3 3 0 013-3h4a3 3 0 013 3v1a3 3 0 01-3 3h-1a1 1 0 110-2h1a1 1 0 001-1V9a1 1 0 00-1-1h-4a1 1 0 00-1 1v1a1 1 0 11-2 0V9z"
                     />
@@ -202,7 +202,7 @@
                       d="M13 11a3 3 0 01-3 3H6a3 3 0 01-3-3v-1a3 3 0 013-3h1a1 1 0 110 2H6a1 1 0 00-1 1v1a1 1 0 001 1h4a1 1 0 001-1v-1a1 1 0 112 0v1z"
                     />
                   </svg>
-                  <span class="shrink-0 text-gray-500">Cloné vers</span>
+                  <span class="shrink-0 text-text-muted">Cloné vers</span>
                   <span class="truncate font-medium" [class]="cancelledTitleClass(clone.cancelled_at)">
                     {{ clone.title }}
                   </span>
@@ -212,19 +212,19 @@
           </section>
         }
 
-        <section class="mt-4 rounded-lg border border-gray-200 bg-white p-4">
-          <h2 class="mb-3 text-sm font-semibold text-gray-700">Tickets liés</h2>
+        <section class="mt-4 rounded-lg border border-border bg-surface p-4">
+          <h2 class="mb-3 text-sm font-semibold text-text-soft">Tickets liés</h2>
 
           <div class="flex flex-col gap-4">
             <div>
-              <h3 class="mb-1 text-xs font-semibold tracking-wide text-gray-400 uppercase">À faire avant</h3>
+              <h3 class="mb-1 text-xs font-semibold tracking-wide text-text-faint uppercase">À faire avant</h3>
               @if (linkedBefore().length > 0) {
-                <div class="flex flex-col divide-y divide-gray-100">
+                <div class="flex flex-col divide-y divide-border">
                   @for (entry of linkedBefore(); track entry.linkId) {
                     <div class="flex items-center gap-2 py-2 text-sm">
                       <a
                         [routerLink]="['/kanbans', kanbanCode + '-' + entry.card.id]"
-                        class="flex min-w-0 flex-1 items-center gap-2 hover:bg-gray-50"
+                        class="flex min-w-0 flex-1 items-center gap-2 hover:bg-surface-alt"
                       >
                         <svg viewBox="0 0 20 20" class="h-4 w-4 shrink-0 fill-indigo-400">
                           <path
@@ -237,7 +237,7 @@
                       </a>
                       <button
                         type="button"
-                        class="shrink-0 text-gray-400 hover:text-red-600"
+                        class="shrink-0 text-text-faint hover:text-danger"
                         (click)="removeLink(entry.linkId)"
                       >
                         ✕
@@ -246,19 +246,19 @@
                   }
                 </div>
               } @else {
-                <p class="text-sm text-gray-500">Aucun ticket à faire avant.</p>
+                <p class="text-sm text-text-muted">Aucun ticket à faire avant.</p>
               }
             </div>
 
-            <div class="border-t border-gray-100 pt-3">
-              <h3 class="mb-1 text-xs font-semibold tracking-wide text-gray-400 uppercase">À faire après</h3>
+            <div class="border-t border-border pt-3">
+              <h3 class="mb-1 text-xs font-semibold tracking-wide text-text-faint uppercase">À faire après</h3>
               @if (linkedAfter().length > 0) {
-                <div class="flex flex-col divide-y divide-gray-100">
+                <div class="flex flex-col divide-y divide-border">
                   @for (entry of linkedAfter(); track entry.linkId) {
                     <div class="flex items-center gap-2 py-2 text-sm">
                       <a
                         [routerLink]="['/kanbans', kanbanCode + '-' + entry.card.id]"
-                        class="flex min-w-0 flex-1 items-center gap-2 hover:bg-gray-50"
+                        class="flex min-w-0 flex-1 items-center gap-2 hover:bg-surface-alt"
                       >
                         <svg viewBox="0 0 20 20" class="h-4 w-4 shrink-0 fill-indigo-400">
                           <path
@@ -271,7 +271,7 @@
                       </a>
                       <button
                         type="button"
-                        class="shrink-0 text-gray-400 hover:text-red-600"
+                        class="shrink-0 text-text-faint hover:text-danger"
                         (click)="removeLink(entry.linkId)"
                       >
                         ✕
@@ -280,12 +280,12 @@
                   }
                 </div>
               } @else {
-                <p class="text-sm text-gray-500">Aucun ticket à faire après.</p>
+                <p class="text-sm text-text-muted">Aucun ticket à faire après.</p>
               }
             </div>
           </div>
 
-          <div class="mt-3 flex flex-wrap items-end gap-2 border-t border-gray-100 pt-3">
+          <div class="mt-3 flex flex-wrap items-end gap-2 border-t border-border pt-3">
             <div class="min-w-[10rem] flex-1">
               <app-search-select
                 [options]="linkTargetOptions()"
@@ -298,7 +298,7 @@
             <label for="new-link-type" class="sr-only">Type de lien</label>
             <select
               id="new-link-type"
-              class="rounded-md border border-gray-200 px-2 py-1.5 text-sm text-gray-700 focus:border-indigo-400 focus:outline-none"
+              class="rounded-md border border-border px-2 py-1.5 text-sm text-text-soft focus:border-indigo-400 focus:outline-none"
               [ngModel]="newLinkType()"
               (ngModelChange)="newLinkType.set($event)"
             >
@@ -307,7 +307,7 @@
             </select>
             <button
               type="button"
-              class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-surface-muted"
               [disabled]="!newLinkTargetId()"
               (click)="addLink()"
             >
@@ -316,12 +316,12 @@
           </div>
         </section>
 
-        <section class="mt-4 rounded-lg border border-gray-200 bg-white p-4">
+        <section class="mt-4 rounded-lg border border-border bg-surface p-4">
           <div class="mb-3 flex items-center justify-between">
-            <h2 class="text-sm font-semibold text-gray-700">Images ({{ images().length }})</h2>
+            <h2 class="text-sm font-semibold text-text-soft">Images ({{ images().length }})</h2>
             <button
               type="button"
-              class="rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+              class="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-text-muted hover:bg-surface-alt"
               (click)="triggerGalleryUpload()"
             >
               + Ajouter une image
@@ -340,7 +340,7 @@
           @if (images().length > 0) {
             <div class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
               @for (image of images(); track image.id) {
-                <div class="group relative aspect-square overflow-hidden rounded-md border border-gray-200 bg-gray-50">
+                <div class="group relative aspect-square overflow-hidden rounded-md border border-border bg-surface-alt">
                   <button
                     type="button"
                     class="block h-full w-full"
@@ -350,7 +350,7 @@
                   </button>
                   <button
                     type="button"
-                    class="absolute top-1 right-1 hidden h-5 w-5 items-center justify-center rounded-full bg-white/90 text-xs text-gray-500 hover:text-red-600 group-hover:flex"
+                    class="absolute top-1 right-1 hidden h-5 w-5 items-center justify-center rounded-full bg-surface/90 text-xs text-text-muted hover:text-danger group-hover:flex"
                     (click)="removeImage(image.id)"
                   >
                     ✕
@@ -359,17 +359,17 @@
               }
             </div>
           } @else {
-            <p class="text-sm text-gray-500">Aucune image pour le moment.</p>
+            <p class="text-sm text-text-muted">Aucune image pour le moment.</p>
           }
         </section>
 
-        <section class="mt-4 rounded-lg border border-gray-200 bg-white p-4">
-          <h2 class="mb-3 text-sm font-semibold text-gray-700">Commentaires ({{ comments().length }})</h2>
+        <section class="mt-4 rounded-lg border border-border bg-surface p-4">
+          <h2 class="mb-3 text-sm font-semibold text-text-soft">Commentaires ({{ comments().length }})</h2>
 
           @for (comment of comments(); track comment.id) {
-            <div class="flex gap-2.5 border-b border-gray-100 py-3 last:border-0">
+            <div class="flex gap-2.5 border-b border-border py-3 last:border-0">
               <span
-                class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-500 text-xs font-semibold text-white"
+                class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-xs font-semibold text-white"
               >
                 @if (comment.avatar_url; as avatar) {
                   <img [src]="avatar" class="h-full w-full object-cover" alt="" />
@@ -378,13 +378,13 @@
                 }
               </span>
               <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 text-xs text-gray-500">
-                  <span class="font-semibold text-gray-800">{{ comment.username || 'Utilisateur supprimé' }}</span>
+                <div class="flex items-center gap-2 text-xs text-text-muted">
+                  <span class="font-semibold text-text-soft">{{ comment.username || 'Utilisateur supprimé' }}</span>
                   <span>{{ formatDateTime(comment.created_at) }}</span>
                   @if (canDeleteComment(comment)) {
                     <button
                       type="button"
-                      class="ml-auto text-gray-400 hover:text-red-600"
+                      class="ml-auto text-text-faint hover:text-danger"
                       (click)="deleteComment(comment)"
                     >
                       ✕
@@ -392,7 +392,7 @@
                   }
                 </div>
                 <div
-                  class="rich-text-content mt-1 whitespace-pre-wrap text-sm text-gray-800"
+                  class="rich-text-content mt-1 whitespace-pre-wrap text-sm text-text-soft"
                   [innerHTML]="comment.body"
                   (click)="onCommentContentClick($event)"
                 ></div>
@@ -400,14 +400,14 @@
             </div>
           }
           @if (comments().length === 0) {
-            <p class="text-sm text-gray-500">Aucun commentaire pour le moment.</p>
+            <p class="text-sm text-text-muted">Aucun commentaire pour le moment.</p>
           }
 
           <div class="mt-3 flex flex-col gap-2">
             <div class="flex flex-wrap items-center gap-1">
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs font-bold text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs font-bold text-text-muted hover:bg-surface-alt"
                 title="Gras"
                 (click)="formatComment('bold')"
               >
@@ -415,7 +415,7 @@
               </button>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs italic text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs italic text-text-muted hover:bg-surface-alt"
                 title="Italique"
                 (click)="formatComment('italic')"
               >
@@ -423,7 +423,7 @@
               </button>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs line-through text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs line-through text-text-muted hover:bg-surface-alt"
                 title="Barré"
                 (click)="formatComment('strike')"
               >
@@ -431,7 +431,7 @@
               </button>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs underline text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs underline text-text-muted hover:bg-surface-alt"
                 title="Souligné"
                 (click)="formatComment('underline')"
               >
@@ -439,7 +439,7 @@
               </button>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs font-mono text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs font-mono text-text-muted hover:bg-surface-alt"
                 title="Code"
                 (click)="formatComment('code')"
               >
@@ -447,16 +447,16 @@
               </button>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-alt"
                 title="Lien"
                 (click)="formatComment('link')"
               >
                 🔗
               </button>
-              <span class="mx-1 h-4 w-px bg-gray-200"></span>
+              <span class="mx-1 h-4 w-px bg-border"></span>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-alt"
                 title="Liste à puces"
                 (click)="formatComment('ul')"
               >
@@ -464,17 +464,17 @@
               </button>
               <button
                 type="button"
-                class="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+                class="rounded border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-alt"
                 title="Liste numérotée"
                 (click)="formatComment('ol')"
               >
                 1.
               </button>
-              <span class="mx-1 h-4 w-px bg-gray-200"></span>
+              <span class="mx-1 h-4 w-px bg-border"></span>
               @for (color of richTextColors; track color.className) {
                 <button
                   type="button"
-                  class="h-5 w-5 rounded-full border border-gray-200"
+                  class="h-5 w-5 rounded-full border border-border"
                   [class]="color.swatchClass"
                   [title]="color.label"
                   (click)="formatComment(color.className)"
@@ -483,14 +483,14 @@
             </div>
             <div class="relative">
               @if (!hasCommentContent()) {
-                <span class="pointer-events-none absolute top-2 left-2 text-sm text-gray-400">
+                <span class="pointer-events-none absolute top-2 left-2 text-sm text-text-faint">
                   Ajouter un commentaire...
                 </span>
               }
               <div
                 #commentEditor
                 contenteditable="true"
-                class="rich-text-content min-h-[4.5rem] w-full rounded-md border border-gray-200 p-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-none"
+                class="rich-text-content min-h-[4.5rem] w-full rounded-md border border-border p-2 text-sm text-text-soft focus:border-brand focus:outline-none"
                 (input)="onCommentInput($event)"
                 (paste)="onCommentPaste($event)"
                 (click)="onEditableContentClick($event)"
@@ -499,7 +499,7 @@
             <div class="flex items-center justify-between">
               <button
                 type="button"
-                class="rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                class="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-text-muted hover:bg-surface-alt"
                 (click)="commentImageInput.click()"
               >
                 + Image
@@ -515,7 +515,7 @@
               />
               <button
                 type="button"
-                class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                class="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-surface-muted"
                 [disabled]="!hasCommentContent()"
                 (click)="addComment()"
               >
@@ -543,14 +543,14 @@
             <div class="flex flex-wrap gap-2">
               <button
                 type="button"
-                class="flex-1 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm whitespace-nowrap text-gray-600 hover:bg-gray-50"
+                class="flex-1 rounded-md border border-border bg-surface px-3 py-1.5 text-sm whitespace-nowrap text-text-muted hover:bg-surface-alt"
                 (click)="cloneDialogOpen.set(true)"
               >
                 Cloner
               </button>
               <button
                 type="button"
-                class="danger flex-1 rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm whitespace-nowrap text-red-600 hover:bg-red-50"
+                class="danger flex-1 rounded-md border border-danger bg-surface px-3 py-1.5 text-sm whitespace-nowrap text-danger hover:bg-danger-soft"
                 (click)="deleteTicket()"
               >
                 Supprimer le ticket
@@ -559,19 +559,19 @@
           }
         </div>
         @if (isPublished()) {
-          <p class="mb-3 text-xs text-red-600">Un ticket publié ne peut plus changer de statut.</p>
+          <p class="mb-3 text-xs text-danger">Un ticket publié ne peut plus changer de statut.</p>
         }
 
-        <div class="rounded-lg border border-gray-200 bg-white p-4">
-          <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Détails</h2>
+        <div class="rounded-lg border border-border bg-surface p-4">
+          <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">Détails</h2>
 
           <dl class="flex flex-col gap-3 text-sm">
             <div class="flex items-center justify-between gap-2">
-              <dt class="text-gray-500">Assigné</dt>
+              <dt class="text-text-muted">Assigné</dt>
               <dd class="flex flex-wrap items-center justify-end gap-1">
                 @if (primaryAssignee(); as primary) {
                   <span
-                    class="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-500 text-[10px] font-semibold text-white ring-2 ring-blue-200"
+                    class="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-[10px] font-semibold text-white ring-2 ring-brand/30"
                     [title]="primary.username + ' — responsable principal'"
                   >
                     @if (primary.avatar_url; as avatar) {
@@ -581,11 +581,11 @@
                     }
                   </span>
                 } @else {
-                  <span class="text-xs text-gray-400">— Non assigné —</span>
+                  <span class="text-xs text-text-faint">— Non assigné —</span>
                 }
                 @for (assignee of assignees(); track assignee.id) {
                   <span
-                    class="group relative flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-400 text-[10px] font-semibold text-white"
+                    class="group relative flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-text-faint text-[10px] font-semibold text-white"
                     [title]="assignee.username"
                   >
                     @if (assignee.avatar_url; as avatar) {
@@ -605,7 +605,7 @@
                 }
                 <button
                   type="button"
-                  class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 text-xs text-gray-400 hover:border-gray-400 hover:text-gray-600"
+                  class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-border-strong text-xs text-text-faint hover:border-border-strong hover:text-text-muted"
                   title="Gérer les responsables"
                   (click)="openAssignmentDialog()"
                 >
@@ -615,7 +615,7 @@
             </div>
 
             <div class="flex items-center justify-between gap-2">
-              <dt class="text-gray-500">Priorité</dt>
+              <dt class="text-text-muted">Priorité</dt>
               <dd>
                 <app-search-select
                   [options]="priorityOptions"
@@ -628,7 +628,7 @@
             </div>
 
             <div class="flex items-center justify-between gap-2">
-              <dt class="text-gray-500">Tag</dt>
+              <dt class="text-text-muted">Tag</dt>
               <dd>
                 <app-search-select
                   [options]="tagOptions()"
@@ -641,7 +641,7 @@
             </div>
 
             <div class="flex items-center justify-between gap-2">
-              <dt class="text-gray-500">EPIC</dt>
+              <dt class="text-text-muted">EPIC</dt>
               <dd>
                 <app-search-select
                   [options]="epicOptions()"
@@ -654,13 +654,13 @@
             </div>
 
             <div class="flex items-center justify-between gap-2">
-              <dt class="text-gray-500">Échéance</dt>
+              <dt class="text-text-muted">Échéance</dt>
               <dd>
                 <label for="ticket-due-date" class="sr-only">Échéance</label>
                 <input
                   id="ticket-due-date"
                   type="date"
-                  class="rounded border border-transparent bg-transparent py-0.5 text-right text-sm text-gray-800 hover:border-gray-200 focus:border-gray-300 focus:outline-none"
+                  class="rounded border border-transparent bg-transparent py-0.5 text-right text-sm text-text-soft hover:border-border focus:border-border-strong focus:outline-none"
                   [value]="t.due_date ?? ''"
                   (change)="updateDueDate($any($event.target).value)"
                 />
@@ -670,12 +670,12 @@
         </div>
 
         @if (assignmentHistory().length > 0) {
-          <div class="mt-3 rounded-lg border border-gray-200 bg-white p-4">
-            <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Historique</h2>
+          <div class="mt-3 rounded-lg border border-border bg-surface p-4">
+            <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">Historique</h2>
             <div class="flex flex-col gap-3 text-sm">
               @for (entry of assignmentHistory(); track entry.id) {
-                <div class="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                  <p class="text-gray-700">
+                <div class="border-b border-border pb-3 last:border-0 last:pb-0">
+                  <p class="text-text-soft">
                     <span class="font-medium">{{ entry.performed_by_username || 'Utilisateur supprimé' }}</span>
                     @switch (entry.action) {
                       @case ('add') {
@@ -686,7 +686,7 @@
                         @if (entry.previous_username) {
                           <span class="font-medium">{{ entry.previous_username }}</span>
                         } @else {
-                          <span class="italic text-gray-400">quelqu'un</span>
+                          <span class="italic text-text-faint">quelqu'un</span>
                         }
                         par <span class="font-medium">{{ entry.new_username }}</span>
                       }
@@ -695,26 +695,26 @@
                         @if (entry.previous_username) {
                           <span class="font-medium">{{ entry.previous_username }}</span>
                         } @else {
-                          <span class="italic text-gray-400">une personne</span>
+                          <span class="italic text-text-faint">une personne</span>
                         }
                         des responsables
                       }
                     }
                   </p>
                   @if (entry.reason) {
-                    <p class="mt-0.5 text-xs italic text-gray-500">« {{ entry.reason }} »</p>
+                    <p class="mt-0.5 text-xs italic text-text-muted">« {{ entry.reason }} »</p>
                   }
                   @if (entry.previous_status && entry.new_status) {
-                    <p class="mt-0.5 text-xs text-gray-500">Statut : {{ entry.previous_status }} → {{ entry.new_status }}</p>
+                    <p class="mt-0.5 text-xs text-text-muted">Statut : {{ entry.previous_status }} → {{ entry.new_status }}</p>
                   }
-                  <p class="mt-0.5 text-xs text-gray-400">{{ formatDateTime(entry.created_at) }}</p>
+                  <p class="mt-0.5 text-xs text-text-faint">{{ formatDateTime(entry.created_at) }}</p>
                 </div>
               }
             </div>
           </div>
         }
 
-        <div class="mt-3 flex flex-col gap-0.5 px-1 text-xs text-gray-400">
+        <div class="mt-3 flex flex-col gap-0.5 px-1 text-xs text-text-faint">
           @if (t.created_at) {
             <span>Créé le {{ formatDateTime(t.created_at) }}</span>
           }
@@ -766,13 +766,13 @@
         <a
           [href]="url"
           download="image.jpg"
-          class="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-100"
+          class="rounded-md bg-surface px-3 py-1.5 text-sm font-medium text-text-soft hover:bg-surface-muted"
         >
           Télécharger
         </a>
         <button
           type="button"
-          class="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-100"
+          class="rounded-md bg-surface px-3 py-1.5 text-sm font-medium text-text-soft hover:bg-surface-muted"
           (click)="closeImageViewer()"
         >
           Fermer

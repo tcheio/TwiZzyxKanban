@@ -291,15 +291,15 @@ describe('Board', () => {
   });
 
   it('priorityClass() retourne la classe Tailwind associée à la priorité', () => {
-    expect(component.priorityClass('low')).toBe('bg-gray-400');
+    expect(component.priorityClass('low')).toBe('bg-text-faint');
     expect(component.priorityClass('medium')).toBe('bg-amber-500');
-    expect(component.priorityClass('high')).toBe('bg-red-600');
+    expect(component.priorityClass('high')).toBe('bg-danger');
   });
 
   it('tagClass() résout la classe Tailwind depuis la couleur du tag et vide sinon', async () => {
     await component.reload();
     expect(component.tagClass(null)).toBe('');
-    expect(component.tagClass(1)).toBe('bg-emerald-50 text-emerald-700');
+    expect(component.tagClass(1)).toBe('bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300');
   });
 
   it('formatDate() convertit AAAA-MM-JJ en JJ-MM-AAAA', () => {

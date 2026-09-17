@@ -36,9 +36,9 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const TOAST_DURATION_MS = 6000;
 
 const PRIORITY_CLASSES: Record<Priority, string> = {
-  low: 'bg-gray-400',
+  low: 'bg-text-faint',
   medium: 'bg-amber-500',
-  high: 'bg-red-600',
+  high: 'bg-danger',
 };
 
 // Plus la valeur est basse, plus la carte remonte quand le tri "Priorité" est actif.
@@ -245,6 +245,11 @@ export class Board implements OnInit {
     return tagBadgeClass(color);
   }
 
+  tagEmote(tagId: number | null): string | null {
+    if (!tagId) return null;
+    return this.tags().find((t) => t.id === tagId)?.emote_url ?? null;
+  }
+
   epicName(epicId: number | null): string | null {
     if (!epicId) return null;
     return this.epics().find((e) => e.id === epicId)?.name ?? null;
@@ -254,6 +259,11 @@ export class Board implements OnInit {
     if (!epicId) return '';
     const color = this.epics().find((e) => e.id === epicId)?.color;
     return epicBadgeClass(color);
+  }
+
+  epicEmote(epicId: number | null): string | null {
+    if (!epicId) return null;
+    return this.epics().find((e) => e.id === epicId)?.emote_url ?? null;
   }
 
   formatDate(dateStr: string): string {
@@ -273,7 +283,7 @@ export class Board implements OnInit {
     return ageDays < PUBLISHED_RETENTION_DAYS;
   }
 
-  private isPublished(card: Card): boolean {
+  isPublished(card: Card): boolean {
     return this.groups().find((g) => g.column.id === card.column_id)?.column.name === PUBLISHED_COLUMN_NAME;
   }
 

@@ -6,6 +6,30 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/png" href="favicon.png">
+  <script>
+    // Applique la classe .dark avant le premier rendu, pour éviter un flash clair→sombre
+    // au chargement. Logique dupliquée (volontairement) de ThemeService car ce script
+    // tourne avant qu'Angular ne soit démarré. Garder synchronisé avec theme.service.ts.
+    (function () {
+      try {
+        var mode = localStorage.getItem('kanban_theme_mode') || 'light';
+        var dark;
+        if (mode === 'dark') {
+          dark = true;
+        } else if (mode === 'system') {
+          dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        } else if (mode === 'schedule') {
+          var hour = new Date().getHours();
+          dark = !(hour >= 8 && hour < 19);
+        } else {
+          dark = false;
+        }
+        document.documentElement.classList.toggle('dark', dark);
+      } catch (e) {
+        /* localStorage indisponible (mode privé strict, etc.) : reste en clair par défaut */
+      }
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>
