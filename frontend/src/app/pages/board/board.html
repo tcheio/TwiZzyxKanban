@@ -47,9 +47,24 @@
         <button type="button" class="text-blue-400 hover:text-blue-600" (click)="clearAssigneeFilter()">✕</button>
       </span>
     }
-    <span class="ml-auto rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-500">
-      Grouper par : Aucun
-    </span>
+    <div class="ml-auto flex flex-wrap items-center gap-1.5">
+      <span class="text-sm text-gray-500">Trier par :</span>
+      @for (key of sortKeyOrder; track key) {
+        <button
+          type="button"
+          class="rounded-full border px-3 py-1.5 text-sm font-medium"
+          [class]="
+            activeSortKeys().has(key)
+              ? 'border-blue-300 bg-blue-50 text-blue-700'
+              : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+          "
+          [title]="activeSortKeys().has(key) ? 'Désactiver ce tri' : 'Activer ce tri'"
+          (click)="toggleSortKey(key)"
+        >
+          {{ sortKeyLabels[key] }}
+        </button>
+      }
+    </div>
   </div>
 
   <div class="flex min-h-0 flex-1 flex-col px-6 pb-6">
@@ -75,7 +90,7 @@
           cdkDropList
           [id]="'col-' + group.column.id"
           [cdkDropListData]="group.cards"
-          [cdkDropListDisabled]="selectedAssigneeId() !== null"
+          [cdkDropListDisabled]="selectedAssigneeId() !== null || activeSortKeys().size > 0"
           [cdkDropListEnterPredicate]="canEnter"
           (cdkDropListDropped)="drop($event)"
         >
@@ -86,21 +101,27 @@
               [cdkDragData]="card"
               (cdkDragStarted)="onDragStarted()"
               (cdkDragEnded)="onDragEnded()"
-              (click)="openTicket(card)"
             >
               @if (epicName(card.epic_id); as epic) {
                 <span
-                  class="mb-1.5 inline-block rounded px-2 py-0.5 text-[11px] font-medium"
+                  class="mb-1.5 inline-block cursor-pointer rounded px-2 py-0.5 text-[11px] font-medium hover:underline"
                   [class]="epicClass(card.epic_id)"
+                  (click)="$event.stopPropagation(); goToEpic(card.epic_id!)"
                 >
                   {{ epic }}
                 </span>
               }
-              <div class="text-sm font-medium text-gray-900">{{ card.title }}</div>
+              <div
+                class="cursor-pointer text-sm font-medium text-gray-900 hover:underline"
+                (click)="$event.stopPropagation(); openTicket(card)"
+              >
+                {{ card.title }}
+              </div>
               @if (tagName(card.tag_id); as tag) {
                 <span
-                  class="mb-1.5 mt-1 inline-block rounded px-2 py-0.5 text-[11px] font-medium"
+                  class="mb-1.5 mt-1 inline-block cursor-pointer rounded px-2 py-0.5 text-[11px] font-medium hover:underline"
                   [class]="tagClass(card.tag_id)"
+                  (click)="$event.stopPropagation(); goToTag(card.tag_id!)"
                 >
                   {{ tag }}
                 </span>
