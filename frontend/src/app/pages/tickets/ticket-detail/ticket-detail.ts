@@ -38,13 +38,14 @@ import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
 import { AssignmentDialog } from '../assignment-dialog/assignment-dialog';
 import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from '../../../shared/ticket-status';
+import { PRIORITY_LABELS, PRIORITY_DOT_CLASSES } from '../../../shared/priority';
 import { startAutoRefresh } from '../../../shared/auto-refresh';
 
-const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = [
-  { id: 'low', label: 'Basse', dotClass: 'bg-text-faint' },
-  { id: 'medium', label: 'Moyenne', dotClass: 'bg-amber-500' },
-  { id: 'high', label: 'Haute', dotClass: 'bg-danger' },
-];
+const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = (['low', 'medium', 'high'] as Priority[]).map((p) => ({
+  id: p,
+  label: PRIORITY_LABELS[p],
+  dotClass: PRIORITY_DOT_CLASSES[p],
+}));
 
 export interface LinkedTicket {
   linkId: number;

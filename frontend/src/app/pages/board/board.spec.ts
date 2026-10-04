@@ -318,9 +318,15 @@ describe('Board', () => {
   });
 
   it('priorityClass() retourne la classe Tailwind associée à la priorité', () => {
-    expect(component.priorityClass('low')).toBe('bg-text-faint');
-    expect(component.priorityClass('medium')).toBe('bg-amber-500');
-    expect(component.priorityClass('high')).toBe('bg-danger');
+    expect(component.priorityClass('low')).toBe('bg-sky-500 dark:bg-sky-400');
+    expect(component.priorityClass('medium')).toBe('bg-orange-500 dark:bg-orange-400');
+    expect(component.priorityClass('high')).toBe('bg-red-800 dark:bg-red-600');
+  });
+
+  it('priorityLabel() retourne le libellé français associé à la priorité', () => {
+    expect(component.priorityLabel('low')).toBe('Faible');
+    expect(component.priorityLabel('medium')).toBe('Moyen');
+    expect(component.priorityLabel('high')).toBe('Élevé');
   });
 
   it('tagClass() résout la classe Tailwind depuis la couleur du tag et vide sinon', async () => {

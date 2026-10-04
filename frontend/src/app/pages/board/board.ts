@@ -22,6 +22,7 @@ import { Tag } from '../../models/tag.model';
 import { Epic } from '../../models/epic.model';
 import { epicBadgeClass } from '../../shared/epic-colors';
 import { tagBadgeClass } from '../../shared/tag-colors';
+import { priorityLabel, priorityDotClass } from '../../shared/priority';
 import { startAutoRefresh } from '../../shared/auto-refresh';
 
 interface ColumnGroup {
@@ -34,12 +35,6 @@ const PUBLISHED_RETENTION_DAYS = 14;
 const DUE_SOON_DAYS = 7;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const TOAST_DURATION_MS = 6000;
-
-const PRIORITY_CLASSES: Record<Priority, string> = {
-  low: 'bg-text-faint',
-  medium: 'bg-amber-500',
-  high: 'bg-danger',
-};
 
 // Plus la valeur est basse, plus la carte remonte quand le tri "Priorité" est actif.
 const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
@@ -251,9 +246,8 @@ export class Board implements OnInit {
     return this.tags().find((t) => t.id === tagId)?.name ?? null;
   }
 
-  priorityClass(priority: Priority): string {
-    return PRIORITY_CLASSES[priority];
-  }
+  readonly priorityClass = priorityDotClass;
+  readonly priorityLabel = priorityLabel;
 
   tagClass(tagId: number | null): string {
     if (!tagId) return '';

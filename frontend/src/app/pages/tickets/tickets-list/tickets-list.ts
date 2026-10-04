@@ -15,16 +15,11 @@ import { Epic } from '../../../models/epic.model';
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
 import { epicBadgeClass } from '../../../shared/epic-colors';
 import { tagBadgeClass } from '../../../shared/tag-colors';
+import { priorityLabel, priorityDotClass } from '../../../shared/priority';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
 import { StatusChip } from '../../../shared/status-chip/status-chip';
 import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from '../../../shared/ticket-status';
 import { startAutoRefresh } from '../../../shared/auto-refresh';
-
-const PRIORITY_DOT_CLASSES: Record<string, string> = {
-  low: 'bg-text-faint',
-  medium: 'bg-amber-500',
-  high: 'bg-danger',
-};
 
 @Component({
   selector: 'app-tickets-list',
@@ -176,9 +171,8 @@ export class TicketsList implements OnInit {
     return this.epics().find((e) => e.id === epicId)?.emote_url ?? null;
   }
 
-  priorityDotClass(priority: string): string {
-    return PRIORITY_DOT_CLASSES[priority] ?? PRIORITY_DOT_CLASSES['low'];
-  }
+  readonly priorityDotClass = priorityDotClass;
+  readonly priorityLabel = priorityLabel;
 
   tagFilterOptions(): SearchSelectOption<number>[] {
     return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.color), iconUrl: t.emote_url }));
