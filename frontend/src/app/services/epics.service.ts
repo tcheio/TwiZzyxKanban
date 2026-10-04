@@ -11,11 +11,13 @@ export class EpicsService {
     return firstValueFrom(this.http.get<Epic[]>(`/api/kanbans/${kanbanId}/epics`));
   }
 
-  create(kanbanId: number, name: string, color: string): Promise<Epic> {
-    return firstValueFrom(this.http.post<Epic>(`/api/kanbans/${kanbanId}/epics`, { name, color }));
+  create(kanbanId: number, name: string, color: string, emoteUrl: string | null = null): Promise<Epic> {
+    return firstValueFrom(
+      this.http.post<Epic>(`/api/kanbans/${kanbanId}/epics`, { name, color, emote_url: emoteUrl })
+    );
   }
 
-  update(kanbanId: number, id: number, changes: { name?: string; color?: string }): Promise<Epic> {
+  update(kanbanId: number, id: number, changes: { name?: string; color?: string; emote_url?: string | null }): Promise<Epic> {
     return firstValueFrom(this.http.patch<Epic>(`/api/kanbans/${kanbanId}/epics/${id}`, changes));
   }
 

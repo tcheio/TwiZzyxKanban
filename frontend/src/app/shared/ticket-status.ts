@@ -12,9 +12,9 @@ export function statusLabel(ticket: Card, columns: Column[]): string {
 }
 
 export function statusChipClass(ticket: Card): string {
-  return ticket.cancelled_at ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-600';
+  return ticket.cancelled_at ? 'bg-danger-soft text-danger' : 'bg-surface-muted text-text-muted';
 }
 
 export function cancelledTitleClass(cancelledAt: string | null | undefined): string {
-  return cancelledAt ? 'text-gray-400 line-through' : 'text-gray-900';
+  return cancelledAt ? 'text-text-faint line-through' : 'text-text';
 }

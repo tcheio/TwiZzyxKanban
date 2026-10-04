@@ -21,9 +21,9 @@ import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from
 import { startAutoRefresh } from '../../../shared/auto-refresh';
 
 const PRIORITY_DOT_CLASSES: Record<string, string> = {
-  low: 'bg-gray-400',
+  low: 'bg-text-faint',
   medium: 'bg-amber-500',
-  high: 'bg-red-600',
+  high: 'bg-danger',
 };
 
 @Component({
@@ -72,7 +72,7 @@ export class TicketsList implements OnInit {
     const assigneeId = this.filterAssigneeId();
     const columnId = this.filterColumnId();
     return this.tickets().filter((ticket) => {
-      if (tagId !== null && ticket.tag_id !== tagId) return false;
+      if (tagId !== null && ticket.tag_id !== tagId && !(ticket.tag_ids ?? []).includes(tagId)) return false;
       if (epicId !== null && ticket.epic_id !== epicId) return false;
       if (assigneeId !== null && ticket.assigned_user_id !== assigneeId) return false;
       if (columnId === CANCELLED_STATUS_ID) return !!ticket.cancelled_at;
@@ -160,10 +160,20 @@ export class TicketsList implements OnInit {
     return tagBadgeClass(this.tags().find((t) => t.id === tagId)?.color);
   }
 
+  tagEmote(tagId: number | null): string | null {
+    if (!tagId) return null;
+    return this.tags().find((t) => t.id === tagId)?.emote_url ?? null;
+  }
+
   epicClass(epicId: number | null): string {
     if (!epicId) return '';
     const color = this.epics().find((e) => e.id === epicId)?.color;
     return epicBadgeClass(color);
+  }
+
+  epicEmote(epicId: number | null): string | null {
+    if (!epicId) return null;
+    return this.epics().find((e) => e.id === epicId)?.emote_url ?? null;
   }
 
   priorityDotClass(priority: string): string {
@@ -171,11 +181,11 @@ export class TicketsList implements OnInit {
   }
 
   tagFilterOptions(): SearchSelectOption<number>[] {
-    return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.color) }));
+    return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.color), iconUrl: t.emote_url }));
   }
 
   epicFilterOptions(): SearchSelectOption<number>[] {
-    return this.epics().map((e) => ({ id: e.id, label: e.name, badgeClass: epicBadgeClass(e.color) }));
+    return this.epics().map((e) => ({ id: e.id, label: e.name, badgeClass: epicBadgeClass(e.color), iconUrl: e.emote_url }));
   }
 
   assigneeFilterOptions(): SearchSelectOption<number>[] {

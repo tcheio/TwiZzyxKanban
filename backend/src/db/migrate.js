@@ -54,6 +54,12 @@ function addTagColorColumn() {
   existingTags.forEach(({ id }, index) => setColor.run(rotatingPalette[index % rotatingPalette.length], id));
 }
 
+function addEmoteUrlColumn(tableName) {
+  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
+  if (columns.some((col) => col.name === 'emote_url')) return;
+  db.exec(`ALTER TABLE ${tableName} ADD COLUMN emote_url TEXT`);
+}
+
 function addKanbanIdColumn(tableName) {
   const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
   if (!columns.some((col) => col.name === 'kanban_id')) {
@@ -162,6 +168,8 @@ function migrate() {
   addKanbanIdColumn('tags');
   addKanbanIdColumn('epics');
   addTagColorColumn();
+  addEmoteUrlColumn('tags');
+  addEmoteUrlColumn('epics');
 
   renameLegacyColumnNames();
   migrateChannelToEpic(cardColumns);

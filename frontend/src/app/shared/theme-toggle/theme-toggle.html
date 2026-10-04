@@ -1,0 +1,29 @@
+<div class="relative">
+  <button
+    type="button"
+    class="flex h-6 w-6 items-center justify-center rounded-full border border-border text-xs text-text-muted hover:bg-surface-alt"
+    title="Thème"
+    (click)="$event.stopPropagation(); toggle()"
+  >
+    {{ themeService.isDark() ? '🌙' : '☀️' }}
+  </button>
+
+  @if (open()) {
+    <div
+      class="absolute right-0 top-full z-20 mt-1 w-56 rounded-md border border-border bg-surface p-1.5 shadow-lg"
+      (click)="$event.stopPropagation()"
+    >
+      @for (option of options; track option.mode) {
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-alt"
+          [class]="themeService.mode() === option.mode ? 'bg-brand-soft text-brand-soft-text font-medium' : 'text-text-soft'"
+          (click)="select(option.mode)"
+        >
+          <span aria-hidden="true">{{ option.icon }}</span>
+          {{ option.label }}
+        </button>
+      }
+    </div>
+  }
+</div>

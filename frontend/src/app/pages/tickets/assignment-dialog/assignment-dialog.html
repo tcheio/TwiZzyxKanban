@@ -1,0 +1,109 @@
+<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" (click)="cancelled.emit()">
+  <form
+    class="flex w-[380px] flex-col gap-3 rounded-lg bg-surface p-6"
+    [formGroup]="form"
+    (click)="$event.stopPropagation()"
+    (ngSubmit)="submit()"
+  >
+    <h2 class="m-0 mb-1 text-lg font-semibold text-text">Gérer les responsables</h2>
+
+    <div class="flex gap-2">
+      <button
+        type="button"
+        class="flex-1 rounded-md border px-3 py-1.5 text-sm font-medium"
+        [class]="
+          form.value.action === 'add'
+            ? 'border-brand bg-brand-soft text-brand-soft-text'
+            : 'border-border text-text-muted hover:bg-surface-alt'
+        "
+        (click)="setAction('add')"
+      >
+        Ajouter
+      </button>
+      <button
+        type="button"
+        class="flex-1 rounded-md border px-3 py-1.5 text-sm font-medium"
+        [class]="
+          form.value.action === 'replace'
+            ? 'border-brand bg-brand-soft text-brand-soft-text'
+            : 'border-border text-text-muted hover:bg-surface-alt'
+        "
+        (click)="setAction('replace')"
+      >
+        Remplacer le resp.
+      </button>
+    </div>
+    <p class="-mt-2 text-xs text-text-muted">
+      @if (form.value.action === 'add') {
+        La personne choisie s'ajoute aux responsables actuels du ticket.
+      } @else {
+        La personne choisie devient le nouveau responsable principal, à la place de l'actuel.
+      }
+    </p>
+
+    <div class="flex flex-col gap-1 text-sm text-text-soft">
+      <span>Personne</span>
+      <app-search-select
+        [options]="userOptions()"
+        [value]="form.value.user_id ?? null"
+        [allowNull]="false"
+        [fullWidth]="true"
+        nullLabel="— Choisir une personne —"
+        searchPlaceholder="Rechercher une personne..."
+        (valueChange)="form.patchValue({ user_id: $event })"
+      />
+    </div>
+
+    <label for="assignment-reason" class="flex flex-col gap-1 text-sm text-text-soft">
+      Raison
+      <textarea
+        id="assignment-reason"
+        formControlName="reason"
+        rows="2"
+        placeholder="Pourquoi ce changement ?"
+        class="rounded-md border border-border-strong px-2.5 py-2 text-sm text-text focus:border-brand focus:outline-none"
+      ></textarea>
+    </label>
+
+    <div class="flex flex-col gap-2 rounded-md border border-border bg-surface-alt p-2.5">
+      <label class="flex items-center gap-2 text-sm text-text-soft">
+        <input
+          type="checkbox"
+          [checked]="form.value.changeStatus"
+          [disabled]="statusLocked"
+          (change)="toggleChangeStatus($any($event.target).checked)"
+        />
+        Changer aussi le statut du ticket
+      </label>
+      @if (statusLocked) {
+        <p class="text-xs text-danger">Un ticket publié ne peut plus changer de statut.</p>
+      } @else if (form.value.changeStatus) {
+        <app-search-select
+          [options]="statusOptions"
+          [value]="form.value.status_value ?? null"
+          [allowNull]="false"
+          [fullWidth]="true"
+          searchPlaceholder="Rechercher un statut..."
+          (valueChange)="form.patchValue({ status_value: $event })"
+        />
+      }
+    </div>
+
+    <div class="mt-2 flex justify-end gap-2">
+      <button
+        type="button"
+        class="rounded-md border border-border-strong px-4 py-2 text-sm text-text-soft hover:bg-surface-alt"
+        (click)="cancelled.emit()"
+      >
+        Annuler
+      </button>
+      <button
+        type="submit"
+        [disabled]="form.invalid || reasonMissing()"
+        class="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Valider
+      </button>
+    </div>
+  </form>
+</div>

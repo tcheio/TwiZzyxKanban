@@ -102,6 +102,13 @@ export const routes: Routes = [
     canActivate: [authGuard, adminGuard],
     title: 'Utilisateurs - TwiZzyxKanban',
   },
+  {
+    path: 'admin/announcements',
+    loadComponent: () =>
+      import('./pages/admin-announcements/admin-announcements').then((m) => m.AdminAnnouncements),
+    canActivate: [authGuard, adminGuard],
+    title: 'Annonces - TwiZzyxKanban',
+  },
   { path: '', pathMatch: 'full', redirectTo: 'kanbans' },
   { path: '**', redirectTo: 'kanbans' },
 ];

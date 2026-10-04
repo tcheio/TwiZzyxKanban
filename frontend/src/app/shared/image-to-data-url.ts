@@ -1,8 +1,3 @@
-/**
- * Reads an image file, downscales it to fit within `maxDimension` and returns it as a JPEG
- * data URL. Generic on purpose — reusable anywhere an image needs to become a small,
- * storable data URL (profile avatars today, other "attach a picture" features later).
- */
 export function resizeImageToDataUrl(file: File, maxDimension = 256, quality = 0.85): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

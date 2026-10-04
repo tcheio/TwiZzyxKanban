@@ -57,6 +57,23 @@ test('POST avec une couleur invalide retourne 400', async () => {
   assert.equal(res.status, 400);
 });
 
+test('POST avec un emote_url valide crée l\'epic avec cet émote', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/epics`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'AutreChaine', emote_url: '/emote/PKM SVG.png' });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.emote_url, '/emote/PKM SVG.png');
+});
+
+test('POST avec un emote_url invalide retourne 400', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/epics`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'AutreChaine', emote_url: '/emote/not-allowed.png' });
+  assert.equal(res.status, 400);
+});
+
 test("PATCH renomme l'epic et change sa couleur", async () => {
   const created = await request(app)
     .post(`/api/kanbans/${kanbanId}/epics`)
@@ -70,6 +87,33 @@ test("PATCH renomme l'epic et change sa couleur", async () => {
   assert.equal(res.status, 200);
   assert.equal(res.body.name, 'Renommée');
   assert.equal(res.body.color, 'emerald');
+});
+
+test("PATCH change l'emote_url de l'epic", async () => {
+  const created = await request(app)
+    .post(`/api/kanbans/${kanbanId}/epics`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'TwiZzyx', color: 'red' });
+  const id = created.body.id;
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/epics/${id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ emote_url: '/emote/YKW svg.png' });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.emote_url, '/emote/YKW svg.png');
+});
+
+test('PATCH avec un emote_url invalide retourne 400', async () => {
+  const created = await request(app)
+    .post(`/api/kanbans/${kanbanId}/epics`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'TwiZzyx', color: 'red' });
+  const id = created.body.id;
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/epics/${id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ emote_url: '/emote/not-allowed.png' });
+  assert.equal(res.status, 400);
 });
 
 test('PATCH sur une epic inexistante retourne 404', async () => {

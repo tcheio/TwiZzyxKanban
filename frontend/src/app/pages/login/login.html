@@ -1,42 +1,42 @@
-<div class="flex min-h-screen items-center justify-center bg-gray-100">
+<div class="flex min-h-screen items-center justify-center bg-app-bg">
   <form
-    class="flex w-80 flex-col gap-3 rounded-lg bg-white p-8 shadow-md"
+    class="flex w-80 flex-col gap-3 rounded-lg bg-surface p-8 shadow-md"
     [formGroup]="form"
     (ngSubmit)="submit()"
   >
-    <h1 class="m-0 text-2xl font-bold text-gray-900">TwiZzyxKanban</h1>
-    <p class="mb-2 text-sm text-gray-500">Connecte-toi pour accéder au tableau</p>
+    <h1 class="m-0 text-2xl font-bold text-text">TwiZzyxKanban</h1>
+    <p class="mb-2 text-sm text-text-muted">Connecte-toi pour accéder au tableau</p>
 
-    <label for="login-username" class="flex flex-col gap-1 text-sm text-gray-700">
+    <label for="login-username" class="flex flex-col gap-1 text-sm text-text-soft">
       Nom d'utilisateur
       <input
         id="login-username"
         type="text"
         formControlName="username"
         autocomplete="username"
-        class="rounded-md border border-gray-300 px-2.5 py-2 text-base text-gray-900 focus:border-blue-400 focus:outline-none"
+        class="rounded-md border border-border-strong px-2.5 py-2 text-base text-text focus:border-brand focus:outline-none"
       />
     </label>
 
-    <label for="login-password" class="flex flex-col gap-1 text-sm text-gray-700">
+    <label for="login-password" class="flex flex-col gap-1 text-sm text-text-soft">
       Mot de passe
       <input
         id="login-password"
         type="password"
         formControlName="password"
         autocomplete="current-password"
-        class="rounded-md border border-gray-300 px-2.5 py-2 text-base text-gray-900 focus:border-blue-400 focus:outline-none"
+        class="rounded-md border border-border-strong px-2.5 py-2 text-base text-text focus:border-brand focus:outline-none"
       />
     </label>
 
     @if (error()) {
-      <p class="m-0 text-sm text-red-600">{{ error() }}</p>
+      <p class="m-0 text-sm text-danger">{{ error() }}</p>
     }
 
     <button
       type="submit"
       [disabled]="form.invalid || loading()"
-      class="mt-2 rounded-md bg-blue-600 py-2.5 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+      class="mt-2 rounded-md bg-brand py-2.5 font-semibold text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-surface-muted"
     >
       {{ loading() ? 'Connexion...' : 'Se connecter' }}
     </button>

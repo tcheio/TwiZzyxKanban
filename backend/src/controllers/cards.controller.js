@@ -1,29 +1,28 @@
 const db = require('../db/connection');
 const { sanitizeRichText } = require('../utils/rich-text');
+const {
+  PUBLISHED_COLUMN_NAME,
+  isPublishedColumn,
+  withKey,
+  EXTRA_RELATIONS_SUBQUERY,
+  mapCardRelations,
+  fetchCardWithRelations,
+} = require('../utils/card-status');
+const { notifyWatchersAndTargets } = require('../utils/notify');
 
 const VALID_PRIORITIES = ['low', 'medium', 'high'];
-const PUBLISHED_COLUMN_NAME = '✅Publié';
-
-function isPublishedColumn(columnId) {
-  const column = db.prepare('SELECT name FROM columns WHERE id = ?').get(columnId);
-  return column?.name === PUBLISHED_COLUMN_NAME;
-}
-
-function withKey(card, kanbanCode) {
-  return { ...card, key: `${kanbanCode}-${card.id}` };
-}
 
 function list(req, res) {
   const cards = db
-    .prepare('SELECT * FROM cards WHERE kanban_id = ? ORDER BY column_id, position')
+    .prepare(`SELECT cards.*, ${EXTRA_RELATIONS_SUBQUERY} FROM cards WHERE kanban_id = ? ORDER BY column_id, position`)
     .all(req.kanbanId);
-  res.json(cards.map((card) => withKey(card, req.kanbanCode)));
+  res.json(cards.map((card) => withKey(mapCardRelations(card), req.kanbanCode)));
 }
 
 function getOne(req, res) {
   const id = Number(req.params.id);
-  const card = db.prepare('SELECT * FROM cards WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
-  if (!card) {
+  const card = fetchCardWithRelations(id);
+  if (!card || card.kanban_id !== req.kanbanId) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
   res.json(withKey(card, req.kanbanCode));
@@ -89,7 +88,7 @@ function create(req, res) {
       publishedAt
     );
 
-  const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(result.lastInsertRowid);
+  const card = fetchCardWithRelations(result.lastInsertRowid);
   res.status(201).json(withKey(card, req.kanbanCode));
 }
 
@@ -131,7 +130,16 @@ function update(req, res) {
     id
   );
 
-  const updated = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
+  if (tag_id !== undefined && tag_id !== card.tag_id) {
+    const previousTag = card.tag_id ? db.prepare('SELECT name FROM tags WHERE id = ?').get(card.tag_id) : null;
+    const nextTag = tag_id ? db.prepare('SELECT name FROM tags WHERE id = ?').get(tag_id) : null;
+    const message = nextTag
+      ? `${req.user.username} a mis le tag « ${nextTag.name} » sur le ticket « ${card.title} »`
+      : `${req.user.username} a retiré le tag « ${previousTag?.name ?? '?'} » du ticket « ${card.title} »`;
+    notifyWatchersAndTargets(id, { kanbanId: req.kanbanId, actorUserId: req.user.id, type: 'tag', watcherMessage: message });
+  }
+
+  const updated = fetchCardWithRelations(id);
   res.json(withKey(updated, req.kanbanCode));
 }
 
@@ -213,7 +221,17 @@ function move(req, res) {
   });
   moveTx();
 
-  const moved = db.prepare('SELECT * FROM cards WHERE id = ?').get(id);
+  if (columnId !== card.column_id) {
+    const previousColumn = db.prepare('SELECT name FROM columns WHERE id = ?').get(card.column_id);
+    notifyWatchersAndTargets(id, {
+      kanbanId: req.kanbanId,
+      actorUserId: req.user.id,
+      type: 'status',
+      watcherMessage: `${req.user.username} a déplacé le ticket « ${card.title} » de « ${previousColumn?.name ?? '?'} » vers « ${targetColumn.name} »`,
+    });
+  }
+
+  const moved = fetchCardWithRelations(id);
   res.json(withKey(moved, req.kanbanCode));
 }
 
@@ -226,7 +244,17 @@ function setCancelled(req, res, isCancelled) {
 
   const cancelledAtExpr = isCancelled ? "datetime('now')" : 'NULL';
   db.prepare(`UPDATE cards SET cancelled_at = ${cancelledAtExpr}, updated_at = datetime('now') WHERE id = ?`).run(id);
-  res.json(withKey(db.prepare('SELECT * FROM cards WHERE id = ?').get(id), req.kanbanCode));
+
+  notifyWatchersAndTargets(id, {
+    kanbanId: req.kanbanId,
+    actorUserId: req.user.id,
+    type: 'status',
+    watcherMessage: isCancelled
+      ? `${req.user.username} a annulé le ticket « ${card.title} »`
+      : `${req.user.username} a restauré le ticket « ${card.title} »`,
+  });
+
+  res.json(withKey(fetchCardWithRelations(id), req.kanbanCode));
 }
 
 function cancel(req, res) {

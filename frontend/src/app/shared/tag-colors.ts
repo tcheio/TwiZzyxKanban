@@ -1,13 +1,13 @@
 export const TAG_BADGE_CLASSES: Record<string, string> = {
-  red: 'bg-red-50 text-red-700',
-  orange: 'bg-orange-50 text-orange-700',
-  amber: 'bg-amber-50 text-amber-700',
-  emerald: 'bg-emerald-50 text-emerald-700',
-  sky: 'bg-sky-50 text-sky-700',
-  violet: 'bg-violet-50 text-violet-700',
-  rose: 'bg-rose-50 text-rose-700',
-  indigo: 'bg-indigo-50 text-indigo-700',
-  gray: 'bg-gray-100 text-gray-700',
+  red: 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+  orange: 'bg-orange-50 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',
+  amber: 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+  emerald: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+  sky: 'bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
+  violet: 'bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',
+  rose: 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+  indigo: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',
+  gray: 'bg-surface-muted text-text-soft',
 };
 
 export const TAG_DOT_CLASSES: Record<string, string> = {
@@ -19,7 +19,7 @@ export const TAG_DOT_CLASSES: Record<string, string> = {
   violet: 'bg-violet-500',
   rose: 'bg-rose-500',
   indigo: 'bg-indigo-500',
-  gray: 'bg-gray-400',
+  gray: 'bg-text-faint',
 };
 
 export const TAG_COLORS = Object.keys(TAG_BADGE_CLASSES);

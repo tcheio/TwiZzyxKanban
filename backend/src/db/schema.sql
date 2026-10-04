@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS tags (
   kanban_id INTEGER REFERENCES kanbans(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   color TEXT NOT NULL DEFAULT 'gray',
+  emote_url TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -45,6 +46,7 @@ CREATE TABLE IF NOT EXISTS epics (
   kanban_id INTEGER REFERENCES kanbans(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   color TEXT NOT NULL DEFAULT 'gray',
+  emote_url TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -98,3 +100,74 @@ CREATE TABLE IF NOT EXISTS card_images (
 );
 
 CREATE INDEX IF NOT EXISTS idx_card_images_card ON card_images(card_id);
+
+-- Responsables additionnels d'un ticket, en plus du responsable principal
+-- (cards.assigned_user_id). Une personne ne peut pas être à la fois responsable
+-- principal et responsable additionnel du même ticket (géré côté applicatif).
+CREATE TABLE IF NOT EXISTS card_assignees (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (card_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_assignees_card ON card_assignees(card_id);
+
+-- Tags additionnels d'un ticket (en plus du tag_id principal), sans historique ni raison :
+-- simple ajout/retrait, contrairement aux responsables additionnels.
+CREATE TABLE IF NOT EXISTS card_tags (
+  card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (card_id, tag_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_tags_card ON card_tags(card_id);
+
+-- Historique des ajouts/remplacements/retraits de responsable, avec la raison donnée et
+-- l'éventuel changement de statut effectué dans la même action.
+CREATE TABLE IF NOT EXISTS card_assignment_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  action TEXT NOT NULL CHECK(action IN ('add','replace','remove')),
+  previous_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  new_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  reason TEXT,
+  previous_status TEXT,
+  new_status TEXT,
+  performed_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_assignment_history_card ON card_assignment_history(card_id);
+
+-- Notifications adressées aux responsables (principal + additionnels) d'un ticket, à
+-- chaque changement de tag, de responsable, de statut ou nouveau commentaire.
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kanban_id INTEGER NOT NULL REFERENCES kanbans(id) ON DELETE CASCADE,
+  card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  actor_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK(type IN ('tag','assignee','comment','status')),
+  message TEXT NOT NULL,
+  read_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read_at);
+
+-- Annonces "infra" affichées en bandeau dans la navbar (ex: maintenance prévue), gérées
+-- par un admin sans toucher au code. kanban_id NULL = annonce visible sur toute
+-- l'application ; sinon visible uniquement sur ce kanban précis.
+CREATE TABLE IF NOT EXISTS announcements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kanban_id INTEGER REFERENCES kanbans(id) ON DELETE CASCADE,
+  message TEXT NOT NULL,
+  created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_announcements_kanban ON announcements(kanban_id);

@@ -73,6 +73,32 @@ test('POST avec une couleur invalide retourne 400', async () => {
   assert.equal(res.status, 400);
 });
 
+test('POST avec un emote_url valide crée le tag avec cet émote', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/tags`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'One Piece', emote_url: '/emote/PKM SVG.png' });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.emote_url, '/emote/PKM SVG.png');
+});
+
+test('POST sans emote_url le laisse à null', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/tags`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'One Piece' });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.emote_url, null);
+});
+
+test('POST avec un emote_url invalide retourne 400', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/tags`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'One Piece', emote_url: '/emote/not-allowed.svg' });
+  assert.equal(res.status, 400);
+});
+
 test('PATCH renomme le tag et change sa couleur', async () => {
   const list = await request(app).get(`/api/kanbans/${kanbanId}/tags`).set('Authorization', `Bearer ${adminToken}`);
   const id = list.body[0].id;
@@ -95,6 +121,27 @@ test('PATCH ne change que la couleur si le nom est omis', async () => {
   assert.equal(res.status, 200);
   assert.equal(res.body.name, tag.name);
   assert.equal(res.body.color, 'indigo');
+});
+
+test('PATCH change l\'emote_url du tag', async () => {
+  const list = await request(app).get(`/api/kanbans/${kanbanId}/tags`).set('Authorization', `Bearer ${adminToken}`);
+  const id = list.body[0].id;
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/tags/${id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ emote_url: '/emote/YKW svg.png' });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.emote_url, '/emote/YKW svg.png');
+});
+
+test('PATCH avec un emote_url invalide retourne 400', async () => {
+  const list = await request(app).get(`/api/kanbans/${kanbanId}/tags`).set('Authorization', `Bearer ${adminToken}`);
+  const id = list.body[0].id;
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/tags/${id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ emote_url: '/emote/not-allowed.svg' });
+  assert.equal(res.status, 400);
 });
 
 test('PATCH avec une couleur invalide retourne 400', async () => {

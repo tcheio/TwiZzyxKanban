@@ -7,10 +7,11 @@ import { Epic } from '../../../models/epic.model';
 import { Card } from '../../../models/card.model';
 import { Kanban } from '../../../models/kanban.model';
 import { EPIC_COLORS, epicDotClass } from '../../../shared/epic-colors';
+import { EmotePicker } from '../../../shared/emote-picker/emote-picker';
 
 @Component({
   selector: 'app-epics-list',
-  imports: [FormsModule],
+  imports: [FormsModule, EmotePicker],
   templateUrl: './epics-list.html',
 })
 export class EpicsList implements OnInit {
@@ -33,10 +34,12 @@ export class EpicsList implements OnInit {
   readonly creating = signal(false);
   readonly newEpicName = signal('');
   readonly newEpicColor = signal(EPIC_COLORS[0]);
+  readonly newEpicEmote = signal<string | null>(null);
 
   readonly editingId = signal<number | null>(null);
   readonly editName = signal('');
   readonly editColor = signal('');
+  readonly editEmote = signal<string | null>(null);
 
   async ngOnInit(): Promise<void> {
     await this.reload();
@@ -71,9 +74,10 @@ export class EpicsList implements OnInit {
     const name = this.newEpicName().trim();
     if (!name) return;
     try {
-      await this.epicsService.create(this.kanbanId, name, this.newEpicColor());
+      await this.epicsService.create(this.kanbanId, name, this.newEpicColor(), this.newEpicEmote());
       this.newEpicName.set('');
       this.newEpicColor.set(EPIC_COLORS[0]);
+      this.newEpicEmote.set(null);
       this.creating.set(false);
       await this.reload();
     } catch {
@@ -85,6 +89,7 @@ export class EpicsList implements OnInit {
     this.editingId.set(epic.id);
     this.editName.set(epic.name);
     this.editColor.set(epic.color);
+    this.editEmote.set(epic.emote_url);
   }
 
   cancelEdit(): void {
@@ -94,10 +99,11 @@ export class EpicsList implements OnInit {
   async saveEdit(epic: Epic): Promise<void> {
     const trimmed = this.editName().trim();
     const color = this.editColor();
+    const emote = this.editEmote();
     this.editingId.set(null);
-    if (!trimmed || (trimmed === epic.name && color === epic.color)) return;
+    if (!trimmed || (trimmed === epic.name && color === epic.color && emote === epic.emote_url)) return;
     try {
-      await this.epicsService.update(this.kanbanId, epic.id, { name: trimmed, color });
+      await this.epicsService.update(this.kanbanId, epic.id, { name: trimmed, color, emote_url: emote });
       await this.reload();
     } catch {
       this.error.set("Échec de la modification de l'EPIC.");

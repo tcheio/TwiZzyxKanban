@@ -1,0 +1,52 @@
+<div class="relative">
+  <button
+    type="button"
+    class="relative flex h-6 w-6 items-center justify-center rounded-full border border-border text-text-muted hover:bg-surface-alt"
+    title="Notifications"
+    (click)="$event.stopPropagation(); toggle()"
+  >
+    <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 3a5 5 0 00-5 5v3l-1.5 3h13L17 11V8a5 5 0 00-5-5z" stroke-linejoin="round" />
+      <circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+    @if (unreadCount() > 0) {
+      <span class="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-danger px-0.5 text-[9px] font-semibold leading-none text-white">
+        {{ unreadCount() > 9 ? '9+' : unreadCount() }}
+      </span>
+    }
+  </button>
+
+  @if (open()) {
+    <div
+      class="absolute right-0 top-full z-20 mt-1 w-80 overflow-hidden rounded-md border border-border bg-surface shadow-lg"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between border-b border-border px-3 py-2">
+        <span class="text-xs font-semibold uppercase tracking-wide text-text-muted">Notifications</span>
+        @if (unreadCount() > 0) {
+          <button type="button" class="text-xs font-medium text-brand hover:text-brand-hover" (click)="markAllRead($event)">
+            Tout marquer comme lu
+          </button>
+        }
+      </div>
+      <ul class="max-h-96 overflow-y-auto">
+        @for (notification of notifications(); track notification.id) {
+          <li>
+            <button
+              type="button"
+              class="flex w-full flex-col gap-0.5 border-b border-border px-3 py-2 text-left text-sm last:border-b-0 hover:bg-surface-alt"
+              [class]="notification.read_at ? 'text-text-muted' : 'text-text bg-brand-soft/40'"
+              (click)="select(notification)"
+            >
+              <span>{{ notification.message }}</span>
+              <span class="text-xs text-text-faint">{{ formatTime(notification.created_at) }} · {{ notification.card_title }}</span>
+            </button>
+          </li>
+        }
+        @if (notifications().length === 0) {
+          <li class="px-3 py-6 text-center text-sm text-text-faint">Aucune notification</li>
+        }
+      </ul>
+    </div>
+  }
+</div>

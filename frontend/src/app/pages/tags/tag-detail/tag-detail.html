@@ -1,49 +1,54 @@
 <div class="mx-auto max-w-5xl px-4 py-6 sm:px-6">
   @if (loading()) {
-    <p class="text-sm text-gray-500">Chargement...</p>
+    <p class="text-sm text-text-muted">Chargement...</p>
   }
   @if (error()) {
-    <p class="text-sm text-red-600">{{ error() }}</p>
-    <a [routerLink]="['/kanbans', kanbanCode, 'tags']" class="back-link text-sm text-gray-500 hover:text-gray-700 hover:underline">← Retour aux tags</a>
+    <p class="text-sm text-danger">{{ error() }}</p>
+    <a [routerLink]="['/kanbans', kanbanCode, 'tags']" class="back-link text-sm text-text-muted hover:text-text-soft hover:underline">← Retour aux tags</a>
   }
 
   @if (tag(); as t) {
-    <a [routerLink]="['/kanbans', kanbanCode, 'tags']" class="back-link mb-3 inline-block text-sm text-gray-500 hover:text-gray-700 hover:underline">
+    <a [routerLink]="['/kanbans', kanbanCode, 'tags']" class="back-link mb-3 inline-block text-sm text-text-muted hover:text-text-soft hover:underline">
       ← Retour aux tags
     </a>
 
     <div class="mb-6 flex items-center gap-3">
-      <span class="rounded px-2.5 py-1 text-base font-semibold" [class]="tagClass()">{{ t.name }}</span>
-      <span class="text-sm text-gray-400">{{ tickets().length }} ticket(s)</span>
+      <span class="inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-base font-semibold" [class]="tagClass()">
+        @if (t.emote_url) {
+          <img [src]="t.emote_url" alt="" class="h-5 w-5 shrink-0 object-contain" />
+        }
+        {{ t.name }}
+      </span>
+      <span class="text-sm text-text-faint">{{ tickets().length }} ticket(s)</span>
     </div>
 
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div class="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Répartition par statut</h2>
+      <div class="rounded-lg border border-border bg-surface p-4">
+        <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">Répartition par statut</h2>
         <app-chart type="bar" [labels]="statusChart().labels" [data]="statusChart().data" label="Tickets" />
       </div>
-      <div class="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Répartition par priorité</h2>
+      <div class="rounded-lg border border-border bg-surface p-4">
+        <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">Répartition par priorité</h2>
         <app-chart type="doughnut" [labels]="priorityChart().labels" [data]="priorityChart().data" />
       </div>
     </div>
 
     @if (tickets().length === 0) {
-      <p class="text-sm text-gray-500">Aucun ticket avec ce tag.</p>
+      <p class="text-sm text-text-muted">Aucun ticket avec ce tag.</p>
     } @else {
-      <div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <div class="overflow-hidden rounded-lg border border-border bg-surface">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-gray-100 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <tr class="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
               <th class="px-4 py-2.5">Titre</th>
               <th class="px-4 py-2.5">Statut</th>
               <th class="px-4 py-2.5">Assigné</th>
               <th class="px-4 py-2.5">Priorité</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody class="divide-y divide-border">
             @for (ticket of tickets(); track ticket.id) {
-              <tr class="cursor-pointer hover:bg-gray-50" (click)="openTicket(ticket)">
+              <tr class="cursor-pointer hover:bg-surface-alt" (click)="openTicket(ticket)">
                 <td class="px-4 py-2.5 font-medium" [class]="cancelledTitleClass(ticket.cancelled_at)">
                   {{ ticket.title }}
                 </td>
@@ -54,7 +59,7 @@
                   @if (ticket.assigned_user_id) {
                     <div class="flex items-center gap-1.5">
                       <span
-                        class="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-500 text-[10px] font-semibold text-white"
+                        class="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-[10px] font-semibold text-white"
                       >
                         @if (userAvatar(ticket.assigned_user_id); as avatar) {
                           <img [src]="avatar" class="h-full w-full object-cover" alt="" />
@@ -65,11 +70,11 @@
                       {{ userName(ticket.assigned_user_id) }}
                     </div>
                   } @else {
-                    <span class="text-gray-400">—</span>
+                    <span class="text-text-faint">—</span>
                   }
                 </td>
                 <td class="px-4 py-2.5">
-                  <span class="priority inline-flex items-center gap-1 text-xs font-medium capitalize text-gray-600">
+                  <span class="priority inline-flex items-center gap-1 text-xs font-medium capitalize text-text-muted">
                     <span class="h-2 w-2 rounded-sm" [class]="priorityDotClass(ticket.priority)"></span>
                     {{ ticket.priority }}
                   </span>

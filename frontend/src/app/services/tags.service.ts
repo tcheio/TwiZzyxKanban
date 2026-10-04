@@ -11,11 +11,13 @@ export class TagsService {
     return firstValueFrom(this.http.get<Tag[]>(`/api/kanbans/${kanbanId}/tags`));
   }
 
-  create(kanbanId: number, name: string, color: string): Promise<Tag> {
-    return firstValueFrom(this.http.post<Tag>(`/api/kanbans/${kanbanId}/tags`, { name, color }));
+  create(kanbanId: number, name: string, color: string, emoteUrl: string | null = null): Promise<Tag> {
+    return firstValueFrom(
+      this.http.post<Tag>(`/api/kanbans/${kanbanId}/tags`, { name, color, emote_url: emoteUrl })
+    );
   }
 
-  update(kanbanId: number, id: number, changes: { name?: string; color?: string }): Promise<Tag> {
+  update(kanbanId: number, id: number, changes: { name?: string; color?: string; emote_url?: string | null }): Promise<Tag> {
     return firstValueFrom(this.http.patch<Tag>(`/api/kanbans/${kanbanId}/tags/${id}`, changes));
   }
 

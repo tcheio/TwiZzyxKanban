@@ -36,9 +36,25 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const TOAST_DURATION_MS = 6000;
 
 const PRIORITY_CLASSES: Record<Priority, string> = {
-  low: 'bg-gray-400',
+  low: 'bg-text-faint',
   medium: 'bg-amber-500',
-  high: 'bg-red-600',
+  high: 'bg-danger',
+};
+
+// Plus la valeur est basse, plus la carte remonte quand le tri "Priorité" est actif.
+const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
+
+export type SortKey = 'name' | 'priority' | 'due_date' | 'tag' | 'epic';
+
+// Ordre canonique appliqué quand plusieurs critères de tri sont actifs en même temps :
+// chaque critère actif départage les égalités du précédent, dans cet ordre.
+const SORT_KEY_ORDER: SortKey[] = ['name', 'priority', 'due_date', 'tag', 'epic'];
+const SORT_KEY_LABELS: Record<SortKey, string> = {
+  name: 'Nom',
+  priority: 'Priorité',
+  due_date: 'Échéance',
+  tag: 'Tag',
+  epic: 'Épic',
 };
 
 @Component({
@@ -67,6 +83,12 @@ export class Board implements OnInit {
 
   readonly selectedAssigneeId = signal<number | null>(null);
   readonly searchQuery = signal('');
+
+  // Tri(s) actif(s) en plus de l'ordre personnalisé (glisser-déposer) : aucun par défaut,
+  // et jamais persisté (réinitialisé à chaque rechargement de page).
+  readonly activeSortKeys = signal<ReadonlySet<SortKey>>(new Set());
+  readonly sortKeyOrder = SORT_KEY_ORDER;
+  readonly sortKeyLabels = SORT_KEY_LABELS;
 
   constructor(
     private readonly columnsService: ColumnsService,
@@ -133,14 +155,34 @@ export class Board implements OnInit {
     return this.users().find((u) => u.id === id)?.avatar_url ?? null;
   }
 
+  // Responsable principal + additionnels, dans cet ordre. null si personne n'est assigné,
+  // pour permettre `@if (cardAssigneeIds(card); as ids)` dans le template (un tableau vide
+  // serait toujours "vrai").
+  cardAssigneeIds(card: Card): number[] | null {
+    const ids = [card.assigned_user_id, ...(card.assignee_ids ?? [])].filter(
+      (id): id is number => id !== null
+    );
+    return ids.length ? ids : null;
+  }
+
+  assigneeNames(ids: number[]): string {
+    return ids.map((id) => this.userName(id)).join(', ');
+  }
+
   visibleCards(group: ColumnGroup): Card[] {
     const assigneeId = this.selectedAssigneeId();
     const query = this.searchQuery().trim().toLowerCase();
-    return group.cards.filter((c) => {
-      if (assigneeId !== null && c.assigned_user_id !== assigneeId) return false;
+    const filtered = group.cards.filter((c) => {
+      if (assigneeId !== null && c.assigned_user_id !== assigneeId && !(c.assignee_ids ?? []).includes(assigneeId)) {
+        return false;
+      }
       if (query && !c.title.toLowerCase().includes(query)) return false;
       return true;
     });
+
+    const activeKeys = this.sortKeyOrder.filter((key) => this.activeSortKeys().has(key));
+    if (activeKeys.length === 0) return filtered;
+    return [...filtered].sort((a, b) => this.compareCards(a, b, activeKeys));
   }
 
   toggleAssigneeFilter(userId: number | null): void {
@@ -150,6 +192,58 @@ export class Board implements OnInit {
 
   clearAssigneeFilter(): void {
     this.selectedAssigneeId.set(null);
+  }
+
+  toggleSortKey(key: SortKey): void {
+    const next = new Set(this.activeSortKeys());
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    this.activeSortKeys.set(next);
+  }
+
+  // Chaque critère actif (dans l'ordre canonique) départage les égalités du précédent ;
+  // l'ordre personnalisé (position) sert de dernier recours si tout est à égalité.
+  private compareCards(a: Card, b: Card, activeKeys: SortKey[]): number {
+    for (const key of activeKeys) {
+      const cmp = this.compareByKey(a, b, key);
+      if (cmp !== 0) return cmp;
+    }
+    return a.position - b.position;
+  }
+
+  private compareByKey(a: Card, b: Card, key: SortKey): number {
+    switch (key) {
+      case 'name':
+        return a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' });
+      case 'priority':
+        return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+      case 'due_date':
+        return this.compareNullableThenValue(
+          a.due_date,
+          b.due_date,
+          (x, y) => new Date(x).getTime() - new Date(y).getTime()
+        );
+      case 'tag':
+        return this.compareNullableThenValue(this.tagName(a.tag_id), this.tagName(b.tag_id), (x, y) =>
+          x.localeCompare(y, 'fr', { sensitivity: 'base' })
+        );
+      case 'epic':
+        return this.compareNullableThenValue(this.epicName(a.epic_id), this.epicName(b.epic_id), (x, y) =>
+          x.localeCompare(y, 'fr', { sensitivity: 'base' })
+        );
+    }
+  }
+
+  // Les cartes qui portent la valeur triée passent avant celles qui ne l'ont pas
+  // (elles restent alors en ordre personnalisé, départagées plus loin dans compareCards).
+  private compareNullableThenValue<T>(a: T | null, b: T | null, compare: (a: T, b: T) => number): number {
+    if (a !== null && b !== null) return compare(a, b);
+    if (a !== null) return -1;
+    if (b !== null) return 1;
+    return 0;
   }
 
   tagName(tagId: number | null): string | null {
@@ -167,6 +261,11 @@ export class Board implements OnInit {
     return tagBadgeClass(color);
   }
 
+  tagEmote(tagId: number | null): string | null {
+    if (!tagId) return null;
+    return this.tags().find((t) => t.id === tagId)?.emote_url ?? null;
+  }
+
   epicName(epicId: number | null): string | null {
     if (!epicId) return null;
     return this.epics().find((e) => e.id === epicId)?.name ?? null;
@@ -176,6 +275,11 @@ export class Board implements OnInit {
     if (!epicId) return '';
     const color = this.epics().find((e) => e.id === epicId)?.color;
     return epicBadgeClass(color);
+  }
+
+  epicEmote(epicId: number | null): string | null {
+    if (!epicId) return null;
+    return this.epics().find((e) => e.id === epicId)?.emote_url ?? null;
   }
 
   formatDate(dateStr: string): string {
@@ -195,7 +299,7 @@ export class Board implements OnInit {
     return ageDays < PUBLISHED_RETENTION_DAYS;
   }
 
-  private isPublished(card: Card): boolean {
+  isPublished(card: Card): boolean {
     return this.groups().find((g) => g.column.id === card.column_id)?.column.name === PUBLISHED_COLUMN_NAME;
   }
 
@@ -229,27 +333,67 @@ export class Board implements OnInit {
     this.toastTimeout = setTimeout(() => this.toastMessage.set(null), TOAST_DURATION_MS);
   }
 
+  private groupForContainerId(containerId: string): ColumnGroup | undefined {
+    return this.groups().find((g) => 'col-' + g.column.id === containerId);
+  }
+
+  // Quand une recherche/un filtre destinataire est actif, l'index donné par CDK
+  // (previousIndex/currentIndex) est relatif aux cartes VISIBLES, pas à la liste
+  // complète de la colonne (`[cdkDropListData]="group.cards"`). On traduit donc la
+  // position choisie parmi les cartes visibles en index réel dans la liste complète,
+  // pour ne pas désynchroniser l'ordre stocké quand certaines cartes sont masquées.
+  private resolveRealTargetIndex(
+    targetFullList: Card[],
+    targetVisibleList: Card[],
+    visibleIndex: number,
+    draggedCardId: number
+  ): number {
+    const others = targetFullList.filter((c) => c.id !== draggedCardId);
+    const visibleOthers = targetVisibleList.filter((c) => c.id !== draggedCardId);
+
+    if (visibleIndex >= visibleOthers.length) {
+      const last = visibleOthers[visibleOthers.length - 1];
+      const lastRealIndex = last ? others.findIndex((c) => c.id === last.id) : -1;
+      return lastRealIndex === -1 ? others.length : lastRealIndex + 1;
+    }
+
+    const neighbor = visibleOthers[visibleIndex];
+    const idx = others.findIndex((c) => c.id === neighbor.id);
+    return idx === -1 ? others.length : idx;
+  }
+
   async drop(event: CdkDragDrop<Card[]>): Promise<void> {
-    const card = event.previousContainer.data[event.previousIndex];
+    // `event.item.data` (le `[cdkDragData]` de la carte réellement saisie) est fiable
+    // même filtré, contrairement à un index dans `previousContainer.data`.
+    const card = event.item.data as Card;
     if (event.previousContainer !== event.container && this.isPublished(card)) {
       return;
     }
 
-    if (event.previousContainer === event.container) {
-      moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+    const previousGroup = this.groupForContainerId(event.previousContainer.id);
+    const targetGroup = this.groupForContainerId(event.container.id);
+    if (!previousGroup || !targetGroup) return;
+
+    const realPreviousIndex = previousGroup.cards.findIndex((c) => c.id === card.id);
+    if (realPreviousIndex === -1) return;
+
+    const targetVisible = this.visibleCards(targetGroup);
+    const realCurrentIndex = this.resolveRealTargetIndex(
+      targetGroup.cards,
+      targetVisible,
+      event.currentIndex,
+      card.id
+    );
+
+    if (previousGroup === targetGroup) {
+      moveItemInArray(previousGroup.cards, realPreviousIndex, realCurrentIndex);
     } else {
-      transferArrayItem(
-        event.previousContainer.data,
-        event.container.data,
-        event.previousIndex,
-        event.currentIndex
-      );
+      transferArrayItem(previousGroup.cards, targetGroup.cards, realPreviousIndex, realCurrentIndex);
     }
     this.groups.set([...this.groups()]);
 
-    const targetColumnId = Number(event.container.id.replace('col-', ''));
     try {
-      await this.cardsService.move(this.kanbanId, card.id, targetColumnId, event.currentIndex);
+      await this.cardsService.move(this.kanbanId, card.id, targetGroup.column.id, realCurrentIndex);
     } catch {
       this.error.set('Le déplacement a échoué, rechargement du tableau...');
       await this.reload();
@@ -258,5 +402,13 @@ export class Board implements OnInit {
 
   openTicket(card: Card): void {
     this.router.navigate(['/kanbans', `${this.kanban.code}-${card.id}`]);
+  }
+
+  goToTag(tagId: number): void {
+    this.router.navigate(['/kanbans', this.kanban.code, 'tags', tagId]);
+  }
+
+  goToEpic(epicId: number): void {
+    this.router.navigate(['/kanbans', this.kanban.code, 'epics', epicId]);
   }
 }
