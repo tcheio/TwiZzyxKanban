@@ -4,6 +4,7 @@ dist/
 *.db-journal
 *.db-wal
 *.db-shm
+*.db.backup-*
 *.sqlite
 *.sqlite-journal
 *.sqlite-wal

@@ -136,7 +136,7 @@ describe('EpicsList', () => {
 
     await component.createEpic();
 
-    expect(epicsService.create).toHaveBeenCalledWith(1, 'AutreChaine', 'sky');
+    expect(epicsService.create).toHaveBeenCalledWith(1, 'AutreChaine', 'sky', null);
     expect(component.newEpicName()).toBe('');
     expect(component.creating()).toBe(false);
   });
@@ -176,7 +176,7 @@ describe('EpicsList', () => {
 
     await component.saveEdit(epics[0]);
 
-    expect(epicsService.update).toHaveBeenCalledWith(1, 1, { name: 'TwiZzyx', color: 'emerald' });
+    expect(epicsService.update).toHaveBeenCalledWith(1, 1, { name: 'TwiZzyx', color: 'emerald', emote_url: null });
   });
 
   it('deleteEpic() supprime après confirmation', async () => {

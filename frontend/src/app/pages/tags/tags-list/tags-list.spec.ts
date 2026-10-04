@@ -136,7 +136,7 @@ describe('TagsList', () => {
 
     await component.createTag();
 
-    expect(tagsService.create).toHaveBeenCalledWith(1, 'One Piece', 'sky');
+    expect(tagsService.create).toHaveBeenCalledWith(1, 'One Piece', 'sky', null);
     expect(component.newTagName()).toBe('');
     expect(component.creating()).toBe(false);
   });
@@ -175,7 +175,7 @@ describe('TagsList', () => {
 
     await component.saveEdit(tags[0]);
 
-    expect(tagsService.update).toHaveBeenCalledWith(1, 1, { name: 'Minecraft Vanilla', color: 'emerald' });
+    expect(tagsService.update).toHaveBeenCalledWith(1, 1, { name: 'Minecraft Vanilla', color: 'emerald', emote_url: null });
   });
 
   it('deleteTag() supprime après confirmation', async () => {

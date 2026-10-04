@@ -31,7 +31,7 @@ describe('TagsService', () => {
     const promise = service.create(kanbanId, 'One Piece', 'rose');
     const req = httpMock.expectOne('/api/kanbans/1/tags');
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ name: 'One Piece', color: 'rose' });
+    expect(req.request.body).toEqual({ name: 'One Piece', color: 'rose', emote_url: null });
     req.flush({ id: 5, name: 'One Piece', color: 'rose' });
     await promise;
   });
