@@ -14,19 +14,8 @@ import { ChartComponent } from '../../../shared/chart/chart';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { StatusChip } from '../../../shared/status-chip/status-chip';
 import { cancelledTitleClass } from '../../../shared/ticket-status';
+import { PRIORITY_LABELS, priorityLabel, priorityDotClass } from '../../../shared/priority';
 import { startAutoRefresh } from '../../../shared/auto-refresh';
-
-const PRIORITY_LABELS: Record<Priority, string> = {
-  low: 'Basse',
-  medium: 'Moyenne',
-  high: 'Haute',
-};
-
-const PRIORITY_DOT_CLASSES: Record<Priority, string> = {
-  low: 'bg-text-faint',
-  medium: 'bg-amber-500',
-  high: 'bg-danger',
-};
 
 @Component({
   selector: 'app-tag-detail',
@@ -145,9 +134,8 @@ export class TagDetail implements OnInit {
     return tagBadgeClass(this.tag()?.color);
   }
 
-  priorityDotClass(priority: Priority): string {
-    return PRIORITY_DOT_CLASSES[priority];
-  }
+  readonly priorityDotClass = priorityDotClass;
+  readonly priorityLabel = priorityLabel;
 
   openTicket(card: Card): void {
     this.router.navigate(['/kanbans', `${this.kanban.code}-${card.id}`]);

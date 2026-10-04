@@ -160,7 +160,7 @@
               <div class="mt-2.5 flex items-center justify-between">
                 <span class="inline-flex items-center gap-1 text-[11px] font-medium capitalize text-text-muted">
                   <span class="h-2 w-2 rounded-sm" [class]="priorityClass(card.priority)"></span>
-                  {{ card.priority }}
+                  {{ priorityLabel(card.priority) }}
                 </span>
                 @if (cardAssigneeIds(card); as assigneeIds) {
                   @if (assigneeIds.length === 1) {

@@ -122,7 +122,7 @@ describe('TagDetail', () => {
     await component.reload();
 
     expect(component.priorityChart()).toEqual({
-      labels: ['Basse', 'Moyenne', 'Haute'],
+      labels: ['Faible', 'Moyen', 'Élevé'],
       data: [1, 0, 1],
     });
   });

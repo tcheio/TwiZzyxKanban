@@ -5,6 +5,16 @@
    au lieu du seul `prefers-color-scheme`. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Sans ça, les contrôles natifs du navigateur (popup des <select>, cases à cocher,
+   sélecteurs de date, scrollbars) restent rendus en clair par défaut quel que soit le
+   thème de la page, puisqu'ils ne suivent pas nos classes Tailwind mais ce réglage CSS. */
+:root {
+  color-scheme: light;
+}
+:root.dark {
+  color-scheme: dark;
+}
+
 /* ---------------------------------------------------------------------------------
  * Palette centralisée : chaque jeton ci-dessous génère automatiquement les utilitaires
  * Tailwind correspondants (bg-surface, text-text, border-border, ...). Pour changer une
@@ -90,6 +100,15 @@
 @layer base {
   body {
     @apply bg-app-bg font-sans text-text;
+  }
+
+  /* Le preflight Tailwind met `background-color: transparent` sur <select> — un fond
+     explicite (même transparent) fait que Chromium ignore `color-scheme` pour le popup
+     natif des options et l'affiche en clair quel que soit le thème. En posant ici un vrai
+     fond/texte (qui suivent déjà --color-surface/--color-text selon le thème), le popup
+     s'adapte correctement au clair comme au sombre. */
+  select {
+    @apply bg-surface text-text;
   }
 }
 
