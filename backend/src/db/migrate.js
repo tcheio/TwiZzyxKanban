@@ -60,6 +60,12 @@ function addEmoteUrlColumn(tableName) {
   db.exec(`ALTER TABLE ${tableName} ADD COLUMN emote_url TEXT`);
 }
 
+function addVisibleInFilterColumn(tableName) {
+  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
+  if (columns.some((col) => col.name === 'visible_in_filter')) return;
+  db.exec(`ALTER TABLE ${tableName} ADD COLUMN visible_in_filter INTEGER NOT NULL DEFAULT 1`);
+}
+
 function addKanbanIdColumn(tableName) {
   const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
   if (!columns.some((col) => col.name === 'kanban_id')) {
@@ -170,6 +176,8 @@ function migrate() {
   addTagColorColumn();
   addEmoteUrlColumn('tags');
   addEmoteUrlColumn('epics');
+  addVisibleInFilterColumn('tags');
+  addVisibleInFilterColumn('epics');
 
   renameLegacyColumnNames();
   migrateChannelToEpic(cardColumns);

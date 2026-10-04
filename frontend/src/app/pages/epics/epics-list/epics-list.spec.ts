@@ -18,8 +18,8 @@ describe('EpicsList', () => {
   let navigate: ReturnType<typeof vi.fn>;
 
   const epics = [
-    { id: 1, name: 'TwiZzyx', color: 'red', emote_url: null },
-    { id: 2, name: 'Twitch', color: 'violet', emote_url: null },
+    { id: 1, name: 'TwiZzyx', color: 'red', emote_url: null, visible_in_filter: true },
+    { id: 2, name: 'Twitch', color: 'violet', emote_url: null, visible_in_filter: true },
   ];
   const cards: Card[] = [
     {

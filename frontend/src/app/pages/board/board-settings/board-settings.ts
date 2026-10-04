@@ -1,8 +1,14 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ColumnsService } from '../../../services/columns.service';
+import { TagsService } from '../../../services/tags.service';
+import { EpicsService } from '../../../services/epics.service';
 import { Column } from '../../../models/column.model';
 import { Kanban } from '../../../models/kanban.model';
+import { Tag } from '../../../models/tag.model';
+import { Epic } from '../../../models/epic.model';
+import { tagBadgeClass } from '../../../shared/tag-colors';
+import { epicBadgeClass } from '../../../shared/epic-colors';
 
 @Component({
   selector: 'app-board-settings',
@@ -11,12 +17,16 @@ import { Kanban } from '../../../models/kanban.model';
 })
 export class BoardSettings implements OnInit {
   private readonly columnsService = inject(ColumnsService);
+  private readonly tagsService = inject(TagsService);
+  private readonly epicsService = inject(EpicsService);
   private readonly route = inject(ActivatedRoute);
   private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
   readonly kanbanId = this.kanban.id;
   readonly kanbanCode = this.kanban.code;
 
   readonly columns = signal<Column[]>([]);
+  readonly tags = signal<Tag[]>([]);
+  readonly epics = signal<Epic[]>([]);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
@@ -31,11 +41,44 @@ export class BoardSettings implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      this.columns.set(await this.columnsService.list(this.kanbanId));
+      const [columns, tags, epics] = await Promise.all([
+        this.columnsService.list(this.kanbanId),
+        this.tagsService.list(this.kanbanId),
+        this.epicsService.list(this.kanbanId),
+      ]);
+      this.columns.set(columns);
+      this.tags.set(tags);
+      this.epics.set(epics);
     } catch {
-      this.error.set('Impossible de charger les colonnes.');
+      this.error.set('Impossible de charger les paramètres du tableau.');
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  tagClass(tag: Tag): string {
+    return tagBadgeClass(tag.color);
+  }
+
+  epicClass(epic: Epic): string {
+    return epicBadgeClass(epic.color);
+  }
+
+  async toggleTagVisible(tag: Tag): Promise<void> {
+    try {
+      await this.tagsService.update(this.kanbanId, tag.id, { visible_in_filter: !tag.visible_in_filter });
+      this.tags.update((list) => list.map((t) => (t.id === tag.id ? { ...t, visible_in_filter: !t.visible_in_filter } : t)));
+    } catch {
+      this.error.set('Échec de la mise à jour du tag.');
+    }
+  }
+
+  async toggleEpicVisible(epic: Epic): Promise<void> {
+    try {
+      await this.epicsService.update(this.kanbanId, epic.id, { visible_in_filter: !epic.visible_in_filter });
+      this.epics.update((list) => list.map((e) => (e.id === epic.id ? { ...e, visible_in_filter: !e.visible_in_filter } : e)));
+    } catch {
+      this.error.set("Échec de la mise à jour de l'EPIC.");
     }
   }
 

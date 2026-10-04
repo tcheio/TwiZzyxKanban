@@ -39,18 +39,20 @@ const TOAST_DURATION_MS = 6000;
 // Plus la valeur est basse, plus la carte remonte quand le tri "Priorité" est actif.
 const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
 
-export type SortKey = 'name' | 'priority' | 'due_date' | 'tag' | 'epic';
+export type SortKey = 'name' | 'priority' | 'due_date';
 
 // Ordre canonique appliqué quand plusieurs critères de tri sont actifs en même temps :
 // chaque critère actif départage les égalités du précédent, dans cet ordre.
-const SORT_KEY_ORDER: SortKey[] = ['name', 'priority', 'due_date', 'tag', 'epic'];
+const SORT_KEY_ORDER: SortKey[] = ['name', 'priority', 'due_date'];
 const SORT_KEY_LABELS: Record<SortKey, string> = {
   name: 'Nom',
   priority: 'Priorité',
   due_date: 'Échéance',
-  tag: 'Tag',
-  epic: 'Épic',
 };
+
+// Pseudo-id (jamais un vrai tag_id) représentant le filtre "Aucun tag" : les tickets qui
+// n'ont ni tag principal ni tag additionnel. Il n'existe pas d'équivalent pour les EPICs.
+export const NO_TAG_FILTER_ID = -1;
 
 @Component({
   selector: 'app-board',
@@ -77,7 +79,10 @@ export class Board implements OnInit {
   private dragInProgress = false;
 
   readonly selectedAssigneeId = signal<number | null>(null);
+  readonly selectedTagFilterId = signal<number | null>(null);
+  readonly selectedEpicFilterId = signal<number | null>(null);
   readonly searchQuery = signal('');
+  readonly noTagFilterId = NO_TAG_FILTER_ID;
 
   // Tri(s) actif(s) en plus de l'ordre personnalisé (glisser-déposer) : aucun par défaut,
   // et jamais persisté (réinitialisé à chaque rechargement de page).
@@ -166,11 +171,19 @@ export class Board implements OnInit {
 
   visibleCards(group: ColumnGroup): Card[] {
     const assigneeId = this.selectedAssigneeId();
+    const tagFilterId = this.selectedTagFilterId();
+    const epicFilterId = this.selectedEpicFilterId();
     const query = this.searchQuery().trim().toLowerCase();
     const filtered = group.cards.filter((c) => {
       if (assigneeId !== null && c.assigned_user_id !== assigneeId && !(c.assignee_ids ?? []).includes(assigneeId)) {
         return false;
       }
+      if (tagFilterId === NO_TAG_FILTER_ID) {
+        if (c.tag_id || (c.tag_ids ?? []).length) return false;
+      } else if (tagFilterId !== null && c.tag_id !== tagFilterId && !(c.tag_ids ?? []).includes(tagFilterId)) {
+        return false;
+      }
+      if (epicFilterId !== null && c.epic_id !== epicFilterId) return false;
       if (query && !c.title.toLowerCase().includes(query)) return false;
       return true;
     });
@@ -180,9 +193,31 @@ export class Board implements OnInit {
     return [...filtered].sort((a, b) => this.compareCards(a, b, activeKeys));
   }
 
+  hasActiveFilters(): boolean {
+    return (
+      this.selectedAssigneeId() !== null || this.selectedTagFilterId() !== null || this.selectedEpicFilterId() !== null
+    );
+  }
+
   toggleAssigneeFilter(userId: number | null): void {
     if (userId === null) return;
     this.selectedAssigneeId.set(this.selectedAssigneeId() === userId ? null : userId);
+  }
+
+  visibleTagFilters(): Tag[] {
+    return this.tags().filter((t) => t.visible_in_filter);
+  }
+
+  visibleEpicFilters(): Epic[] {
+    return this.epics().filter((e) => e.visible_in_filter);
+  }
+
+  toggleTagFilter(tagId: number): void {
+    this.selectedTagFilterId.set(this.selectedTagFilterId() === tagId ? null : tagId);
+  }
+
+  toggleEpicFilter(epicId: number): void {
+    this.selectedEpicFilterId.set(this.selectedEpicFilterId() === epicId ? null : epicId);
   }
 
   clearAssigneeFilter(): void {
@@ -220,14 +255,6 @@ export class Board implements OnInit {
           a.due_date,
           b.due_date,
           (x, y) => new Date(x).getTime() - new Date(y).getTime()
-        );
-      case 'tag':
-        return this.compareNullableThenValue(this.tagName(a.tag_id), this.tagName(b.tag_id), (x, y) =>
-          x.localeCompare(y, 'fr', { sensitivity: 'base' })
-        );
-      case 'epic':
-        return this.compareNullableThenValue(this.epicName(a.epic_id), this.epicName(b.epic_id), (x, y) =>
-          x.localeCompare(y, 'fr', { sensitivity: 'base' })
         );
     }
   }

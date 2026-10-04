@@ -4,50 +4,108 @@
     <h1 class="mt-0.5 text-xl font-semibold text-text">Tableau</h1>
   </div>
 
-  <div class="flex shrink-0 flex-wrap items-center gap-3 px-6 py-4">
-    <div class="relative">
-      <svg viewBox="0 0 24 24" class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="7" />
-        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-      <label for="board-search" class="sr-only">Rechercher un ticket dans ce tableau</label>
-      <input
-        id="board-search"
-        type="text"
-        placeholder="Rechercher"
-        autocomplete="off"
-        [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event)"
-        class="w-56 rounded-md border border-border-strong bg-surface py-1.5 pl-8 pr-3 text-sm text-text-soft placeholder-text-faint focus:border-brand focus:outline-none"
-      />
+  <div class="flex shrink-0 items-center gap-3 px-6 py-4">
+    <div class="flex shrink-0 flex-wrap items-center gap-3">
+      <div class="relative">
+        <svg viewBox="0 0 24 24" class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <label for="board-search" class="sr-only">Rechercher un ticket dans ce tableau</label>
+        <input
+          id="board-search"
+          type="text"
+          placeholder="Rechercher"
+          autocomplete="off"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          class="w-56 rounded-md border border-border-strong bg-surface py-1.5 pl-8 pr-3 text-sm text-text-soft placeholder-text-faint focus:border-brand focus:outline-none"
+        />
+      </div>
+      @if (users().length) {
+        <div class="flex -space-x-2">
+          @for (user of users(); track user.id) {
+            <button
+              type="button"
+              class="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-surface bg-brand text-[11px] font-semibold text-white ring-brand hover:z-10 hover:ring-2"
+              [class.ring-2]="selectedAssigneeId() === user.id"
+              [class.z-10]="selectedAssigneeId() === user.id"
+              [title]="user.username"
+              (click)="toggleAssigneeFilter(user.id)"
+            >
+              @if (user.avatar_url; as avatar) {
+                <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+              } @else {
+                {{ user.username.charAt(0).toUpperCase() }}
+              }
+            </button>
+          }
+        </div>
+      }
+      @if (selectedAssigneeId(); as assigneeId) {
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1.5 text-sm font-medium text-brand-soft-text">
+          Filtré par : {{ userName(assigneeId) }}
+          <button type="button" class="text-brand/70 hover:text-brand" (click)="clearAssigneeFilter()">✕</button>
+        </span>
+      }
     </div>
-    @if (users().length) {
-      <div class="flex -space-x-2">
-        @for (user of users(); track user.id) {
-          <button
-            type="button"
-            class="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-surface bg-brand text-[11px] font-semibold text-white ring-brand hover:z-10 hover:ring-2"
-            [class.ring-2]="selectedAssigneeId() === user.id"
-            [class.z-10]="selectedAssigneeId() === user.id"
-            [title]="user.username"
-            (click)="toggleAssigneeFilter(user.id)"
-          >
-            @if (user.avatar_url; as avatar) {
-              <img [src]="avatar" class="h-full w-full object-cover" alt="" />
-            } @else {
-              {{ user.username.charAt(0).toUpperCase() }}
+
+    @if (visibleTagFilters().length || visibleEpicFilters().length) {
+      <div class="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-3">
+        @if (visibleTagFilters().length) {
+          <div class="flex flex-wrap items-center justify-center gap-1">
+            @for (tag of visibleTagFilters(); track tag.id) {
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium hover:underline"
+                [class]="tagClass(tag.id)"
+                [class.ring-2]="selectedTagFilterId() === tag.id"
+                [class.ring-brand]="selectedTagFilterId() === tag.id"
+                (click)="toggleTagFilter(tag.id)"
+              >
+                @if (tag.emote_url) {
+                  <img [src]="tag.emote_url" alt="" class="h-3 w-3 shrink-0 object-contain" />
+                }
+                {{ tag.name }}
+              </button>
             }
-          </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 rounded-full border border-border-strong px-2.5 py-1 text-xs font-medium text-text-muted hover:bg-surface-alt"
+              [class.ring-2]="selectedTagFilterId() === noTagFilterId"
+              [class.ring-brand]="selectedTagFilterId() === noTagFilterId"
+              (click)="toggleTagFilter(noTagFilterId)"
+            >
+              Aucun tag
+            </button>
+          </div>
+        }
+        @if (visibleTagFilters().length && visibleEpicFilters().length) {
+          <span class="h-5 w-px bg-border"></span>
+        }
+        @if (visibleEpicFilters().length) {
+          <div class="flex flex-wrap items-center justify-center gap-1">
+            @for (epic of visibleEpicFilters(); track epic.id) {
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium hover:underline"
+                [class]="epicClass(epic.id)"
+                [class.ring-2]="selectedEpicFilterId() === epic.id"
+                [class.ring-brand]="selectedEpicFilterId() === epic.id"
+                (click)="toggleEpicFilter(epic.id)"
+              >
+                @if (epic.emote_url) {
+                  <img [src]="epic.emote_url" alt="" class="h-3 w-3 shrink-0 object-contain" />
+                }
+                {{ epic.name }}
+              </button>
+            }
+          </div>
         }
       </div>
     }
-    @if (selectedAssigneeId(); as assigneeId) {
-      <span class="inline-flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1.5 text-sm font-medium text-brand-soft-text">
-        Filtré par : {{ userName(assigneeId) }}
-        <button type="button" class="text-brand/70 hover:text-brand" (click)="clearAssigneeFilter()">✕</button>
-      </span>
-    }
-    <div class="ml-auto flex flex-wrap items-center gap-1.5">
+
+    <div class="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">
       <span class="text-sm text-text-muted">Trier par :</span>
       @for (key of sortKeyOrder; track key) {
         <button
@@ -90,7 +148,7 @@
           cdkDropList
           [id]="'col-' + group.column.id"
           [cdkDropListData]="group.cards"
-          [cdkDropListDisabled]="selectedAssigneeId() !== null || activeSortKeys().size > 0"
+          [cdkDropListDisabled]="hasActiveFilters() || activeSortKeys().size > 0"
           [cdkDropListEnterPredicate]="canEnter"
           (cdkDropListDropped)="drop($event)"
         >
