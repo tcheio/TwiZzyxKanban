@@ -78,12 +78,12 @@ describe('Board', () => {
     { id: 3, username: 'carol', avatar_url: null },
   ];
   const tags = [
-    { id: 1, name: 'Minecraft', color: 'emerald' },
-    { id: 2, name: 'Aventure', color: 'sky' },
+    { id: 1, name: 'Minecraft', color: 'emerald', visible_in_filter: true },
+    { id: 2, name: 'Aventure', color: 'sky', visible_in_filter: true },
   ];
   const epics = [
-    { id: 1, name: 'Saison 2', color: 'red' },
-    { id: 2, name: 'Bêta', color: 'violet' },
+    { id: 1, name: 'Saison 2', color: 'red', visible_in_filter: true },
+    { id: 2, name: 'Bêta', color: 'violet', visible_in_filter: true },
   ];
 
   beforeEach(() => {
@@ -317,6 +317,73 @@ describe('Board', () => {
     expect(component.selectedAssigneeId()).toBeNull();
   });
 
+  it('visibleTagFilters()/visibleEpicFilters() ne retournent que les tags/EPICs visible_in_filter', async () => {
+    await component.reload();
+    expect(component.visibleTagFilters().map((t) => t.id)).toEqual([1, 2]);
+    expect(component.visibleEpicFilters().map((e) => e.id)).toEqual([1, 2]);
+
+    component.tags.set([
+      { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true },
+      { id: 2, name: 'Aventure', color: 'sky', emote_url: null, visible_in_filter: false },
+    ]);
+    expect(component.visibleTagFilters().map((t) => t.id)).toEqual([1]);
+  });
+
+  it('toggleTagFilter()/toggleEpicFilter() activent puis désactivent le filtre sur un second clic', () => {
+    expect(component.selectedTagFilterId()).toBeNull();
+    component.toggleTagFilter(1);
+    expect(component.selectedTagFilterId()).toBe(1);
+    component.toggleTagFilter(1);
+    expect(component.selectedTagFilterId()).toBeNull();
+
+    expect(component.selectedEpicFilterId()).toBeNull();
+    component.toggleEpicFilter(2);
+    expect(component.selectedEpicFilterId()).toBe(2);
+    component.toggleEpicFilter(2);
+    expect(component.selectedEpicFilterId()).toBeNull();
+  });
+
+  it('visibleCards() filtre par tag sélectionné', async () => {
+    await component.reload();
+    const group = component.groups()[0];
+
+    component.toggleTagFilter(1);
+    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['A']);
+  });
+
+  it('visibleCards() filtre sur "Aucun tag" (ni tag principal ni additionnel)', async () => {
+    cardsService.list.mockResolvedValue([
+      ...baseCards,
+      { ...baseCards[0], id: 13, title: 'D', tag_id: null, tag_ids: [2], column_id: 1, position: 2 },
+    ]);
+    await component.reload();
+    const group = component.groups()[0];
+
+    component.toggleTagFilter(component.noTagFilterId);
+    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['B']);
+  });
+
+  it('visibleCards() filtre par EPIC sélectionnée', async () => {
+    cardsService.list.mockResolvedValue([
+      { ...baseCards[0], id: 20, title: 'E1', epic_id: 1, column_id: 1, position: 0 },
+      { ...baseCards[0], id: 21, title: 'E2', epic_id: 2, column_id: 1, position: 1 },
+    ]);
+    await component.reload();
+    const group = component.groups()[0];
+
+    component.toggleEpicFilter(1);
+    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['E1']);
+  });
+
+  it('hasActiveFilters() reflète destinataire, tag et EPIC', () => {
+    expect(component.hasActiveFilters()).toBe(false);
+    component.toggleTagFilter(1);
+    expect(component.hasActiveFilters()).toBe(true);
+    component.toggleTagFilter(1);
+    component.toggleEpicFilter(2);
+    expect(component.hasActiveFilters()).toBe(true);
+  });
+
   it('priorityClass() retourne la classe Tailwind associée à la priorité', () => {
     expect(component.priorityClass('low')).toBe('bg-sky-500 dark:bg-sky-400');
     expect(component.priorityClass('medium')).toBe('bg-orange-500 dark:bg-orange-400');
@@ -487,24 +554,6 @@ describe('Board', () => {
 
       // Apple (05/01) avant Mango (10/01) ; Zebra (pas de date) reste en dernier.
       expect(component.visibleCards(component.groups()[0]).map((c) => c.title)).toEqual(['Apple', 'Mango', 'Zebra']);
-    });
-
-    it('trie par tag (alphabétique), les tickets sans tag restant en dernier', async () => {
-      cardsService.list.mockResolvedValue(sortCards);
-      await component.reload();
-      component.toggleSortKey('tag');
-
-      // Aventure (Apple) avant Minecraft (Mango) ; Zebra (pas de tag) reste en dernier.
-      expect(component.visibleCards(component.groups()[0]).map((c) => c.title)).toEqual(['Apple', 'Mango', 'Zebra']);
-    });
-
-    it('trie par EPIC (alphabétique), les tickets sans EPIC restant en dernier', async () => {
-      cardsService.list.mockResolvedValue(sortCards);
-      await component.reload();
-      component.toggleSortKey('epic');
-
-      // Bêta (Mango) avant Saison 2 (Apple) ; Zebra (pas d'EPIC) reste en dernier.
-      expect(component.visibleCards(component.groups()[0]).map((c) => c.title)).toEqual(['Mango', 'Apple', 'Zebra']);
     });
 
     it('combine plusieurs critères actifs : le second départage les égalités du premier', async () => {

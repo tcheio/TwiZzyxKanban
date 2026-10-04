@@ -18,8 +18,8 @@ describe('TagsList', () => {
   let navigate: ReturnType<typeof vi.fn>;
 
   const tags = [
-    { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null },
-    { id: 2, name: 'Pokémon', color: 'red', emote_url: null },
+    { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true },
+    { id: 2, name: 'Pokémon', color: 'red', emote_url: null, visible_in_filter: true },
   ];
   const cards: Card[] = [
     {

@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS tags (
   name TEXT NOT NULL,
   color TEXT NOT NULL DEFAULT 'gray',
   emote_url TEXT,
+  visible_in_filter INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -47,6 +48,7 @@ CREATE TABLE IF NOT EXISTS epics (
   name TEXT NOT NULL,
   color TEXT NOT NULL DEFAULT 'gray',
   emote_url TEXT,
+  visible_in_filter INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

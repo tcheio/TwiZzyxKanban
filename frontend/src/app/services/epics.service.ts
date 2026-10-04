@@ -17,7 +17,11 @@ export class EpicsService {
     );
   }
 
-  update(kanbanId: number, id: number, changes: { name?: string; color?: string; emote_url?: string | null }): Promise<Epic> {
+  update(
+    kanbanId: number,
+    id: number,
+    changes: { name?: string; color?: string; emote_url?: string | null; visible_in_filter?: boolean }
+  ): Promise<Epic> {
     return firstValueFrom(this.http.patch<Epic>(`/api/kanbans/${kanbanId}/epics/${id}`, changes));
   }
 

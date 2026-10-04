@@ -75,5 +75,62 @@
         </button>
       </div>
     </div>
+
+    <h2 class="mb-2 mt-6 text-sm font-semibold text-text-soft">Tags disponibles comme filtres sur le tableau</h2>
+    <p class="mb-3 text-xs text-text-muted">
+      Seuls les tags activés ici apparaissent comme bouton de filtre à côté des responsables, sur le tableau.
+      « Aucun tag » (tickets sans tag) est toujours proposé.
+    </p>
+    <div class="rounded-xl border border-border bg-surface shadow-sm">
+      @if (tags().length === 0) {
+        <p class="px-4 py-3 text-sm text-text-muted">Aucun tag sur ce kanban.</p>
+      }
+      @for (tag of tags(); track tag.id) {
+        <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5 last:border-b-0">
+          <span class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium" [class]="tagClass(tag)">
+            @if (tag.emote_url) {
+              <img [src]="tag.emote_url" alt="" class="h-3 w-3 object-contain" />
+            }
+            {{ tag.name }}
+          </span>
+          <label class="inline-flex cursor-pointer items-center gap-2 text-xs text-text-muted">
+            Visible en filtre
+            <input
+              type="checkbox"
+              class="h-4 w-4 accent-brand"
+              [checked]="tag.visible_in_filter"
+              (change)="toggleTagVisible(tag)"
+            />
+          </label>
+        </div>
+      }
+    </div>
+
+    <h2 class="mb-2 mt-6 text-sm font-semibold text-text-soft">EPICs disponibles comme filtres sur le tableau</h2>
+    <p class="mb-3 text-xs text-text-muted">Seules les EPICs activées ici apparaissent comme bouton de filtre sur le tableau.</p>
+    <div class="rounded-xl border border-border bg-surface shadow-sm">
+      @if (epics().length === 0) {
+        <p class="px-4 py-3 text-sm text-text-muted">Aucune EPIC sur ce kanban.</p>
+      }
+      @for (epic of epics(); track epic.id) {
+        <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5 last:border-b-0">
+          <span class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium" [class]="epicClass(epic)">
+            @if (epic.emote_url) {
+              <img [src]="epic.emote_url" alt="" class="h-3 w-3 object-contain" />
+            }
+            {{ epic.name }}
+          </span>
+          <label class="inline-flex cursor-pointer items-center gap-2 text-xs text-text-muted">
+            Visible en filtre
+            <input
+              type="checkbox"
+              class="h-4 w-4 accent-brand"
+              [checked]="epic.visible_in_filter"
+              (change)="toggleEpicVisible(epic)"
+            />
+          </label>
+        </div>
+      }
+    </div>
   }
 </div>
