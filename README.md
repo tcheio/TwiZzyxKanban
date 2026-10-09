@@ -61,60 +61,39 @@ Au premier démarrage, le backend crée automatiquement :
 ## Fonctionnalités
 
 - Connexion par identifiants (JWT)
-- **Multi-kanban** : plusieurs tableaux indépendants, chacun avec ses membres et un rôle
-  modérateur dédié (en plus des rôles globaux Admin / Utilisateur)
+- **Multi-kanban** : plusieurs tableaux indépendants, chacun avec ses propres membres, colonnes,
+  tags et EPICs, et un rôle modérateur dédié par kanban (en plus des rôles globaux Admin /
+  Utilisateur). Création à partir d'un **template** : `video` (colonnes de production standard),
+  `video_derush` (identique, avec la colonne Montage déjà divisée en Derush/Montage) ou `basique`
+  (À faire / En cours / Fait)
 - Tableau Kanban avec colonnes personnalisables (ajout, renommage, suppression, réordonnancement)
-  et glisser-déposer des cartes (Angular CDK), avec tri combinable (nom, priorité, échéance, tag, EPIC)
+  et glisser-déposer des cartes (Angular CDK), avec filtres combinables (responsable, tag, EPIC,
+  recherche texte) et tri combinable (nom, priorité, échéance)
+- **Colonnes restreintes** : une colonne peut être marquée visible uniquement par les modérateurs
+  du kanban et les responsables des tickets qu'elle contient (ex: la colonne "Idées", restreinte
+  par défaut dans les templates vidéo)
+- **Colonnes divisées en 2 états** : n'importe quelle colonne peut être scindée en 2 sous-listes
+  nommées (ex: "Derush" / "Montage"), affichées comme 2 mini-colonnes empilées à l'intérieur d'une
+  seule colonne, avec leur propre ordre de cartes
+- **Déplacement de ticket restreint** : changer le statut d'un ticket (colonne, état, annulation)
+  est réservé aux modérateurs du kanban et aux responsables du ticket ; un changement fait par un
+  responsable non modérateur notifie automatiquement les modérateurs
 - Tickets avec titre, description (éditeur riche : gras/italique/couleurs/liens/listes), priorité,
-  échéance, statut, et clonage/liens entre tickets
+  échéance (mise en évidence si proche), statut (avec annulation/restauration), et clonage/liens
+  entre tickets. Les tickets publiés restent visibles 14 jours puis se masquent automatiquement
 - **Tags et EPICs** personnalisables (couleur + émote optionnelle, scannée automatiquement depuis
   `frontend/public/emote/` sans toucher au code) ; un ticket peut avoir plusieurs tags à la fois
 - **Multi-responsables** par ticket (un principal + des additionnels), avec historique des
   changements d'assignation et raison obligatoire à chaque ajout/retrait
-- Commentaires, pièces jointes (images) et recherche globale
+- Commentaires, pièces jointes (images) et recherche globale (scopée aux kanbans dont on est membre)
 - **Dark mode** à 4 modes (Jour / Nuit / Système / Horaire 8h-19h), couleurs centralisées dans
   `frontend/src/styles.css`
 - **Notifications** : chaque responsable d'un ticket est notifié des changements de tag, de
-  responsable, de statut et des nouveaux commentaires
+  responsable, de statut et des nouveaux commentaires ; les modérateurs sont notifiés en plus des
+  changements de statut faits par un responsable non modérateur
 - **Annonces** : bandeau d'avertissement dans la navbar, gérable sans coder (page "Annonces",
   réservée aux admins), scopé à toute l'application ou à un kanban précis
 - Pages d'administration : gestion des comptes utilisateurs et des annonces (réservées aux admins)
-
-## Déploiement mono-processus (production / Minestrator)
-
-En développement, backend et frontend tournent séparément (voir plus haut). En production, un seul
-processus Node suffit : le backend sert l'API **et** le build Angular en statique
-(`backend/src/app.js` détecte `frontend/dist/frontend` et retombe sur `index.html` pour toute route
-non-API, afin que le routing Angular fonctionne après un rafraîchissement navigateur).
-
-Le point d'entrée est le `server.js` à la racine du dépôt : il lance `backend/src/server.js` en
-sous-processus, en normalisant le port d'écoute (`PORT`, sinon `SERVER_PORT`, sinon
-`MINESTRATOR_PORT`, sinon `3000`) — utile car certains panels d'hébergement (type Minestrator)
-injectent `SERVER_PORT` plutôt que `PORT`.
-
-### Tester le mode mono-processus en local
-
-```bash
-npm install   # à la racine : installe backend + frontend, puis build le frontend (postinstall)
-npm start     # lance server.js -> backend + frontend servis sur un seul port (3000 par défaut)
-```
-
-Ouvre http://localhost:3000 (tout est servi par ce seul port, API comprise).
-
-Après toute modification du code (backend ou frontend), relance `npm run build` (à la racine) pour
-regénérer `frontend/dist/frontend` avant de relancer `npm start`.
-
-### Déployer sur Minestrator
-
-1. Pousser le dépôt sur le panel (ou le connecter via Git).
-2. Configurer les variables d'environnement du backend (`JWT_SECRET`, `DEFAULT_ADMIN_USERNAME`,
-   `DEFAULT_ADMIN_PASSWORD`, etc. — voir `backend/.env.example`) directement dans les variables
-   d'environnement du panel, ou via un fichier `backend/.env`.
-3. Commande d'installation : `npm install` (à la racine — déclenche le build complet via
-   `postinstall`).
-4. Commande de démarrage : `npm start` (ou `node server.js`).
-5. Le panel route son port externe vers la variable `SERVER_PORT` (ou `PORT`) : `server.js` la
-   détecte automatiquement et la transmet au backend.
 
 ## Structure du projet
 
