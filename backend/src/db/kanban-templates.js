@@ -1,6 +1,15 @@
 const KANBAN_TEMPLATES = {
   video: {
-    columns: ['💡Idées', '📝Préparation/Écriture', '🎥Tournage', '🎬Montage', '🖼️Miniature', '✅Publié'],
+    // La colonne "Idées" est restreinte par défaut : seuls les modérateurs du kanban et
+    // les personnes assignées à une carte peuvent la voir (cf utils/kanban-access.js).
+    columns: [
+      { name: '💡Idées', restricted: true },
+      { name: '📝Préparation/Écriture' },
+      { name: '🎥Tournage' },
+      { name: '🎬Montage' },
+      { name: '🖼️Miniature' },
+      { name: '✅Publié' },
+    ],
     tags: [
       { name: 'Minecraft', color: 'emerald' },
       { name: 'Pokémon', color: 'red' },
@@ -10,7 +19,7 @@ const KANBAN_TEMPLATES = {
     epics: [],
   },
   basique: {
-    columns: ['À faire', 'En cours', 'Fait'],
+    columns: [{ name: 'À faire' }, { name: 'En cours' }, { name: 'Fait' }],
     tags: [],
     epics: [],
   },

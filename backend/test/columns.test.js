@@ -37,6 +37,22 @@ test('GET /api/kanbans/:id/columns retourne les 6 colonnes par défaut triées p
   );
 });
 
+test('GET /api/kanbans/:id/columns : seule la colonne Idées est restreinte par défaut', async () => {
+  const res = await request(app).get(`/api/kanbans/${kanbanId}/columns`).set('Authorization', `Bearer ${adminToken}`);
+  assert.deepEqual(
+    res.body.map((c) => c.restricted),
+    [true, false, false, false, false, false]
+  );
+});
+
+test('POST /api/kanbans/:id/columns crée une colonne non restreinte par défaut', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/columns`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'Archivé' });
+  assert.equal(res.body.restricted, false);
+});
+
 test('POST /api/kanbans/:id/columns crée une colonne en fin de liste', async () => {
   const res = await request(app)
     .post(`/api/kanbans/${kanbanId}/columns`)

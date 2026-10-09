@@ -82,6 +82,17 @@ export class BoardSettings implements OnInit {
     }
   }
 
+  async toggleColumnRestricted(column: Column): Promise<void> {
+    try {
+      await this.columnsService.setRestricted(this.kanbanId, column.id, !column.restricted);
+      this.columns.update((list) =>
+        list.map((c) => (c.id === column.id ? { ...c, restricted: !c.restricted } : c))
+      );
+    } catch {
+      this.error.set('Échec de la mise à jour de la colonne.');
+    }
+  }
+
   async rename(column: Column, name: string): Promise<void> {
     const trimmed = name.trim();
     if (!trimmed || trimmed === column.name) return;

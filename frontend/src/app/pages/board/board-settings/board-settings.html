@@ -26,6 +26,20 @@
           />
           <button
             type="button"
+            class="rounded-md border border-border-strong px-2 py-1.5 text-xs hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-40"
+            [class]="column.restricted ? 'text-brand' : 'text-text-muted'"
+            [disabled]="saving()"
+            [title]="
+              column.restricted
+                ? 'Colonne restreinte : visible uniquement par les modérateurs et les personnes assignées. Cliquer pour la rendre visible de tous.'
+                : 'Colonne visible de tous les membres. Cliquer pour la restreindre aux modérateurs et aux personnes assignées.'
+            "
+            (click)="toggleColumnRestricted(column)"
+          >
+            {{ column.restricted ? '🔒' : '🔓' }}
+          </button>
+          <button
+            type="button"
             class="rounded-md border border-border-strong px-2 py-1.5 text-xs text-text-muted hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-40"
             [disabled]="i === 0 || saving()"
             title="Déplacer à gauche"

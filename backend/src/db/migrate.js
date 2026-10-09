@@ -66,6 +66,18 @@ function addVisibleInFilterColumn(tableName) {
   db.exec(`ALTER TABLE ${tableName} ADD COLUMN visible_in_filter INTEGER NOT NULL DEFAULT 1`);
 }
 
+// Colonne ajoutée après coup : les bases déjà existantes ont une colonne "💡Idées" qui
+// n'avait jamais été restreinte. On la bascule en restreinte dès l'ajout de la colonne
+// (une seule fois, puisque l'ALTER TABLE ne se produit qu'une fois par base) pour que le
+// comportement par défaut du template "video" s'applique aussi aux kanbans déjà créés.
+function addRestrictedColumn() {
+  const columns = db.prepare('PRAGMA table_info(columns)').all();
+  if (columns.some((col) => col.name === 'restricted')) return;
+
+  db.exec('ALTER TABLE columns ADD COLUMN restricted INTEGER NOT NULL DEFAULT 0');
+  db.prepare("UPDATE columns SET restricted = 1 WHERE name = '💡Idées'").run();
+}
+
 function addKanbanIdColumn(tableName) {
   const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
   if (!columns.some((col) => col.name === 'kanban_id')) {
@@ -180,6 +192,7 @@ function migrate() {
   addVisibleInFilterColumn('epics');
 
   renameLegacyColumnNames();
+  addRestrictedColumn();
   migrateChannelToEpic(cardColumns);
   adoptLegacyBoardIfNeeded();
   ensureDefaultAdmin();

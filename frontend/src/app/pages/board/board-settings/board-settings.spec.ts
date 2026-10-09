@@ -7,16 +7,23 @@ import { TagsService } from '../../../services/tags.service';
 import { EpicsService } from '../../../services/epics.service';
 import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
+import { Column } from '../../../models/column.model';
 
 describe('BoardSettings', () => {
   let component: BoardSettings;
+  let columnsService: { list: ReturnType<typeof vi.fn>; setRestricted: ReturnType<typeof vi.fn> };
   let tagsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   let epicsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
 
+  const columns: Column[] = [{ id: 1, name: '💡Idées', position: 0, restricted: true }];
   const tags: Tag[] = [{ id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true }];
   const epics: Epic[] = [{ id: 1, name: 'Saison 2', color: 'red', emote_url: null, visible_in_filter: false }];
 
   beforeEach(() => {
+    columnsService = {
+      list: vi.fn().mockResolvedValue(columns),
+      setRestricted: vi.fn().mockResolvedValue({}),
+    };
     tagsService = {
       list: vi.fn().mockResolvedValue(tags),
       update: vi.fn().mockResolvedValue({}),
@@ -29,7 +36,7 @@ describe('BoardSettings', () => {
     TestBed.configureTestingModule({
       imports: [BoardSettings],
       providers: [
-        { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
+        { provide: ColumnsService, useValue: columnsService },
         { provide: TagsService, useValue: tagsService },
         { provide: EpicsService, useValue: epicsService },
         {
@@ -43,8 +50,17 @@ describe('BoardSettings', () => {
 
   it('reload() charge les colonnes, tags et EPICs', async () => {
     await component.reload();
+    expect(component.columns()).toEqual(columns);
     expect(component.tags()).toEqual(tags);
     expect(component.epics()).toEqual(epics);
+  });
+
+  it('toggleColumnRestricted() inverse restricted et persiste', async () => {
+    await component.reload();
+    await component.toggleColumnRestricted(columns[0]);
+
+    expect(columnsService.setRestricted).toHaveBeenCalledWith(1, 1, false);
+    expect(component.columns()[0].restricted).toBe(false);
   });
 
   it('toggleTagVisible() inverse visible_in_filter et persiste', async () => {

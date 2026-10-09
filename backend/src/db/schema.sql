@@ -29,6 +29,9 @@ CREATE TABLE IF NOT EXISTS columns (
   kanban_id INTEGER REFERENCES kanbans(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   position INTEGER NOT NULL,
+  -- Si vrai, les cartes de cette colonne ne sont visibles que des modérateurs du
+  -- kanban et des personnes assignées à la carte (cf backend/src/utils/kanban-access.js).
+  restricted INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

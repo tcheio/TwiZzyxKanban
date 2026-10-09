@@ -1,14 +1,21 @@
 const db = require('../db/connection');
 
+function withRestrictedBool(column) {
+  return { ...column, restricted: !!column.restricted };
+}
+
 function list(req, res) {
   const columns = db.prepare('SELECT * FROM columns WHERE kanban_id = ? ORDER BY position').all(req.kanbanId);
-  res.json(columns);
+  res.json(columns.map(withRestrictedBool));
 }
 
 function create(req, res) {
-  const { name } = req.body || {};
+  const { name, restricted } = req.body || {};
   if (!name) {
     return res.status(400).json({ error: 'name requis' });
+  }
+  if (restricted !== undefined && typeof restricted !== 'boolean') {
+    return res.status(400).json({ error: 'restricted doit être un booléen' });
   }
 
   const maxPosition = db
@@ -16,28 +23,35 @@ function create(req, res) {
     .get(req.kanbanId).maxPos;
 
   const result = db
-    .prepare('INSERT INTO columns (kanban_id, name, position) VALUES (?, ?, ?)')
-    .run(req.kanbanId, name, maxPosition + 1);
+    .prepare('INSERT INTO columns (kanban_id, name, position, restricted) VALUES (?, ?, ?, ?)')
+    .run(req.kanbanId, name, maxPosition + 1, restricted ? 1 : 0);
 
   const column = db.prepare('SELECT * FROM columns WHERE id = ?').get(result.lastInsertRowid);
-  res.status(201).json(column);
+  res.status(201).json(withRestrictedBool(column));
 }
 
 function update(req, res) {
   const id = Number(req.params.id);
-  const { name } = req.body || {};
+  const { name, restricted } = req.body || {};
 
   const column = db.prepare('SELECT * FROM columns WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!column) {
     return res.status(404).json({ error: 'Colonne introuvable' });
   }
-  if (!name) {
+  if (name !== undefined && !name) {
     return res.status(400).json({ error: 'name requis' });
   }
+  if (restricted !== undefined && typeof restricted !== 'boolean') {
+    return res.status(400).json({ error: 'restricted doit être un booléen' });
+  }
 
-  db.prepare('UPDATE columns SET name = ? WHERE id = ?').run(name, id);
+  db.prepare('UPDATE columns SET name = ?, restricted = ? WHERE id = ?').run(
+    name || column.name,
+    restricted !== undefined ? (restricted ? 1 : 0) : column.restricted,
+    id
+  );
   const updated = db.prepare('SELECT * FROM columns WHERE id = ?').get(id);
-  res.json(updated);
+  res.json(withRestrictedBool(updated));
 }
 
 function remove(req, res) {

@@ -9,20 +9,36 @@ const {
   fetchCardWithRelations,
 } = require('../utils/card-status');
 const { notifyWatchersAndTargets } = require('../utils/notify');
+const { isKanbanModerator, canViewCard } = require('../utils/kanban-access');
 
 const VALID_PRIORITIES = ['low', 'medium', 'high'];
 
+// Les cartes d'une colonne restreinte (ex: "💡Idées") n'apparaissent que pour les
+// modérateurs du kanban et les personnes assignées à la carte.
 function list(req, res) {
+  const moderator = isKanbanModerator(req.kanbanId, req.user);
   const cards = db
-    .prepare(`SELECT cards.*, ${EXTRA_RELATIONS_SUBQUERY} FROM cards WHERE kanban_id = ? ORDER BY column_id, position`)
-    .all(req.kanbanId);
+    .prepare(
+      `SELECT cards.*, ${EXTRA_RELATIONS_SUBQUERY}
+       FROM cards
+       JOIN columns ON columns.id = cards.column_id
+       WHERE cards.kanban_id = ?
+         AND (
+           ? = 1
+           OR columns.restricted = 0
+           OR cards.assigned_user_id = ?
+           OR EXISTS (SELECT 1 FROM card_assignees WHERE card_assignees.card_id = cards.id AND card_assignees.user_id = ?)
+         )
+       ORDER BY cards.column_id, cards.position`
+    )
+    .all(req.kanbanId, moderator ? 1 : 0, req.user.id, req.user.id);
   res.json(cards.map((card) => withKey(mapCardRelations(card), req.kanbanCode)));
 }
 
 function getOne(req, res) {
   const id = Number(req.params.id);
   const card = fetchCardWithRelations(id);
-  if (!card || card.kanban_id !== req.kanbanId) {
+  if (!card || card.kanban_id !== req.kanbanId || !canViewCard(card, req.kanbanId, req.user)) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
   res.json(withKey(card, req.kanbanCode));

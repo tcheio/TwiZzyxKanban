@@ -6,8 +6,8 @@ const CODE_PATTERN = /^[A-Z0-9-]{2,20}$/;
 function seedKanbanContent(kanbanId, templateName) {
   const template = KANBAN_TEMPLATES[templateName];
 
-  const insertColumn = db.prepare('INSERT INTO columns (kanban_id, name, position) VALUES (?, ?, ?)');
-  template.columns.forEach((name, index) => insertColumn.run(kanbanId, name, index));
+  const insertColumn = db.prepare('INSERT INTO columns (kanban_id, name, position, restricted) VALUES (?, ?, ?, ?)');
+  template.columns.forEach(({ name, restricted }, index) => insertColumn.run(kanbanId, name, index, restricted ? 1 : 0));
 
   const insertTag = db.prepare('INSERT INTO tags (kanban_id, name, color) VALUES (?, ?, ?)');
   template.tags.forEach(({ name, color }) => insertTag.run(kanbanId, name, color));

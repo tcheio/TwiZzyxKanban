@@ -140,6 +140,9 @@
           <span class="text-xs font-semibold uppercase tracking-wide text-text-muted">
             {{ group.column.name }}
           </span>
+          @if (group.column.restricted) {
+            <span title="Visible uniquement par les modérateurs et les personnes assignées" class="text-xs">🔒</span>
+          }
           <span class="text-xs font-medium text-text-faint">{{ visibleCards(group).length }}</span>
         </div>
 
