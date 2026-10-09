@@ -157,9 +157,12 @@
         >
           @for (card of visibleCards(group); track card.id) {
             <div
-              class="cursor-grab rounded-md bg-surface p-3 shadow-md transition-shadow hover:shadow-lg"
+              class="rounded-md bg-surface p-3 shadow-md transition-shadow hover:shadow-lg"
               [class]="isPublished(card) ? 'border-2 border-success' : 'border border-border'"
+              [class.cursor-grab]="canChangeStatus(card)"
+              [title]="canChangeStatus(card) ? '' : 'Seuls les modérateurs et les responsables de ce ticket peuvent le déplacer'"
               cdkDrag
+              [cdkDragDisabled]="!canChangeStatus(card)"
               [cdkDragData]="card"
               (cdkDragStarted)="onDragStarted()"
               (cdkDragEnded)="onDragEnded()"

@@ -324,6 +324,30 @@ describe('TicketDetail', () => {
     expect(component.isPublished()).toBe(true);
   });
 
+  it('canChangeStatus() autorise le responsable principal (non modérateur)', async () => {
+    await component.reload();
+    expect(component.canChangeStatus()).toBe(true);
+  });
+
+  it('canChangeStatus() refuse un membre simple non assigné', async () => {
+    cardsService.get.mockResolvedValue({ ...ticket, assigned_user_id: 2 });
+    await component.reload();
+    expect(component.canChangeStatus()).toBe(false);
+  });
+
+  it('canChangeStatus() autorise un responsable additionnel', async () => {
+    cardsService.get.mockResolvedValue({ ...ticket, assigned_user_id: 2, assignee_ids: [1] });
+    await component.reload();
+    expect(component.canChangeStatus()).toBe(true);
+  });
+
+  it('canChangeStatus() autorise toujours un modérateur du kanban', async () => {
+    kanbanData.is_moderator = true;
+    cardsService.get.mockResolvedValue({ ...ticket, assigned_user_id: 2 });
+    await component.reload();
+    expect(component.canChangeStatus()).toBe(true);
+  });
+
   it('updateStatus() ne fait rien si le ticket est déjà publié', async () => {
     cardsService.get.mockResolvedValue({ ...ticket, column_id: 3 });
     columnsService.list.mockResolvedValue([...columns, { id: 3, name: '✅Publié', position: 2 }]);

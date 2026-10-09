@@ -8,6 +8,13 @@ function isKanbanModerator(kanbanId, user) {
   return !!member?.is_moderator;
 }
 
+// Responsable principal ou additionnel de la carte.
+function isAssignedToCard(card, userId) {
+  if (card.assigned_user_id === userId) return true;
+  const assignee = db.prepare('SELECT 1 FROM card_assignees WHERE card_id = ? AND user_id = ?').get(card.id, userId);
+  return !!assignee;
+}
+
 // Une carte d'une colonne restreinte n'est visible que des modérateurs du kanban et des
 // personnes assignées à cette carte (responsable principal ou additionnel).
 function canViewCard(card, kanbanId, user) {
@@ -16,9 +23,13 @@ function canViewCard(card, kanbanId, user) {
   const column = db.prepare('SELECT restricted FROM columns WHERE id = ?').get(card.column_id);
   if (!column?.restricted) return true;
 
-  if (card.assigned_user_id === user.id) return true;
-  const assignee = db.prepare('SELECT 1 FROM card_assignees WHERE card_id = ? AND user_id = ?').get(card.id, user.id);
-  return !!assignee;
+  return isAssignedToCard(card, user.id);
 }
 
-module.exports = { isKanbanModerator, canViewCard };
+// Changer le statut d'un ticket (déplacement de colonne, annulation/restauration) est
+// réservé aux modérateurs du kanban et aux personnes actuellement en charge du ticket.
+function canChangeCardStatus(card, kanbanId, user) {
+  return isKanbanModerator(kanbanId, user) || isAssignedToCard(card, user.id);
+}
+
+module.exports = { isKanbanModerator, isAssignedToCard, canViewCard, canChangeCardStatus };

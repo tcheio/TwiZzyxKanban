@@ -14,6 +14,7 @@ import { CardsService } from '../../services/cards.service';
 import { UsersService } from '../../services/users.service';
 import { TagsService } from '../../services/tags.service';
 import { EpicsService } from '../../services/epics.service';
+import { AuthService } from '../../core/auth.service';
 import { Column } from '../../models/column.model';
 import { Kanban } from '../../models/kanban.model';
 import { Card, Priority } from '../../models/card.model';
@@ -95,7 +96,8 @@ export class Board implements OnInit {
     private readonly cardsService: CardsService,
     private readonly usersService: UsersService,
     private readonly tagsService: TagsService,
-    private readonly epicsService: EpicsService
+    private readonly epicsService: EpicsService,
+    private readonly authService: AuthService
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -322,6 +324,16 @@ export class Board implements OnInit {
 
   isPublished(card: Card): boolean {
     return this.groups().find((g) => g.column.id === card.column_id)?.column.name === PUBLISHED_COLUMN_NAME;
+  }
+
+  // Seuls les modérateurs du kanban et les responsables (principal ou additionnel) du
+  // ticket peuvent changer son statut (déplacement de colonne) — reflète la règle
+  // appliquée côté backend (cards.controller.js::move/cancel/restore).
+  canChangeStatus(card: Card): boolean {
+    if (this.kanban.is_moderator) return true;
+    const userId = this.authService.currentUser()?.id;
+    if (!userId) return false;
+    return card.assigned_user_id === userId || (card.assignee_ids ?? []).includes(userId);
   }
 
   canEnter = (drag: CdkDrag<Card>, drop: CdkDropList): boolean => {

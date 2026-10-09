@@ -476,6 +476,17 @@ export class TicketDetail implements OnInit {
     return `${base} border-brand bg-brand-soft text-brand-soft-text`;
   }
 
+  // Seuls les modérateurs du kanban et les responsables (principal ou additionnel) du
+  // ticket peuvent changer son statut — reflète la règle appliquée côté backend
+  // (cards.controller.js::move/cancel/restore).
+  canChangeStatus(): boolean {
+    if (this.kanban.is_moderator) return true;
+    const ticket = this.ticket();
+    const userId = this.authService.currentUser()?.id;
+    if (!ticket || !userId) return false;
+    return ticket.assigned_user_id === userId || (ticket.assignee_ids ?? []).includes(userId);
+  }
+
   async updateStatus(value: number | null): Promise<void> {
     const ticket = this.ticket();
     if (!ticket || value === null || this.isPublished() || value === this.statusValue()) return;

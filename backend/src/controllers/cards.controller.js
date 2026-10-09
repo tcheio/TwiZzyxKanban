@@ -8,8 +8,8 @@ const {
   mapCardRelations,
   fetchCardWithRelations,
 } = require('../utils/card-status');
-const { notifyWatchersAndTargets } = require('../utils/notify');
-const { isKanbanModerator, canViewCard } = require('../utils/kanban-access');
+const { notifyWatchersAndTargets, notifyModerators } = require('../utils/notify');
+const { isKanbanModerator, canViewCard, canChangeCardStatus } = require('../utils/kanban-access');
 
 const VALID_PRIORITIES = ['low', 'medium', 'high'];
 
@@ -180,6 +180,10 @@ function move(req, res) {
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
+  const moderator = isKanbanModerator(req.kanbanId, req.user);
+  if (!moderator && !canChangeCardStatus(card, req.kanbanId, req.user)) {
+    return res.status(403).json({ error: 'Réservé aux modérateurs et aux responsables de ce ticket' });
+  }
   if (columnId === undefined) {
     return res.status(400).json({ error: 'columnId requis' });
   }
@@ -239,12 +243,16 @@ function move(req, res) {
 
   if (columnId !== card.column_id) {
     const previousColumn = db.prepare('SELECT name FROM columns WHERE id = ?').get(card.column_id);
+    const message = `${req.user.username} a déplacé le ticket « ${card.title} » de « ${previousColumn?.name ?? '?'} » vers « ${targetColumn.name} »`;
     notifyWatchersAndTargets(id, {
       kanbanId: req.kanbanId,
       actorUserId: req.user.id,
       type: 'status',
-      watcherMessage: `${req.user.username} a déplacé le ticket « ${card.title} » de « ${previousColumn?.name ?? '?'} » vers « ${targetColumn.name} »`,
+      watcherMessage: message,
     });
+    if (!moderator) {
+      notifyModerators(id, { kanbanId: req.kanbanId, actorUserId: req.user.id, type: 'status', message });
+    }
   }
 
   const moved = fetchCardWithRelations(id);
@@ -257,18 +265,26 @@ function setCancelled(req, res, isCancelled) {
   if (!card) {
     return res.status(404).json({ error: 'Carte introuvable' });
   }
+  const moderator = isKanbanModerator(req.kanbanId, req.user);
+  if (!moderator && !canChangeCardStatus(card, req.kanbanId, req.user)) {
+    return res.status(403).json({ error: 'Réservé aux modérateurs et aux responsables de ce ticket' });
+  }
 
   const cancelledAtExpr = isCancelled ? "datetime('now')" : 'NULL';
   db.prepare(`UPDATE cards SET cancelled_at = ${cancelledAtExpr}, updated_at = datetime('now') WHERE id = ?`).run(id);
 
+  const message = isCancelled
+    ? `${req.user.username} a annulé le ticket « ${card.title} »`
+    : `${req.user.username} a restauré le ticket « ${card.title} »`;
   notifyWatchersAndTargets(id, {
     kanbanId: req.kanbanId,
     actorUserId: req.user.id,
     type: 'status',
-    watcherMessage: isCancelled
-      ? `${req.user.username} a annulé le ticket « ${card.title} »`
-      : `${req.user.username} a restauré le ticket « ${card.title} »`,
+    watcherMessage: message,
   });
+  if (!moderator) {
+    notifyModerators(id, { kanbanId: req.kanbanId, actorUserId: req.user.id, type: 'status', message });
+  }
 
   res.json(withKey(fetchCardWithRelations(id), req.kanbanCode));
 }

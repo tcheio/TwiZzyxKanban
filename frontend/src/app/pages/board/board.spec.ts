@@ -10,6 +10,7 @@ import { TagsService } from '../../services/tags.service';
 import { EpicsService } from '../../services/epics.service';
 import { Card } from '../../models/card.model';
 import { Column } from '../../models/column.model';
+import { AuthService } from '../../core/auth.service';
 
 describe('Board', () => {
   let component: Board;
@@ -26,6 +27,8 @@ describe('Board', () => {
   };
   let usersService: { liteForKanban: ReturnType<typeof vi.fn> };
   let navigate: ReturnType<typeof vi.fn>;
+  let currentUser: ReturnType<typeof vi.fn>;
+  let kanbanData: { id: number; name: string; code: string; is_moderator: boolean };
 
   const columns: Column[] = [
     { id: 1, name: 'Idée', position: 0 },
@@ -100,6 +103,8 @@ describe('Board', () => {
     };
     usersService = { liteForKanban: vi.fn().mockResolvedValue(users) };
     navigate = vi.fn();
+    currentUser = vi.fn().mockReturnValue({ id: 1, username: 'alice', role: 'user' });
+    kanbanData = { id: 1, name: 'Kanban Test', code: 'TK-TEST', is_moderator: false };
 
     TestBed.configureTestingModule({
       imports: [Board],
@@ -110,9 +115,10 @@ describe('Board', () => {
         { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue(epics) } },
         { provide: Router, useValue: { navigate } },
+        { provide: AuthService, useValue: { currentUser } },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } } } },
+          useValue: { snapshot: { data: { kanban: kanbanData } } },
         },
       ],
     });
@@ -144,6 +150,26 @@ describe('Board', () => {
     expect(component.tagName(1)).toBe('Minecraft');
     expect(component.tagName(null)).toBeNull();
     expect(component.tagName(999)).toBeNull();
+  });
+
+  describe('canChangeStatus()', () => {
+    it('refuse un membre simple non assigné à la carte', () => {
+      expect(component.canChangeStatus(baseCards[0])).toBe(false);
+    });
+
+    it('autorise le responsable principal de la carte', () => {
+      expect(component.canChangeStatus(baseCards[2])).toBe(true);
+    });
+
+    it('autorise un responsable additionnel de la carte', () => {
+      const card = { ...baseCards[0], assignee_ids: [1] };
+      expect(component.canChangeStatus(card)).toBe(true);
+    });
+
+    it('autorise toujours un modérateur du kanban', () => {
+      kanbanData.is_moderator = true;
+      expect(component.canChangeStatus(baseCards[0])).toBe(true);
+    });
   });
 
   it('openTicket() navigue vers la page dédiée du ticket', async () => {
