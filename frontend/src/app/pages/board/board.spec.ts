@@ -125,15 +125,35 @@ describe('Board', () => {
     component = TestBed.createComponent(Board).componentInstance;
   });
 
-  it('reload() regroupe les cartes par colonne, triées par position', async () => {
+  it('reload() regroupe les cartes par colonne, triées par position (1 lane par colonne non divisée)', async () => {
     await component.reload();
 
     const groups = component.groups();
     expect(groups.length).toBe(2);
-    expect(groups[0].cards.map((c) => c.title)).toEqual(['A', 'B']);
-    expect(groups[1].cards.map((c) => c.title)).toEqual(['C']);
+    expect(groups[0].lanes.length).toBe(1);
+    expect(groups[0].lanes[0].cards.map((c) => c.title)).toEqual(['A', 'B']);
+    expect(groups[1].lanes[0].cards.map((c) => c.title)).toEqual(['C']);
     expect(component.loading()).toBe(false);
     expect(component.error()).toBeNull();
+  });
+
+  it("reload() divise une colonne en 2 lanes quand elle a des états, réparties par card.state", async () => {
+    const splitColumns: Column[] = [{ id: 1, name: 'Montage', position: 0, state_a_name: 'Derush', state_b_name: 'Montage' }];
+    const splitCards: Card[] = [
+      { ...baseCards[0], id: 30, title: 'D1', column_id: 1, state: 'a', position: 0 },
+      { ...baseCards[0], id: 31, title: 'M1', column_id: 1, state: 'b', position: 0 },
+    ];
+    columnsService.list.mockResolvedValue(splitColumns);
+    cardsService.list.mockResolvedValue(splitCards);
+
+    await component.reload();
+
+    const [group] = component.groups();
+    expect(group.lanes.length).toBe(2);
+    expect(group.lanes[0].state).toBe('a');
+    expect(group.lanes[0].cards.map((c) => c.title)).toEqual(['D1']);
+    expect(group.lanes[1].state).toBe('b');
+    expect(group.lanes[1].cards.map((c) => c.title)).toEqual(['M1']);
   });
 
   it('userName() retourne le username ou un tiret', async () => {
@@ -192,7 +212,7 @@ describe('Board', () => {
 
   it('drop() réordonne dans la même colonne et appelle move() avec le bon index', async () => {
     await component.reload();
-    const containerData = component.groups()[0].cards;
+    const containerData = component.groups()[0].lanes[0].cards;
     const container = { data: containerData, id: 'col-1' };
     const event = {
       item: { data: containerData[0] },
@@ -204,23 +224,23 @@ describe('Board', () => {
 
     await component.drop(event);
 
-    expect(cardsService.move).toHaveBeenCalledWith(1, 10, 1, 1);
+    expect(cardsService.move).toHaveBeenCalledWith(1, 10, 1, 1, null);
   });
 
   it("drop() déplace vers une autre colonne et appelle move() avec le columnId cible", async () => {
     await component.reload();
     const groups = component.groups();
     const event = {
-      item: { data: groups[0].cards[0] },
-      previousContainer: { data: groups[0].cards, id: 'col-1' },
-      container: { data: groups[1].cards, id: 'col-2' },
+      item: { data: groups[0].lanes[0].cards[0] },
+      previousContainer: { data: groups[0].lanes[0].cards, id: 'col-1' },
+      container: { data: groups[1].lanes[0].cards, id: 'col-2' },
       previousIndex: 0,
       currentIndex: 1,
     } as unknown as CdkDragDrop<Card[]>;
 
     await component.drop(event);
 
-    expect(cardsService.move).toHaveBeenCalledWith(1, 10, 2, 1);
+    expect(cardsService.move).toHaveBeenCalledWith(1, 10, 2, 1, null);
   });
 
   it('drop() déplace la bonne carte quand une recherche masque des cartes intermédiaires (bug rapporté)', async () => {
@@ -228,16 +248,15 @@ describe('Board', () => {
     // première (et seule) position visuelle. La glisser ne doit pas déplacer A (la
     // première carte de la liste complète) mais bien C (la carte réellement saisie).
     await component.reload();
-    const group = component.groups()[0];
     const extraCard: Card = { ...baseCards[0], id: 13, title: 'C', column_id: 1, position: 2 };
     cardsService.list.mockResolvedValue([...baseCards, extraCard]);
     await component.reload();
-    const reloadedGroup = component.groups()[0];
+    const reloadedLane = component.groups()[0].lanes[0];
 
     component.searchQuery.set('c');
-    expect(component.visibleCards(reloadedGroup).map((c) => c.id)).toEqual([13]);
+    expect(component.visibleCards(reloadedLane).map((c) => c.id)).toEqual([13]);
 
-    const container = { data: reloadedGroup.cards, id: 'col-1' };
+    const container = { data: reloadedLane.cards, id: 'col-1' };
     const event = {
       item: { data: extraCard },
       previousContainer: container,
@@ -248,8 +267,8 @@ describe('Board', () => {
 
     await component.drop(event);
 
-    expect(cardsService.move).toHaveBeenCalledWith(1, 13, 1, expect.any(Number));
-    expect(cardsService.move).not.toHaveBeenCalledWith(1, 10, expect.anything(), expect.anything());
+    expect(cardsService.move).toHaveBeenCalledWith(1, 13, 1, expect.any(Number), null);
+    expect(cardsService.move).not.toHaveBeenCalledWith(1, 10, expect.anything(), expect.anything(), expect.anything());
   });
 
   it('userInitial() retourne la première lettre du username ou "?"', async () => {
@@ -288,42 +307,42 @@ describe('Board', () => {
     await component.reload();
     component.toggleAssigneeFilter(2);
 
-    expect(component.visibleCards(component.groups()[0]).map((c) => c.id)).toEqual([10]);
+    expect(component.visibleCards(component.groups()[0].lanes[0]).map((c) => c.id)).toEqual([10]);
   });
 
   it('visibleCards() retourne toutes les cartes sans filtre, puis seulement celles du destinataire choisi', async () => {
     await component.reload();
-    const group = component.groups()[0];
+    const lane = component.groups()[0].lanes[0];
 
-    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['A', 'B']);
+    expect(component.visibleCards(lane).map((c) => c.title)).toEqual(['A', 'B']);
 
     component.toggleAssigneeFilter(1);
-    const assignedGroup = component.groups()[1];
-    expect(component.visibleCards(group)).toEqual([]);
-    expect(component.visibleCards(assignedGroup).map((c) => c.title)).toEqual(['C']);
+    const assignedLane = component.groups()[1].lanes[0];
+    expect(component.visibleCards(lane)).toEqual([]);
+    expect(component.visibleCards(assignedLane).map((c) => c.title)).toEqual(['C']);
   });
 
   it('visibleCards() filtre par titre selon searchQuery, insensible à la casse', async () => {
     await component.reload();
-    const group = component.groups()[0];
+    const lane = component.groups()[0].lanes[0];
 
     component.searchQuery.set('a');
-    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['A']);
+    expect(component.visibleCards(lane).map((c) => c.title)).toEqual(['A']);
 
     component.searchQuery.set('');
-    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['A', 'B']);
+    expect(component.visibleCards(lane).map((c) => c.title)).toEqual(['A', 'B']);
   });
 
   it('visibleCards() combine le filtre destinataire et le filtre de recherche', async () => {
     await component.reload();
-    const assignedGroup = component.groups()[1];
+    const assignedLane = component.groups()[1].lanes[0];
 
     component.toggleAssigneeFilter(1);
     component.searchQuery.set('c');
-    expect(component.visibleCards(assignedGroup).map((c) => c.title)).toEqual(['C']);
+    expect(component.visibleCards(assignedLane).map((c) => c.title)).toEqual(['C']);
 
     component.searchQuery.set('nomatch');
-    expect(component.visibleCards(assignedGroup)).toEqual([]);
+    expect(component.visibleCards(assignedLane)).toEqual([]);
   });
 
   it('toggleAssigneeFilter() active puis désactive le filtre sur un second clic', () => {
@@ -371,10 +390,10 @@ describe('Board', () => {
 
   it('visibleCards() filtre par tag sélectionné', async () => {
     await component.reload();
-    const group = component.groups()[0];
+    const lane = component.groups()[0].lanes[0];
 
     component.toggleTagFilter(1);
-    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['A']);
+    expect(component.visibleCards(lane).map((c) => c.title)).toEqual(['A']);
   });
 
   it('visibleCards() filtre sur "Aucun tag" (ni tag principal ni additionnel)', async () => {
@@ -383,10 +402,10 @@ describe('Board', () => {
       { ...baseCards[0], id: 13, title: 'D', tag_id: null, tag_ids: [2], column_id: 1, position: 2 },
     ]);
     await component.reload();
-    const group = component.groups()[0];
+    const lane = component.groups()[0].lanes[0];
 
     component.toggleTagFilter(component.noTagFilterId);
-    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['B']);
+    expect(component.visibleCards(lane).map((c) => c.title)).toEqual(['B']);
   });
 
   it('visibleCards() filtre par EPIC sélectionnée', async () => {
@@ -395,10 +414,10 @@ describe('Board', () => {
       { ...baseCards[0], id: 21, title: 'E2', epic_id: 2, column_id: 1, position: 1 },
     ]);
     await component.reload();
-    const group = component.groups()[0];
+    const lane = component.groups()[0].lanes[0];
 
     component.toggleEpicFilter(1);
-    expect(component.visibleCards(group).map((c) => c.title)).toEqual(['E1']);
+    expect(component.visibleCards(lane).map((c) => c.title)).toEqual(['E1']);
   });
 
   it('hasActiveFilters() reflète destinataire, tag et EPIC', () => {
@@ -456,7 +475,7 @@ describe('Board', () => {
     await component.reload();
 
     const publishedGroup = component.groups().find((g) => g.column.id === 3);
-    expect(publishedGroup?.cards.map((c) => c.title)).toEqual(['Récent']);
+    expect(publishedGroup?.lanes[0].cards.map((c) => c.title)).toEqual(['Récent']);
   });
 
   it("canEnter() empêche un ticket publié d'entrer dans une autre colonne mais autorise le réordonnancement", async () => {
@@ -481,11 +500,11 @@ describe('Board', () => {
     cardsService.list.mockResolvedValue([...baseCards, publishedCard]);
     await component.reload();
 
-    const publishedGroupCards = component.groups().find((g) => g.column.id === 3)!.cards;
-    const targetCards = component.groups()[0].cards;
+    const publishedLaneCards = component.groups().find((g) => g.column.id === 3)!.lanes[0].cards;
+    const targetCards = component.groups()[0].lanes[0].cards;
     const event = {
       item: { data: publishedCard },
-      previousContainer: { data: publishedGroupCards, id: 'col-3' },
+      previousContainer: { data: publishedLaneCards, id: 'col-3' },
       container: { data: targetCards, id: 'col-1' },
       previousIndex: 0,
       currentIndex: 0,
@@ -535,6 +554,56 @@ describe('Board', () => {
     expect(component.toastMessage()).toBeNull();
   });
 
+  describe('colonne divisée en 2 états', () => {
+    const splitColumns: Column[] = [{ id: 1, name: '🎬Montage', position: 0, state_a_name: 'Derush', state_b_name: 'Montage' }];
+    const splitCards: Card[] = [
+      { ...baseCards[0], id: 30, title: 'D1', column_id: 1, state: 'a', position: 0 },
+      { ...baseCards[0], id: 31, title: 'M1', column_id: 1, state: 'b', position: 0 },
+    ];
+
+    it('laneContainerId() encode columnId + state, stateLabel() résout le nom', async () => {
+      columnsService.list.mockResolvedValue(splitColumns);
+      cardsService.list.mockResolvedValue(splitCards);
+      await component.reload();
+      const [group] = component.groups();
+
+      expect(component.laneContainerId(group.column, 'a')).toBe('col-1-a');
+      expect(component.laneContainerId(group.column, 'b')).toBe('col-1-b');
+      expect(component.stateLabel(group.column, 'a')).toBe('Derush');
+      expect(component.stateLabel(group.column, 'b')).toBe('Montage');
+    });
+
+    it('totalVisibleCount() additionne les cartes visibles des 2 lanes', async () => {
+      columnsService.list.mockResolvedValue(splitColumns);
+      cardsService.list.mockResolvedValue(splitCards);
+      await component.reload();
+      const [group] = component.groups();
+
+      expect(component.totalVisibleCount(group)).toBe(2);
+    });
+
+    it("drop() d'une lane vers l'autre appelle move() avec le state cible", async () => {
+      columnsService.list.mockResolvedValue(splitColumns);
+      cardsService.list.mockResolvedValue(splitCards);
+      await component.reload();
+      const [group] = component.groups();
+      const laneA = group.lanes[0];
+      const laneB = group.lanes[1];
+
+      const event = {
+        item: { data: laneA.cards[0] },
+        previousContainer: { data: laneA.cards, id: 'col-1-a' },
+        container: { data: laneB.cards, id: 'col-1-b' },
+        previousIndex: 0,
+        currentIndex: 0,
+      } as unknown as CdkDragDrop<Card[]>;
+
+      await component.drop(event);
+
+      expect(cardsService.move).toHaveBeenCalledWith(1, 30, 1, expect.any(Number), 'b');
+    });
+  });
+
   describe('tri', () => {
     const sortCards: Card[] = [
       { ...baseCards[0], id: 100, title: 'Zebra', priority: 'low', due_date: null, tag_id: null, epic_id: null, column_id: 1, position: 0 },
@@ -545,9 +614,9 @@ describe('Board', () => {
     it('sans tri actif, garde l\'ordre personnalisé (position)', async () => {
       cardsService.list.mockResolvedValue(sortCards);
       await component.reload();
-      const group = component.groups()[0];
+      const lane = component.groups()[0].lanes[0];
 
-      expect(component.visibleCards(group).map((c) => c.id)).toEqual([100, 101, 102]);
+      expect(component.visibleCards(lane).map((c) => c.id)).toEqual([100, 101, 102]);
     });
 
     it('toggleSortKey() active puis désactive un critère', () => {
@@ -562,7 +631,7 @@ describe('Board', () => {
       await component.reload();
       component.toggleSortKey('name');
 
-      expect(component.visibleCards(component.groups()[0]).map((c) => c.title)).toEqual(['Apple', 'Mango', 'Zebra']);
+      expect(component.visibleCards(component.groups()[0].lanes[0]).map((c) => c.title)).toEqual(['Apple', 'Mango', 'Zebra']);
     });
 
     it('trie par priorité (haute → basse)', async () => {
@@ -570,7 +639,7 @@ describe('Board', () => {
       await component.reload();
       component.toggleSortKey('priority');
 
-      expect(component.visibleCards(component.groups()[0]).map((c) => c.title)).toEqual(['Mango', 'Apple', 'Zebra']);
+      expect(component.visibleCards(component.groups()[0].lanes[0]).map((c) => c.title)).toEqual(['Mango', 'Apple', 'Zebra']);
     });
 
     it("trie par échéance, les tickets sans date restant en ordre personnalisé en dessous", async () => {
@@ -579,7 +648,7 @@ describe('Board', () => {
       component.toggleSortKey('due_date');
 
       // Apple (05/01) avant Mango (10/01) ; Zebra (pas de date) reste en dernier.
-      expect(component.visibleCards(component.groups()[0]).map((c) => c.title)).toEqual(['Apple', 'Mango', 'Zebra']);
+      expect(component.visibleCards(component.groups()[0].lanes[0]).map((c) => c.title)).toEqual(['Apple', 'Mango', 'Zebra']);
     });
 
     it('combine plusieurs critères actifs : le second départage les égalités du premier', async () => {
@@ -594,7 +663,7 @@ describe('Board', () => {
       component.toggleSortKey('due_date');
 
       // Priorité d'abord (high avant low) ; à priorité égale, échéance la plus proche d'abord.
-      expect(component.visibleCards(component.groups()[0]).map((c) => c.title)).toEqual(['Q2', 'Q1', 'Q3']);
+      expect(component.visibleCards(component.groups()[0].lanes[0]).map((c) => c.title)).toEqual(['Q2', 'Q1', 'Q3']);
     });
   });
 });

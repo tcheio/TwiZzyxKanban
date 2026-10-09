@@ -26,6 +26,7 @@ function addMissingCardColumns(cardColumns) {
     ['cloned_from_id', 'INTEGER REFERENCES cards(id) ON DELETE SET NULL'],
     ['due_date', 'TEXT'],
     ['published_at', 'TEXT'],
+    ['state', "TEXT CHECK(state IN ('a','b'))"],
   ];
   const existingNames = new Set(cardColumns.map((col) => col.name));
   columnsToAdd
@@ -76,6 +77,16 @@ function addRestrictedColumn() {
 
   db.exec('ALTER TABLE columns ADD COLUMN restricted INTEGER NOT NULL DEFAULT 0');
   db.prepare("UPDATE columns SET restricted = 1 WHERE name = '💡Idées'").run();
+}
+
+// Colonnes pour diviser une colonne en 2 états affichés comme 2 sous-listes (cf
+// cards.state) — NULL par défaut, donc aucun effet sur les bases existantes.
+function addColumnStatesColumns() {
+  const columns = db.prepare('PRAGMA table_info(columns)').all();
+  if (columns.some((col) => col.name === 'state_a_name')) return;
+
+  db.exec('ALTER TABLE columns ADD COLUMN state_a_name TEXT');
+  db.exec('ALTER TABLE columns ADD COLUMN state_b_name TEXT');
 }
 
 function addKanbanIdColumn(tableName) {
@@ -193,6 +204,7 @@ function migrate() {
 
   renameLegacyColumnNames();
   addRestrictedColumn();
+  addColumnStatesColumns();
   migrateChannelToEpic(cardColumns);
   adoptLegacyBoardIfNeeded();
   ensureDefaultAdmin();

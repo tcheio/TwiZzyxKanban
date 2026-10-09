@@ -11,7 +11,11 @@ import { Column } from '../../../models/column.model';
 
 describe('BoardSettings', () => {
   let component: BoardSettings;
-  let columnsService: { list: ReturnType<typeof vi.fn>; setRestricted: ReturnType<typeof vi.fn> };
+  let columnsService: {
+    list: ReturnType<typeof vi.fn>;
+    setRestricted: ReturnType<typeof vi.fn>;
+    setStates: ReturnType<typeof vi.fn>;
+  };
   let tagsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   let epicsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
 
@@ -23,6 +27,7 @@ describe('BoardSettings', () => {
     columnsService = {
       list: vi.fn().mockResolvedValue(columns),
       setRestricted: vi.fn().mockResolvedValue({}),
+      setStates: vi.fn().mockResolvedValue({ ...columns[0], state_a_name: 'Derush', state_b_name: 'Montage' }),
     };
     tagsService = {
       list: vi.fn().mockResolvedValue(tags),
@@ -61,6 +66,33 @@ describe('BoardSettings', () => {
 
     expect(columnsService.setRestricted).toHaveBeenCalledWith(1, 1, false);
     expect(component.columns()[0].restricted).toBe(false);
+  });
+
+  it('updateColumnStates() persiste les 2 noms et met à jour la colonne', async () => {
+    await component.reload();
+    await component.updateColumnStates(columns[0], 'Derush', 'Montage');
+
+    expect(columnsService.setStates).toHaveBeenCalledWith(1, 1, 'Derush', 'Montage');
+    expect(component.columns()[0].state_a_name).toBe('Derush');
+    expect(component.columns()[0].state_b_name).toBe('Montage');
+  });
+
+  it("updateColumnStates() avec les 2 noms vides retire la division d'une colonne déjà divisée", async () => {
+    const splitColumn: Column = { id: 2, name: '🎬Montage', position: 1, state_a_name: 'Derush', state_b_name: 'Montage' };
+    columnsService.list.mockResolvedValue([...columns, splitColumn]);
+    await component.reload();
+
+    await component.updateColumnStates(splitColumn, '', '');
+
+    expect(columnsService.setStates).toHaveBeenCalledWith(1, 2, null, null);
+  });
+
+  it("updateColumnStates() refuse un seul des 2 noms renseigné", async () => {
+    await component.reload();
+    await component.updateColumnStates(columns[0], 'Derush', '');
+
+    expect(columnsService.setStates).not.toHaveBeenCalled();
+    expect(component.error()).toBeTruthy();
   });
 
   it('toggleTagVisible() inverse visible_in_filter et persiste', async () => {

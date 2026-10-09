@@ -542,6 +542,28 @@
           @if (!isPublished() && !canChangeStatus()) {
             <p class="text-xs text-text-muted">Seuls les modérateurs et les responsables de ce ticket peuvent changer son statut.</p>
           }
+          @if (currentColumnStates(); as states) {
+            <div class="flex gap-1 rounded-md border border-border bg-surface-alt p-1 text-sm">
+              <button
+                type="button"
+                class="flex-1 rounded-md px-2 py-1 font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                [class]="ticket()?.state === 'a' ? 'bg-brand text-white' : 'text-text-muted hover:bg-surface-muted'"
+                [disabled]="isPublished() || isCancelled() || !canChangeStatus()"
+                (click)="updateCardState('a')"
+              >
+                {{ states.a }}
+              </button>
+              <button
+                type="button"
+                class="flex-1 rounded-md px-2 py-1 font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                [class]="ticket()?.state === 'b' ? 'bg-brand text-white' : 'text-text-muted hover:bg-surface-muted'"
+                [disabled]="isPublished() || isCancelled() || !canChangeStatus()"
+                (click)="updateCardState('b')"
+              >
+                {{ states.b }}
+              </button>
+            </div>
+          }
           @if (kanban.is_moderator) {
             <div class="flex flex-wrap gap-2">
               <button

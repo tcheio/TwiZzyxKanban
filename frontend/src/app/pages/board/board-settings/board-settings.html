@@ -14,57 +14,84 @@
   } @else {
     <div class="rounded-xl border border-border bg-surface shadow-sm">
       @for (column of columns(); track column.id; let i = $index) {
-        <div class="flex items-center gap-2 border-b border-border px-4 py-3 last:border-b-0">
-          <label for="column-name-{{ column.id }}" class="sr-only">Nom de la colonne</label>
-          <input
-            id="column-name-{{ column.id }}"
-            type="text"
-            class="min-w-0 flex-1 rounded-md border border-border-strong px-2.5 py-1.5 text-sm text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-            [value]="column.name"
-            [disabled]="saving()"
-            (change)="rename(column, $any($event.target).value)"
-          />
-          <button
-            type="button"
-            class="rounded-md border border-border-strong px-2 py-1.5 text-xs hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-40"
-            [class]="column.restricted ? 'text-brand' : 'text-text-muted'"
-            [disabled]="saving()"
-            [title]="
-              column.restricted
-                ? 'Colonne restreinte : visible uniquement par les modérateurs et les personnes assignées. Cliquer pour la rendre visible de tous.'
-                : 'Colonne visible de tous les membres. Cliquer pour la restreindre aux modérateurs et aux personnes assignées.'
-            "
-            (click)="toggleColumnRestricted(column)"
-          >
-            {{ column.restricted ? '🔒' : '🔓' }}
-          </button>
-          <button
-            type="button"
-            class="rounded-md border border-border-strong px-2 py-1.5 text-xs text-text-muted hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-40"
-            [disabled]="i === 0 || saving()"
-            title="Déplacer à gauche"
-            (click)="move(i, -1)"
-          >
-            ◀
-          </button>
-          <button
-            type="button"
-            class="rounded-md border border-border-strong px-2 py-1.5 text-xs text-text-muted hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-40"
-            [disabled]="i === columns().length - 1 || saving()"
-            title="Déplacer à droite"
-            (click)="move(i, 1)"
-          >
-            ▶
-          </button>
-          <button
-            type="button"
-            class="rounded-md px-2.5 py-1.5 text-xs font-medium text-danger hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-40"
-            [disabled]="saving()"
-            title="Supprimer la colonne"
-            (click)="remove(column)"
-          >
-            Supprimer
-          </button>
+        <div class="border-b border-border last:border-b-0">
+          <div class="flex items-center gap-2 px-4 py-3">
+            <label for="column-name-{{ column.id }}" class="sr-only">Nom de la colonne</label>
+            <input
+              id="column-name-{{ column.id }}"
+              type="text"
+              class="min-w-0 flex-1 rounded-md border border-border-strong px-2.5 py-1.5 text-sm text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              [value]="column.name"
+              [disabled]="saving()"
+              (change)="rename(column, $any($event.target).value)"
+            />
+            <button
+              type="button"
+              class="rounded-md border border-border-strong px-2 py-1.5 text-xs hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-40"
+              [class]="column.restricted ? 'text-brand' : 'text-text-muted'"
+              [disabled]="saving()"
+              [title]="
+                column.restricted
+                  ? 'Colonne restreinte : visible uniquement par les modérateurs et les personnes assignées. Cliquer pour la rendre visible de tous.'
+                  : 'Colonne visible de tous les membres. Cliquer pour la restreindre aux modérateurs et aux personnes assignées.'
+              "
+              (click)="toggleColumnRestricted(column)"
+            >
+              {{ column.restricted ? '🔒' : '🔓' }}
+            </button>
+            <button
+              type="button"
+              class="rounded-md border border-border-strong px-2 py-1.5 text-xs text-text-muted hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-40"
+              [disabled]="i === 0 || saving()"
+              title="Déplacer à gauche"
+              (click)="move(i, -1)"
+            >
+              ◀
+            </button>
+            <button
+              type="button"
+              class="rounded-md border border-border-strong px-2 py-1.5 text-xs text-text-muted hover:bg-surface-alt disabled:cursor-not-allowed disabled:opacity-40"
+              [disabled]="i === columns().length - 1 || saving()"
+              title="Déplacer à droite"
+              (click)="move(i, 1)"
+            >
+              ▶
+            </button>
+            <button
+              type="button"
+              class="rounded-md px-2.5 py-1.5 text-xs font-medium text-danger hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-40"
+              [disabled]="saving()"
+              title="Supprimer la colonne"
+              (click)="remove(column)"
+            >
+              Supprimer
+            </button>
+          </div>
+          <div class="flex items-center gap-2 px-4 pb-3">
+            <span class="shrink-0 text-[11px] text-text-faint">Diviser en 2 états :</span>
+            <label for="state-a-{{ column.id }}" class="sr-only">Nom de l'état A</label>
+            <input
+              id="state-a-{{ column.id }}"
+              #stateAInput
+              type="text"
+              placeholder="État A (ex: Derush)"
+              class="min-w-0 flex-1 rounded-md border border-border-strong px-2 py-1 text-xs text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              [value]="column.state_a_name ?? ''"
+              [disabled]="saving()"
+              (change)="updateColumnStates(column, stateAInput.value, stateBInput.value)"
+            />
+            <label for="state-b-{{ column.id }}" class="sr-only">Nom de l'état B</label>
+            <input
+              id="state-b-{{ column.id }}"
+              #stateBInput
+              type="text"
+              placeholder="État B (ex: Montage)"
+              class="min-w-0 flex-1 rounded-md border border-border-strong px-2 py-1 text-xs text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              [value]="column.state_b_name ?? ''"
+              [disabled]="saving()"
+              (change)="updateColumnStates(column, stateAInput.value, stateBInput.value)"
+            />
+          </div>
         </div>
       }
 
