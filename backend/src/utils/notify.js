@@ -38,4 +38,18 @@ function notifyWatchersAndTargets(cardId, { kanbanId, actorUserId, type, watcher
   });
 }
 
-module.exports = { getCardWatchers, notify, notifyWatchersAndTargets };
+// Les modérateurs du kanban (hors admins globaux, qui ne suivent pas forcément ce
+// kanban en particulier) : ce sont eux qu'on notifie quand une personne non modératrice
+// change le statut d'un ticket (cf cards.controller.js::move/cancel/restore).
+function getKanbanModerators(kanbanId) {
+  return db
+    .prepare('SELECT user_id FROM kanban_members WHERE kanban_id = ? AND is_moderator = 1')
+    .all(kanbanId)
+    .map((r) => r.user_id);
+}
+
+function notifyModerators(cardId, { kanbanId, actorUserId, type, message }) {
+  notify(getKanbanModerators(kanbanId), { kanbanId, cardId, actorUserId, type, message });
+}
+
+module.exports = { getCardWatchers, getKanbanModerators, notify, notifyWatchersAndTargets, notifyModerators };

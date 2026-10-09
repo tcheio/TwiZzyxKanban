@@ -26,6 +26,7 @@ function addMissingCardColumns(cardColumns) {
     ['cloned_from_id', 'INTEGER REFERENCES cards(id) ON DELETE SET NULL'],
     ['due_date', 'TEXT'],
     ['published_at', 'TEXT'],
+    ['state', "TEXT CHECK(state IN ('a','b'))"],
   ];
   const existingNames = new Set(cardColumns.map((col) => col.name));
   columnsToAdd
@@ -64,6 +65,28 @@ function addVisibleInFilterColumn(tableName) {
   const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
   if (columns.some((col) => col.name === 'visible_in_filter')) return;
   db.exec(`ALTER TABLE ${tableName} ADD COLUMN visible_in_filter INTEGER NOT NULL DEFAULT 1`);
+}
+
+// Colonne ajoutée après coup : les bases déjà existantes ont une colonne "💡Idées" qui
+// n'avait jamais été restreinte. On la bascule en restreinte dès l'ajout de la colonne
+// (une seule fois, puisque l'ALTER TABLE ne se produit qu'une fois par base) pour que le
+// comportement par défaut du template "video" s'applique aussi aux kanbans déjà créés.
+function addRestrictedColumn() {
+  const columns = db.prepare('PRAGMA table_info(columns)').all();
+  if (columns.some((col) => col.name === 'restricted')) return;
+
+  db.exec('ALTER TABLE columns ADD COLUMN restricted INTEGER NOT NULL DEFAULT 0');
+  db.prepare("UPDATE columns SET restricted = 1 WHERE name = '💡Idées'").run();
+}
+
+// Colonnes pour diviser une colonne en 2 états affichés comme 2 sous-listes (cf
+// cards.state) — NULL par défaut, donc aucun effet sur les bases existantes.
+function addColumnStatesColumns() {
+  const columns = db.prepare('PRAGMA table_info(columns)').all();
+  if (columns.some((col) => col.name === 'state_a_name')) return;
+
+  db.exec('ALTER TABLE columns ADD COLUMN state_a_name TEXT');
+  db.exec('ALTER TABLE columns ADD COLUMN state_b_name TEXT');
 }
 
 function addKanbanIdColumn(tableName) {
@@ -180,6 +203,8 @@ function migrate() {
   addVisibleInFilterColumn('epics');
 
   renameLegacyColumnNames();
+  addRestrictedColumn();
+  addColumnStatesColumns();
   migrateChannelToEpic(cardColumns);
   adoptLegacyBoardIfNeeded();
   ensureDefaultAdmin();

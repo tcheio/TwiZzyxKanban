@@ -6,7 +6,7 @@ export interface Kanban {
   created_at?: string;
 }
 
-export type KanbanTemplate = 'video' | 'basique';
+export type KanbanTemplate = 'video' | 'video_derush' | 'basique';
 
 export interface KanbanInput {
   name: string;

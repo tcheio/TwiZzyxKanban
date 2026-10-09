@@ -82,6 +82,41 @@ export class BoardSettings implements OnInit {
     }
   }
 
+  async toggleColumnRestricted(column: Column): Promise<void> {
+    try {
+      await this.columnsService.setRestricted(this.kanbanId, column.id, !column.restricted);
+      this.columns.update((list) =>
+        list.map((c) => (c.id === column.id ? { ...c, restricted: !c.restricted } : c))
+      );
+    } catch {
+      this.error.set('Échec de la mise à jour de la colonne.');
+    }
+  }
+
+  // Les 2 noms d'état d'une colonne divisée sont renseignés ou absents ensemble (vide
+  // des deux côtés = colonne non divisée) — même règle que côté backend
+  // (columns.controller.js::validateStateNames).
+  async updateColumnStates(column: Column, stateAName: string, stateBName: string): Promise<void> {
+    const trimmedA = stateAName.trim();
+    const trimmedB = stateBName.trim();
+    if (!!trimmedA !== !!trimmedB) {
+      this.error.set("État A et état B doivent être renseignés ou absents ensemble.");
+      return;
+    }
+    if (trimmedA === (column.state_a_name ?? '') && trimmedB === (column.state_b_name ?? '')) return;
+
+    this.saving.set(true);
+    this.error.set(null);
+    try {
+      const updated = await this.columnsService.setStates(this.kanbanId, column.id, trimmedA || null, trimmedB || null);
+      this.columns.update((list) => list.map((c) => (c.id === column.id ? updated : c)));
+    } catch {
+      this.error.set('Échec de la mise à jour des états de la colonne.');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
   async rename(column: Column, name: string): Promise<void> {
     const trimmed = name.trim();
     if (!trimmed || trimmed === column.name) return;

@@ -19,6 +19,19 @@ export class ColumnsService {
     return firstValueFrom(this.http.patch<Column>(`/api/kanbans/${kanbanId}/columns/${id}`, { name }));
   }
 
+  setRestricted(kanbanId: number, id: number, restricted: boolean): Promise<Column> {
+    return firstValueFrom(this.http.patch<Column>(`/api/kanbans/${kanbanId}/columns/${id}`, { restricted }));
+  }
+
+  setStates(kanbanId: number, id: number, stateAName: string | null, stateBName: string | null): Promise<Column> {
+    return firstValueFrom(
+      this.http.patch<Column>(`/api/kanbans/${kanbanId}/columns/${id}`, {
+        state_a_name: stateAName,
+        state_b_name: stateBName,
+      })
+    );
+  }
+
   remove(kanbanId: number, id: number): Promise<void> {
     return firstValueFrom(this.http.delete<void>(`/api/kanbans/${kanbanId}/columns/${id}`));
   }
