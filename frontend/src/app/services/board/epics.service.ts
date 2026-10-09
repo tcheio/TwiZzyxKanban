@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { Epic } from '../models/epic.model';
+import { Epic } from '../../models/epic.model';
 
 @Injectable({ providedIn: 'root' })
 export class EpicsService {

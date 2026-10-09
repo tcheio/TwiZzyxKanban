@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { Tag } from '../models/tag.model';
+import { Tag } from '../../models/tag.model';
 
 @Injectable({ providedIn: 'root' })
 export class TagsService {

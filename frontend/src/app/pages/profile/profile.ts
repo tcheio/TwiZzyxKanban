@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
-import { ProfileService, ProfileUpdateInput } from '../../services/profile.service';
+import { ProfileService, ProfileUpdateInput } from '../../services/account/profile.service';
 import { resizeImageToDataUrl } from '../../shared/image-to-data-url';
 
 @Component({

@@ -1,8 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { Kanban, KanbanInput, KanbanMember } from '../models/kanban.model';
-import { UserLite } from '../models/user.model';
+import { Kanban, KanbanInput, KanbanMember } from '../../models/kanban.model';
+import { UserLite } from '../../models/user.model';
 
 @Injectable({ providedIn: 'root' })
 export class KanbansService {

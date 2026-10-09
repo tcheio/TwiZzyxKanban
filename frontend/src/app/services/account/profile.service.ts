@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { User } from '../models/user.model';
+import { User } from '../../models/user.model';
 
 export interface ProfileUpdateInput {
   username?: string;

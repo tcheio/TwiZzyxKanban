@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { KanbansService } from '../services/kanbans.service';
+import { KanbansService } from '../services/board/kanbans.service';
 
 export const kanbanModeratorGuard: CanActivateFn = async (route) => {
   const kanbansService = inject(KanbansService);

@@ -3,10 +3,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EpicDetail } from './epic-detail';
-import { EpicsService } from '../../../services/epics.service';
-import { CardsService } from '../../../services/cards.service';
-import { ColumnsService } from '../../../services/columns.service';
-import { UsersService } from '../../../services/users.service';
+import { EpicsService } from '../../../services/board/epics.service';
+import { CardsService } from '../../../services/tickets/cards.service';
+import { ColumnsService } from '../../../services/board/columns.service';
+import { UsersService } from '../../../services/account/users.service';
 import { Card } from '../../../models/card.model';
 
 describe('EpicDetail', () => {

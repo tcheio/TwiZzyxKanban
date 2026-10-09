@@ -3,10 +3,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TagDetail } from './tag-detail';
-import { TagsService } from '../../../services/tags.service';
-import { CardsService } from '../../../services/cards.service';
-import { ColumnsService } from '../../../services/columns.service';
-import { UsersService } from '../../../services/users.service';
+import { TagsService } from '../../../services/board/tags.service';
+import { CardsService } from '../../../services/tickets/cards.service';
+import { ColumnsService } from '../../../services/board/columns.service';
+import { UsersService } from '../../../services/account/users.service';
 import { Card } from '../../../models/card.model';
 
 describe('TagDetail', () => {

@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationEnd, Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from './core/auth.service';
-import { EpicsService } from './services/epics.service';
+import { EpicsService } from './services/board/epics.service';
 import { Kanban } from './models/kanban.model';
 import { Epic } from './models/epic.model';
 import { epicDotClass } from './shared/epic-colors';

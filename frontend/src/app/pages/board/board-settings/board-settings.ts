@@ -1,8 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { ColumnsService } from '../../../services/columns.service';
-import { TagsService } from '../../../services/tags.service';
-import { EpicsService } from '../../../services/epics.service';
+import { ColumnsService } from '../../../services/board/columns.service';
+import { TagsService } from '../../../services/board/tags.service';
+import { EpicsService } from '../../../services/board/epics.service';
 import { Column } from '../../../models/column.model';
 import { Kanban } from '../../../models/kanban.model';
 import { Tag } from '../../../models/tag.model';

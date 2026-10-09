@@ -1,7 +1,7 @@
 import { Component, ElementRef, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { SearchService } from '../../services/search.service';
+import { SearchService } from '../../services/platform/search.service';
 import { TicketSearchResult } from '../../models/search-result.model';
 
 const MIN_QUERY_LENGTH = 2;

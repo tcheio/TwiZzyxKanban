@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NotificationsBell } from './notifications-bell';
-import { NotificationsService } from '../../services/notifications.service';
+import { NotificationsService } from '../../services/platform/notifications.service';
 import { AppNotification } from '../../models/notification.model';
 
 describe('NotificationsBell', () => {

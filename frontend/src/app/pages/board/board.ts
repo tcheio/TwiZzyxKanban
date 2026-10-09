@@ -9,11 +9,11 @@ import {
   moveItemInArray,
   transferArrayItem,
 } from '@angular/cdk/drag-drop';
-import { ColumnsService } from '../../services/columns.service';
-import { CardsService } from '../../services/cards.service';
-import { UsersService } from '../../services/users.service';
-import { TagsService } from '../../services/tags.service';
-import { EpicsService } from '../../services/epics.service';
+import { ColumnsService } from '../../services/board/columns.service';
+import { CardsService } from '../../services/tickets/cards.service';
+import { UsersService } from '../../services/account/users.service';
+import { TagsService } from '../../services/board/tags.service';
+import { EpicsService } from '../../services/board/epics.service';
 import { AuthService } from '../../core/auth.service';
 import { Column } from '../../models/column.model';
 import { Kanban } from '../../models/kanban.model';

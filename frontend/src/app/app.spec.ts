@@ -6,8 +6,8 @@ import { Component } from '@angular/core';
 import { describe, it, expect, vi } from 'vitest';
 import { App } from './app';
 import { AuthService } from './core/auth.service';
-import { KanbansService } from './services/kanbans.service';
-import { EpicsService } from './services/epics.service';
+import { KanbansService } from './services/board/kanbans.service';
+import { EpicsService } from './services/board/epics.service';
 
 @Component({ selector: 'app-stub', template: '' })
 class StubComponent {}

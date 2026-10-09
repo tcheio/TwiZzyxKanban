@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { Card, CardInput } from '../models/card.model';
+import { Card, CardInput } from '../../models/card.model';
 
 @Injectable({ providedIn: 'root' })
 export class CardsService {

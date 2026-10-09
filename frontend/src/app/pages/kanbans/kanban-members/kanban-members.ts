@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { KanbansService } from '../../../services/kanbans.service';
-import { UsersService } from '../../../services/users.service';
+import { KanbansService } from '../../../services/board/kanbans.service';
+import { UsersService } from '../../../services/account/users.service';
 import { AuthService } from '../../../core/auth.service';
 import { Kanban, KanbanMember } from '../../../models/kanban.model';
 import { UserLite } from '../../../models/user.model';

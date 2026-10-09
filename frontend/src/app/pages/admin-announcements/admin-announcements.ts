@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AnnouncementsService } from '../../services/announcements.service';
-import { KanbansService } from '../../services/kanbans.service';
+import { AnnouncementsService } from '../../services/platform/announcements.service';
+import { KanbansService } from '../../services/board/kanbans.service';
 import { Announcement } from '../../models/announcement.model';
 import { Kanban } from '../../models/kanban.model';
 

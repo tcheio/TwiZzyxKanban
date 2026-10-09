@@ -1,5 +1,5 @@
 import { Component, DestroyRef, Input, OnInit, inject, signal } from '@angular/core';
-import { AnnouncementsService } from '../../services/announcements.service';
+import { AnnouncementsService } from '../../services/platform/announcements.service';
 import { Announcement } from '../../models/announcement.model';
 import { startAutoRefresh } from '../auto-refresh';
 

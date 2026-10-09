@@ -2,8 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EpicsList } from './epics-list';
-import { EpicsService } from '../../../services/epics.service';
-import { CardsService } from '../../../services/cards.service';
+import { EpicsService } from '../../../services/board/epics.service';
+import { CardsService } from '../../../services/tickets/cards.service';
 import { Card } from '../../../models/card.model';
 
 describe('EpicsList', () => {

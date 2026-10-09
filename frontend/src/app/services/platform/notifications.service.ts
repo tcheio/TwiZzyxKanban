@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { AppNotification } from '../models/notification.model';
+import { AppNotification } from '../../models/notification.model';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationsService {

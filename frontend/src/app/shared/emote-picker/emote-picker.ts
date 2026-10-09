@@ -10,7 +10,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { Emote, EmotesService } from '../../services/emotes.service';
+import { Emote, EmotesService } from '../../services/board/emotes.service';
 
 @Component({
   selector: 'app-emote-picker',
