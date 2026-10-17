@@ -161,7 +161,6 @@ describe('TicketDetail', () => {
     expect(component.tags()).toEqual(tags);
     expect(component.comments()).toEqual(comments);
     expect(component.descriptionHtml()).toBe('Notes existantes');
-    expect(component.descriptionDraftHtml()).toBe('Notes existantes');
   });
 
   it('primaryTag() résout le tag principal depuis tag_id', async () => {
@@ -421,6 +420,11 @@ describe('TicketDetail', () => {
     expect(component.ticket()?.column_id).toBe(2);
   });
 
+  function descriptionEditor(): HTMLElement {
+    return (component as unknown as { descriptionEditorRef?: { nativeElement: HTMLElement } }).descriptionEditorRef!
+      .nativeElement;
+  }
+
   it('la description démarre en lecture seule ; startEditingDescription() ouvre le mode édition', async () => {
     await component.reload();
     expect(component.descriptionEditing()).toBe(false);
@@ -428,13 +432,11 @@ describe('TicketDetail', () => {
     component.startEditingDescription();
 
     expect(component.descriptionEditing()).toBe(true);
-    expect(component.descriptionDraftHtml()).toBe(component.descriptionHtml());
   });
 
   it('cancelEditingDescription() referme le mode édition sans sauvegarder', async () => {
     await component.reload();
     component.startEditingDescription();
-    component.descriptionDraftHtml.set('Modif non enregistrée');
 
     component.cancelEditingDescription();
 
@@ -442,23 +444,35 @@ describe('TicketDetail', () => {
     expect(cardsService.update).not.toHaveBeenCalled();
   });
 
-  it('saveDescription() persiste le brouillon courant et referme le mode édition', async () => {
-    await component.reload();
-    component.startEditingDescription();
-    component.descriptionDraftHtml.set('Nouvelle description');
-    await component.saveDescription();
-    expect(cardsService.update).toHaveBeenCalledWith(5, 5, { description: 'Nouvelle description' });
-    expect(component.descriptionEditing()).toBe(false);
-    expect(component.descriptionHtml()).toBe('Nouvelle description');
-  });
+  it(
+    'saveDescription() sauvegarde le contenu réellement affiché dans l\'éditeur (DOM) et referme ' +
+      'le mode édition',
+    async () => {
+      await component.reload();
+      component.startEditingDescription();
+      fixture.detectChanges();
+
+      descriptionEditor().innerHTML = 'Texte complet <a href="https://exemple.com/">lien</a>';
+
+      await component.saveDescription();
+
+      expect(cardsService.update).toHaveBeenCalledWith(5, 5, {
+        description: 'Texte complet <a href="https://exemple.com/">lien</a>',
+      });
+      expect(component.descriptionEditing()).toBe(false);
+    }
+  );
 
   it('saveDescription() retire le src des images avant sauvegarde', async () => {
     await component.reload();
-    component.descriptionDraftHtml.set(
-      '<p>Texte</p><img src="data:image/jpeg;base64,AAA" data-card-image-id="1" alt="" class="max-w-full rounded">'
-    );
-    component.saveDescription();
-    await Promise.resolve();
+    component.startEditingDescription();
+    fixture.detectChanges();
+
+    descriptionEditor().innerHTML =
+      '<p>Texte</p><img src="data:image/jpeg;base64,AAA" data-card-image-id="1" alt="" class="max-w-full rounded">';
+
+    await component.saveDescription();
+
     expect(cardsService.update).toHaveBeenCalledWith(5, 5, {
       description: '<p>Texte</p><img data-card-image-id="1" alt="">',
     });
@@ -708,26 +722,20 @@ describe('TicketDetail', () => {
     } as unknown as ClipboardEvent;
   }
 
-  it('onDescriptionPaste() uploade une image collée et l\'insère via execCommand', async () => {
+  it("onDescriptionPaste() uploade une image collée et l'insère dans l'éditeur (nœud DOM, pas execCommand)", async () => {
     await component.reload();
     const editor = document.createElement('div');
     editor.innerHTML = 'contenu';
     const file = new File(['x'], 'shot.png', { type: 'image/png' });
     const event = fakeImagePasteEvent(editor, file);
-    const execSpy = ((document as unknown as { execCommand: typeof vi.fn }).execCommand = vi
-      .fn()
-      .mockReturnValue(true));
 
     await component.onDescriptionPaste(event);
 
     expect(event.preventDefault).toHaveBeenCalled();
     expect(cardImagesService.upload).toHaveBeenCalledWith(5, 5, file);
-    expect(execSpy).toHaveBeenCalledWith(
-      'insertHTML',
-      false,
-      '<img src="data:image/jpeg;base64,AAA" data-card-image-id="1" alt="" class="max-w-full rounded">'
+    expect(editor.innerHTML).toBe(
+      'contenu<img src="data:image/jpeg;base64,AAA" alt="" class="max-w-full rounded" data-card-image-id="1">'
     );
-    expect(component.descriptionDraftHtml()).toBe('contenu');
   });
 
   it('onDescriptionPaste() laisse passer un collage de texte normal', async () => {
@@ -745,38 +753,71 @@ describe('TicketDetail', () => {
     expect(cardImagesService.upload).not.toHaveBeenCalled();
   });
 
-  it('onDescriptionPaste() transforme une URL collée seule en lien cliquable', async () => {
+  it(
+    'onDescriptionPaste() transforme une URL collée seule en lien cliquable, inséré via ' +
+      "l'API Range (pas execCommand, cf bug de corruption sur description longue)",
+    async () => {
+      await component.reload();
+      const editor = document.createElement('div');
+      const event = fakeTextPasteEvent(editor, 'https://exemple.com/doc');
+
+      await component.onDescriptionPaste(event);
+
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(editor.innerHTML).toBe(
+        '<a href="https://exemple.com/doc" target="_blank" rel="noopener noreferrer">https://exemple.com/doc</a>'
+      );
+    }
+  );
+
+  it("onDescriptionPaste() insère le lien à la position du curseur sans toucher au reste d'une description existante", async () => {
     await component.reload();
     const editor = document.createElement('div');
-    const event = fakeTextPasteEvent(editor, 'https://exemple.com/doc');
-    const execSpy = ((document as unknown as { execCommand: typeof vi.fn }).execCommand = vi
-      .fn()
-      .mockReturnValue(true));
+    editor.innerHTML = 'Avant texte après';
+    document.body.appendChild(editor);
+    // Place le curseur (collabsé, pas de sélection) juste après "texte " dans le texte existant.
+    const textNode = editor.firstChild as Text;
+    const range = document.createRange();
+    const cursorPos = (textNode.textContent ?? '').indexOf('après');
+    range.setStart(textNode, cursorPos);
+    range.collapse(true);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
 
+    const event = fakeTextPasteEvent(editor, 'https://exemple.com');
     await component.onDescriptionPaste(event);
 
-    expect(event.preventDefault).toHaveBeenCalled();
-    expect(execSpy).toHaveBeenCalledWith(
-      'insertHTML',
-      false,
-      '<a href="https://exemple.com/doc" target="_blank" rel="noopener noreferrer">https://exemple.com/doc</a>'
-    );
+    expect(editor.textContent).toBe('Avant texte https://exemple.comaprès');
+    expect(editor.querySelector('a')?.getAttribute('href')).toBe('https://exemple.com/');
+    editor.remove();
   });
+
+  it(
+    "onDescriptionPaste() appelle preventDefault() de façon synchrone (avant tout `await`) : " +
+      'sinon le collage par défaut du navigateur s\'exécute entre-temps et écrase/duplique le ' +
+      "contenu existant d'une description non vide (bug corrigé)",
+    async () => {
+      await component.reload();
+      const editor = document.createElement('div');
+      const event = fakeTextPasteEvent(editor, 'https://exemple.com/doc');
+
+      const pending = component.onDescriptionPaste(event);
+      expect(event.preventDefault).toHaveBeenCalled();
+
+      await pending;
+    }
+  );
 
   it('onCommentPaste() transforme une URL collée seule en lien cliquable', async () => {
     await component.reload();
     const editor = document.createElement('div');
     const event = fakeTextPasteEvent(editor, 'www.exemple.com');
-    const execSpy = ((document as unknown as { execCommand: typeof vi.fn }).execCommand = vi
-      .fn()
-      .mockReturnValue(true));
 
     await component.onCommentPaste(event);
 
     expect(event.preventDefault).toHaveBeenCalled();
-    expect(execSpy).toHaveBeenCalledWith(
-      'insertHTML',
-      false,
+    expect(editor.innerHTML).toBe(
       '<a href="https://www.exemple.com/" target="_blank" rel="noopener noreferrer">www.exemple.com</a>'
     );
   });
@@ -797,12 +838,14 @@ describe('TicketDetail', () => {
     editor.innerHTML = 'brouillon';
     const file = new File(['x'], 'shot.png', { type: 'image/png' });
     const event = fakeImagePasteEvent(editor, file);
-    (document as unknown as { execCommand: typeof vi.fn }).execCommand = vi.fn().mockReturnValue(true);
 
     await component.onCommentPaste(event);
 
     expect(cardImagesService.upload).toHaveBeenCalledWith(5, 5, file);
-    expect(component.newCommentDraftHtml()).toBe('brouillon');
+    expect(editor.innerHTML).toBe(
+      'brouillon<img src="data:image/jpeg;base64,AAA" alt="" class="max-w-full rounded" data-card-image-id="1">'
+    );
+    expect(component.newCommentDraftHtml()).toBe(editor.innerHTML);
   });
 
   it("onCommentImageSelected() ajoute l'image à la fin de la zone de commentaire", async () => {

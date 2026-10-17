@@ -135,7 +135,6 @@
               contenteditable="true"
               class="rich-text-content min-h-[8rem] w-full rounded-md border border-border p-2 text-sm whitespace-pre-wrap text-text-soft focus:border-brand focus:outline-none"
               [innerHTML]="descriptionHtml()"
-              (input)="onDescriptionInput($event)"
               (paste)="onDescriptionPaste($event)"
               (click)="onEditableContentClick($event)"
             ></div>
