@@ -83,6 +83,20 @@ CREATE TABLE IF NOT EXISTS cards (
 
 CREATE INDEX IF NOT EXISTS idx_cards_column ON cards(column_id);
 
+-- Historique des colonnes traversées par une carte (une ligne à la création, puis à
+-- chaque changement de colonne — pas sur un simple réordonnancement). Sert à calculer le
+-- temps passé dans chaque colonne pour les statistiques (cf utils/stats.js). Démarre vide
+-- pour les cartes déjà existantes au moment de l'ajout de cette table : seuls les
+-- mouvements à venir sont historisés (pas de reconstitution rétroactive).
+CREATE TABLE IF NOT EXISTS card_column_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  column_id INTEGER NOT NULL REFERENCES columns(id) ON DELETE CASCADE,
+  entered_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_column_history_card ON card_column_history(card_id, entered_at);
+
 CREATE TABLE IF NOT EXISTS comments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,

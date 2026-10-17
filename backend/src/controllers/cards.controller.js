@@ -7,6 +7,7 @@ const {
   EXTRA_RELATIONS_SUBQUERY,
   mapCardRelations,
   fetchCardWithRelations,
+  logColumnEntry,
 } = require('../utils/card-status');
 const { notifyWatchersAndTargets, notifyModerators } = require('../utils/notify');
 const { isKanbanModerator, canViewCard, canChangeCardStatus } = require('../utils/kanban-access');
@@ -103,6 +104,8 @@ function create(req, res) {
       due_date || null,
       publishedAt
     );
+
+  logColumnEntry(result.lastInsertRowid, column_id);
 
   const card = fetchCardWithRelations(result.lastInsertRowid);
   res.status(201).json(withKey(card, req.kanbanCode));
@@ -241,6 +244,10 @@ function move(req, res) {
         position,
         id
       );
+    }
+
+    if (columnId !== card.column_id) {
+      logColumnEntry(id, columnId);
     }
   });
   moveTx();

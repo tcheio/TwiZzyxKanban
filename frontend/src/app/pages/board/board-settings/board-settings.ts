@@ -3,22 +3,26 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ColumnsService } from '../../../services/board/columns.service';
 import { TagsService } from '../../../services/board/tags.service';
 import { EpicsService } from '../../../services/board/epics.service';
+import { StatsService } from '../../../services/board/stats.service';
 import { Column } from '../../../models/column.model';
 import { Kanban } from '../../../models/kanban.model';
 import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
+import { ColumnDuration, UserStat } from '../../../models/stats.model';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { epicBadgeClass } from '../../../shared/epic-colors';
+import { PeriodFilter } from '../../../shared/period-filter/period-filter';
 
 @Component({
   selector: 'app-board-settings',
-  imports: [RouterLink],
+  imports: [RouterLink, PeriodFilter],
   templateUrl: './board-settings.html',
 })
 export class BoardSettings implements OnInit {
   private readonly columnsService = inject(ColumnsService);
   private readonly tagsService = inject(TagsService);
   private readonly epicsService = inject(EpicsService);
+  private readonly statsService = inject(StatsService);
   private readonly route = inject(ActivatedRoute);
   private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
   readonly kanbanId = this.kanban.id;
@@ -32,6 +36,12 @@ export class BoardSettings implements OnInit {
   readonly error = signal<string | null>(null);
 
   readonly newColumnName = signal('');
+
+  readonly statsPeriodFrom = signal<string | null>(null);
+  readonly statsPeriodTo = signal<string | null>(null);
+  readonly columnDurations = signal<ColumnDuration[]>([]);
+  readonly userStats = signal<UserStat[]>([]);
+  readonly statsLoading = signal(false);
 
   async ngOnInit(): Promise<void> {
     await this.reload();
@@ -54,6 +64,50 @@ export class BoardSettings implements OnInit {
     } finally {
       this.loading.set(false);
     }
+    await this.reloadStats();
+  }
+
+  async reloadStats(): Promise<void> {
+    this.statsLoading.set(true);
+    try {
+      const [durations, users] = await Promise.all([
+        this.statsService.columnDurations(this.kanbanId, this.statsPeriodFrom(), this.statsPeriodTo()),
+        this.statsService.userStats(this.kanbanId, this.statsPeriodFrom(), this.statsPeriodTo()),
+      ]);
+      this.columnDurations.set(durations);
+      this.userStats.set(users);
+    } catch {
+      this.error.set('Impossible de charger les statistiques.');
+    } finally {
+      this.statsLoading.set(false);
+    }
+  }
+
+  setStatsPeriodFrom(value: string | null): void {
+    this.statsPeriodFrom.set(value);
+    this.reloadStats();
+  }
+
+  setStatsPeriodTo(value: string | null): void {
+    this.statsPeriodTo.set(value);
+    this.reloadStats();
+  }
+
+  // Durée au format le plus lisible : heures si < 1 jour, jours sinon.
+  formatDuration(hours: number): string {
+    if (hours < 24) return `${hours.toFixed(1)} h`;
+    return `${(hours / 24).toFixed(1)} j`;
+  }
+
+  onTimeRateLabel(stat: UserStat): string {
+    if (!stat.with_due_date_count) return '—';
+    return `${Math.round((stat.on_time_count / stat.with_due_date_count) * 100)} %`;
+  }
+
+  leadLabel(stat: UserStat): string {
+    if (stat.avg_lead_days === null) return '—';
+    const rounded = Math.round(Math.abs(stat.avg_lead_days) * 10) / 10;
+    return stat.avg_lead_days >= 0 ? `+${rounded} j (avance)` : `-${rounded} j (retard)`;
   }
 
   tagClass(tag: Tag): string {

@@ -19,6 +19,21 @@ function withKey(card, kanbanCode) {
   return { ...card, key: `${kanbanCode}-${card.id}` };
 }
 
+// Journalise l'entrée d'une carte dans une colonne (création, ou changement de colonne —
+// jamais un simple réordonnancement) pour les statistiques de temps passé par colonne
+// (cf utils/stats.js). `enteredAt` optionnel sert aux tests pour forcer une date précise.
+function logColumnEntry(cardId, columnId, enteredAt) {
+  if (enteredAt) {
+    db.prepare('INSERT INTO card_column_history (card_id, column_id, entered_at) VALUES (?, ?, ?)').run(
+      cardId,
+      columnId,
+      enteredAt
+    );
+  } else {
+    db.prepare('INSERT INTO card_column_history (card_id, column_id) VALUES (?, ?)').run(cardId, columnId);
+  }
+}
+
 // Les tags/responsables additionnels (card_tags / card_assignees) sont ramenés en
 // tableaux `tag_ids` / `assignee_ids` embarqués sur la carte elle-même (plutôt qu'un
 // appel séparé par carte) : le tableau (board) affiche toutes les cartes d'un coup et
@@ -53,4 +68,5 @@ module.exports = {
   EXTRA_RELATIONS_SUBQUERY,
   mapCardRelations,
   fetchCardWithRelations,
+  logColumnEntry,
 };

@@ -37,6 +37,7 @@ describe('TagDetail', () => {
       column_id: 2,
       position: 0,
       due_date: null,
+      created_at: '2026-01-15 10:00:00',
     },
     {
       id: 11,
@@ -50,6 +51,7 @@ describe('TagDetail', () => {
       column_id: 1,
       position: 0,
       due_date: null,
+      created_at: '2026-02-15 10:00:00',
     },
     {
       id: 12,
@@ -63,6 +65,7 @@ describe('TagDetail', () => {
       column_id: 1,
       position: 1,
       due_date: null,
+      created_at: '2026-02-20 10:00:00',
     },
   ];
 
@@ -127,6 +130,30 @@ describe('TagDetail', () => {
       labels: ['Faible', 'Moyen', 'Élevé'],
       data: [1, 0, 1],
     });
+  });
+
+  it('filteredTickets() retourne tous les tickets sans période définie', async () => {
+    await component.reload();
+    expect(component.filteredTickets().length).toBe(2);
+  });
+
+  it('filteredTickets() filtre par date de création (periodFrom/periodTo)', async () => {
+    await component.reload();
+
+    component.periodFrom.set('2026-02-01');
+    expect(component.filteredTickets().map((t) => t.id)).toEqual([11]);
+
+    component.periodFrom.set(null);
+    component.periodTo.set('2026-01-31');
+    expect(component.filteredTickets().map((t) => t.id)).toEqual([10]);
+  });
+
+  it('statusChart()/priorityChart() se basent sur filteredTickets(), pas sur tous les tickets', async () => {
+    await component.reload();
+    component.periodTo.set('2026-01-31');
+
+    expect(component.statusChart()).toEqual({ labels: ['Idée', 'Publié'], data: [0, 1] });
+    expect(component.priorityChart()).toEqual({ labels: ['Faible', 'Moyen', 'Élevé'], data: [1, 0, 0] });
   });
 
   it('columnName()/userName() résolvent les libellés', async () => {

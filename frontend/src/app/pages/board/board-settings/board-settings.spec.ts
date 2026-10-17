@@ -5,9 +5,11 @@ import { BoardSettings } from './board-settings';
 import { ColumnsService } from '../../../services/board/columns.service';
 import { TagsService } from '../../../services/board/tags.service';
 import { EpicsService } from '../../../services/board/epics.service';
+import { StatsService } from '../../../services/board/stats.service';
 import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
 import { Column } from '../../../models/column.model';
+import { ColumnDuration, UserStat } from '../../../models/stats.model';
 
 describe('BoardSettings', () => {
   let component: BoardSettings;
@@ -18,12 +20,17 @@ describe('BoardSettings', () => {
   };
   let tagsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   let epicsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  let statsService: { columnDurations: ReturnType<typeof vi.fn>; userStats: ReturnType<typeof vi.fn> };
 
   const columns: Column[] = [{ id: 1, name: '💡Idées', position: 0, restricted: true }];
   const tags: Tag[] = [
     { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true, archived: false },
   ];
   const epics: Epic[] = [{ id: 1, name: 'Saison 2', color: 'red', emote_url: null, visible_in_filter: false }];
+  const columnDurations: ColumnDuration[] = [{ column_id: 1, column_name: '💡Idées', sample_count: 3, avg_hours: 12.5 }];
+  const userStats: UserStat[] = [
+    { user_id: 1, username: 'alice', completed_count: 2, with_due_date_count: 2, on_time_count: 1, avg_lead_days: -1, current_workload: 3 },
+  ];
 
   beforeEach(() => {
     columnsService = {
@@ -39,6 +46,10 @@ describe('BoardSettings', () => {
       list: vi.fn().mockResolvedValue(epics),
       update: vi.fn().mockResolvedValue({}),
     };
+    statsService = {
+      columnDurations: vi.fn().mockResolvedValue(columnDurations),
+      userStats: vi.fn().mockResolvedValue(userStats),
+    };
 
     TestBed.configureTestingModule({
       imports: [BoardSettings],
@@ -46,6 +57,7 @@ describe('BoardSettings', () => {
         { provide: ColumnsService, useValue: columnsService },
         { provide: TagsService, useValue: tagsService },
         { provide: EpicsService, useValue: epicsService },
+        { provide: StatsService, useValue: statsService },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } } } },
@@ -133,5 +145,49 @@ describe('BoardSettings', () => {
 
     expect(epicsService.update).toHaveBeenCalledWith(1, 1, { visible_in_filter: true });
     expect(component.epics()[0].visible_in_filter).toBe(true);
+  });
+
+  it('reload() charge aussi les statistiques (durées par colonne et stats par membre)', async () => {
+    await component.reload();
+
+    expect(statsService.columnDurations).toHaveBeenCalledWith(1, null, null);
+    expect(statsService.userStats).toHaveBeenCalledWith(1, null, null);
+    expect(component.columnDurations()).toEqual(columnDurations);
+    expect(component.userStats()).toEqual(userStats);
+  });
+
+  it('setStatsPeriodFrom()/setStatsPeriodTo() mettent à jour la période utilisée pour charger les stats', async () => {
+    await component.reload();
+    statsService.columnDurations.mockClear();
+    statsService.userStats.mockClear();
+
+    component.setStatsPeriodFrom('2026-01-01');
+    component.setStatsPeriodTo('2026-01-31');
+    expect(component.statsPeriodFrom()).toBe('2026-01-01');
+    expect(component.statsPeriodTo()).toBe('2026-01-31');
+
+    // Flush explicitement un rechargement pour vérifier que la période posée ci-dessus est
+    // bien celle utilisée (les appels fire-and-forget déclenchés par les setters eux-mêmes
+    // ne sont pas attendables depuis le test).
+    await component.reloadStats();
+
+    expect(statsService.columnDurations).toHaveBeenLastCalledWith(1, '2026-01-01', '2026-01-31');
+    expect(statsService.userStats).toHaveBeenLastCalledWith(1, '2026-01-01', '2026-01-31');
+  });
+
+  it('formatDuration() affiche en heures sous 24h, en jours au-delà', () => {
+    expect(component.formatDuration(5)).toBe('5.0 h');
+    expect(component.formatDuration(48)).toBe('2.0 j');
+  });
+
+  it('onTimeRateLabel() calcule le pourcentage de tickets dans les temps, ou "—" sans échéance', () => {
+    expect(component.onTimeRateLabel(userStats[0])).toBe('50 %');
+    expect(component.onTimeRateLabel({ ...userStats[0], with_due_date_count: 0 })).toBe('—');
+  });
+
+  it('leadLabel() affiche "avance" ou "retard", ou "—" sans donnée', () => {
+    expect(component.leadLabel({ ...userStats[0], avg_lead_days: 2 })).toBe('+2 j (avance)');
+    expect(component.leadLabel({ ...userStats[0], avg_lead_days: -2 })).toBe('-2 j (retard)');
+    expect(component.leadLabel({ ...userStats[0], avg_lead_days: null })).toBe('—');
   });
 });

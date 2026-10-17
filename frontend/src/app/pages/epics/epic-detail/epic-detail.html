@@ -20,7 +20,11 @@
         }
         {{ e.name }}
       </span>
-      <span class="text-sm text-text-faint">{{ tickets().length }} ticket(s)</span>
+      <span class="text-sm text-text-faint">{{ filteredTickets().length }} ticket(s)</span>
+    </div>
+
+    <div class="mb-4">
+      <app-period-filter [from]="periodFrom()" [to]="periodTo()" (fromChange)="periodFrom.set($event)" (toChange)="periodTo.set($event)" />
     </div>
 
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -34,8 +38,8 @@
       </div>
     </div>
 
-    @if (tickets().length === 0) {
-      <p class="text-sm text-text-muted">Aucun ticket pour cette EPIC.</p>
+    @if (filteredTickets().length === 0) {
+      <p class="text-sm text-text-muted">Aucun ticket pour cette EPIC sur cette période.</p>
     } @else {
       <div class="overflow-hidden rounded-lg border border-border bg-surface">
         <table class="w-full text-sm">
@@ -48,7 +52,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            @for (ticket of tickets(); track ticket.id) {
+            @for (ticket of filteredTickets(); track ticket.id) {
               <tr class="cursor-pointer hover:bg-surface-alt" (click)="openTicket(ticket)">
                 <td class="px-4 py-2.5 font-medium" [class]="cancelledTitleClass(ticket.cancelled_at)">
                   {{ ticket.title }}

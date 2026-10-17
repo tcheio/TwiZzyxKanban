@@ -17,6 +17,7 @@ const columnsRoutes = require('./columns.routes');
 const tagsRoutes = require('./tags.routes');
 const epicsRoutes = require('./epics.routes');
 const cardsRoutes = require('./cards.routes');
+const statsRoutes = require('./stats.routes');
 
 const router = express.Router();
 
@@ -35,5 +36,6 @@ router.use('/:kanbanId/columns', requireKanbanAccess, columnsRoutes);
 router.use('/:kanbanId/tags', requireKanbanAccess, tagsRoutes);
 router.use('/:kanbanId/epics', requireKanbanAccess, epicsRoutes);
 router.use('/:kanbanId/cards', requireKanbanAccess, cardsRoutes);
+router.use('/:kanbanId/stats', requireKanbanAccess, statsRoutes);
 
 module.exports = router;
