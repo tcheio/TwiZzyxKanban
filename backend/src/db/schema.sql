@@ -32,10 +32,10 @@ CREATE TABLE IF NOT EXISTS columns (
   -- Si vrai, les cartes de cette colonne ne sont visibles que des modérateurs du
   -- kanban et des personnes assignées à la carte (cf backend/src/utils/kanban-access.js).
   restricted INTEGER NOT NULL DEFAULT 0,
-  -- Si renseignés (toujours les deux ensemble), la colonne est divisée en 2 états
-  -- affichés comme 2 sous-listes (cf cards.state).
-  state_a_name TEXT,
-  state_b_name TEXT,
+  -- Si renseigné, les colonnes (du même kanban) qui partagent la même valeur sont
+  -- affichées imbriquées dans un seul emplacement du tableau (cf frontend board.ts) —
+  -- chacune reste une vraie colonne indépendante (statut, cartes, restriction...).
+  group_key TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -74,9 +74,6 @@ CREATE TABLE IF NOT EXISTS cards (
   priority TEXT NOT NULL DEFAULT 'medium' CHECK(priority IN ('low','medium','high')),
   column_id INTEGER NOT NULL REFERENCES columns(id) ON DELETE CASCADE,
   position INTEGER NOT NULL,
-  -- État ('a'/'b') au sein d'une colonne divisée en 2 (cf columns.state_a_name/b_name) ;
-  -- NULL si la colonne n'est pas divisée.
-  state TEXT CHECK(state IN ('a','b')),
   due_date TEXT,
   published_at TEXT,
   cancelled_at TEXT,

@@ -23,12 +23,9 @@ export class ColumnsService {
     return firstValueFrom(this.http.patch<Column>(`/api/kanbans/${kanbanId}/columns/${id}`, { restricted }));
   }
 
-  setStates(kanbanId: number, id: number, stateAName: string | null, stateBName: string | null): Promise<Column> {
+  setGroupKey(kanbanId: number, id: number, groupKey: string | null): Promise<Column> {
     return firstValueFrom(
-      this.http.patch<Column>(`/api/kanbans/${kanbanId}/columns/${id}`, {
-        state_a_name: stateAName,
-        state_b_name: stateBName,
-      })
+      this.http.patch<Column>(`/api/kanbans/${kanbanId}/columns/${id}`, { group_key: groupKey })
     );
   }
 

@@ -3,7 +3,8 @@ export interface Column {
   name: string;
   position: number;
   restricted?: boolean;
-  state_a_name?: string | null;
-  state_b_name?: string | null;
+  // Les colonnes (du même kanban) qui partagent la même valeur non nulle sont affichées
+  // imbriquées dans un seul emplacement du tableau (cf pages/board/board.ts).
+  group_key?: string | null;
   created_at?: string;
 }

@@ -530,27 +530,6 @@ export class TicketDetail implements OnInit {
     }
   }
 
-  // Noms des 2 états de la colonne courante du ticket, si elle est divisée (cf
-  // columns.state_a_name/state_b_name) ; null sinon.
-  currentColumnStates(): { a: string; b: string } | null {
-    const ticket = this.ticket();
-    if (!ticket) return null;
-    const column = this.columns().find((c) => c.id === ticket.column_id);
-    if (!column?.state_a_name || !column.state_b_name) return null;
-    return { a: column.state_a_name, b: column.state_b_name };
-  }
-
-  async updateCardState(state: 'a' | 'b'): Promise<void> {
-    const ticket = this.ticket();
-    if (!ticket || this.isPublished() || this.isCancelled() || ticket.state === state) return;
-    try {
-      const current = await this.cardsService.move(this.kanbanId, ticket.id, ticket.column_id, undefined, state);
-      this.ticket.set(current);
-    } catch {
-      this.error.set("Échec du changement d'état.");
-    }
-  }
-
   // Dans un `contenteditable`, un clic simple sur un lien place juste le curseur au lieu
   // de naviguer : on l'ouvre nous-mêmes dans un nouvel onglet.
   onEditableContentClick(event: MouseEvent): void {

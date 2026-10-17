@@ -64,7 +64,7 @@ Au premier démarrage, le backend crée automatiquement :
 - **Multi-kanban** : plusieurs tableaux indépendants, chacun avec ses propres membres, colonnes,
   tags et EPICs, et un rôle modérateur dédié par kanban (en plus des rôles globaux Admin /
   Utilisateur). Création à partir d'un **template** : `video` (colonnes de production standard),
-  `video_derush` (identique, avec la colonne Montage déjà divisée en Derush/Montage) ou `basique`
+  `video_derush` (identique, avec une colonne Derush déjà imbriquée juste avant Montage) ou `basique`
   (À faire / En cours / Fait)
 - Tableau Kanban avec colonnes personnalisables (ajout, renommage, suppression, réordonnancement)
   et glisser-déposer des cartes (Angular CDK), avec filtres combinables (responsable, tag, EPIC,
@@ -72,9 +72,9 @@ Au premier démarrage, le backend crée automatiquement :
 - **Colonnes restreintes** : une colonne peut être marquée visible uniquement par les modérateurs
   du kanban et les responsables des tickets qu'elle contient (ex: la colonne "Idées", restreinte
   par défaut dans les templates vidéo)
-- **Colonnes divisées en 2 états** : n'importe quelle colonne peut être scindée en 2 sous-listes
-  nommées (ex: "Derush" / "Montage"), affichées comme 2 mini-colonnes empilées à l'intérieur d'une
-  seule colonne, avec leur propre ordre de cartes
+- **Colonnes imbriquées** : n'importe quelles colonnes peuvent être affichées imbriquées ensemble
+  dans un seul emplacement du tableau (ex: "Derush" / "Montage"), tout en restant chacune une vraie
+  colonne indépendante (statut sélectionnable, cartes, ordre propre)
 - **Déplacement de ticket restreint** : changer le statut d'un ticket (colonne, état, annulation)
   est réservé aux modérateurs du kanban et aux responsables du ticket ; un changement fait par un
   responsable non modérateur notifie automatiquement les modérateurs

@@ -26,18 +26,17 @@ import { tagBadgeClass } from '../../shared/tag-colors';
 import { priorityLabel, priorityDotClass } from '../../shared/priority';
 import { startAutoRefresh } from '../../shared/auto-refresh';
 
-// Une colonne non divisée produit 1 lane (state: null) ; une colonne divisée en 2
-// états (column.state_a_name/state_b_name) produit 2 lanes ('a' puis 'b'). Chaque lane
-// se comporte comme une mini-colonne autonome pour le drag & drop (tri, filtres,
-// position) — c'est ce qui permet de réutiliser tel quel tout le mécanisme existant.
+// Une colonne seule (group_key absent, ou ne correspondant à aucune autre colonne du
+// kanban) produit 1 lane ; des colonnes partageant la même group_key produisent autant
+// de lanes, triées par position — chacune reste une vraie colonne indépendante (statut,
+// restriction...), juste affichée imbriquée avec les autres dans un même emplacement.
 interface Lane {
   column: Column;
-  state: 'a' | 'b' | null;
   cards: Card[];
 }
 
 interface ColumnGroup {
-  column: Column;
+  key: string;
   lanes: Lane[];
 }
 
@@ -78,6 +77,7 @@ export class Board implements OnInit {
   private readonly kanbanId = this.kanban.id;
 
   readonly groups = signal<ColumnGroup[]>([]);
+  readonly columns = signal<Column[]>([]);
   readonly users = signal<UserLite[]>([]);
   readonly tags = signal<Tag[]>([]);
   readonly epics = signal<Epic[]>([]);
@@ -135,7 +135,8 @@ export class Board implements OnInit {
       this.users.set(users);
       this.tags.set(tags);
       this.epics.set(epics);
-      this.groups.set(columns.map((column) => this.buildColumnGroup(column, cards)));
+      this.columns.set(columns);
+      this.groups.set(this.buildGroups(columns, cards));
     } catch {
       this.error.set('Impossible de charger le tableau.');
     } finally {
@@ -317,35 +318,35 @@ export class Board implements OnInit {
     return diffDays <= DUE_SOON_DAYS;
   }
 
-  private buildColumnGroup(column: Column, allCards: Card[]): ColumnGroup {
-    const columnCards = allCards
+  // Regroupe les colonnes partageant la même group_key (triées par position) dans un
+  // seul ColumnGroup ; une colonne sans group_key, ou dont la group_key ne correspond à
+  // aucune autre colonne du kanban, se retrouve seule dans le sien.
+  private buildGroups(columns: Column[], allCards: Card[]): ColumnGroup[] {
+    const sorted = [...columns].sort((a, b) => a.position - b.position);
+    const consumed = new Set<number>();
+    const groups: ColumnGroup[] = [];
+    for (const column of sorted) {
+      if (consumed.has(column.id)) continue;
+      const members = column.group_key ? sorted.filter((c) => c.group_key === column.group_key) : [column];
+      members.forEach((c) => consumed.add(c.id));
+      groups.push({
+        key: column.group_key ?? `col-${column.id}`,
+        lanes: members.map((c) => ({ column: c, cards: this.cardsForColumn(c, allCards) })),
+      });
+    }
+    return groups;
+  }
+
+  private cardsForColumn(column: Column, allCards: Card[]): Card[] {
+    return allCards
       .filter((c) => c.column_id === column.id)
       .filter((c) => !c.cancelled_at)
       .filter((c) => this.isVisibleInColumn(c, column))
       .sort((a, b) => a.position - b.position);
-
-    if (!column.state_a_name) {
-      return { column, lanes: [{ column, state: null, cards: columnCards }] };
-    }
-    // Cas limite : une carte dont l'état ne correspond à aucun état connu (ex: colonne
-    // divisée après coup, cf columns.controller.js::update) retombe dans la 1ère lane.
-    return {
-      column,
-      lanes: [
-        { column, state: 'a', cards: columnCards.filter((c) => c.state !== 'b') },
-        { column, state: 'b', cards: columnCards.filter((c) => c.state === 'b') },
-      ],
-    };
   }
 
-  stateLabel(column: Column, state: 'a' | 'b' | null): string | null {
-    if (state === 'a') return column.state_a_name ?? null;
-    if (state === 'b') return column.state_b_name ?? null;
-    return null;
-  }
-
-  laneContainerId(column: Column, state: 'a' | 'b' | null): string {
-    return state ? `col-${column.id}-${state}` : `col-${column.id}`;
+  laneContainerId(column: Column): string {
+    return `col-${column.id}`;
   }
 
   totalVisibleCount(group: ColumnGroup): number {
@@ -359,7 +360,7 @@ export class Board implements OnInit {
   }
 
   isPublished(card: Card): boolean {
-    return this.groups().find((g) => g.column.id === card.column_id)?.column.name === PUBLISHED_COLUMN_NAME;
+    return this.columns().find((c) => c.id === card.column_id)?.name === PUBLISHED_COLUMN_NAME;
   }
 
   // Seuls les modérateurs du kanban et les responsables (principal ou additionnel) du
@@ -405,12 +406,12 @@ export class Board implements OnInit {
   }
 
   private columnIdForContainerId(containerId: string): number {
-    return Number(containerId.replace(/^col-/, '').replace(/-[ab]$/, ''));
+    return Number(containerId.replace(/^col-/, ''));
   }
 
   private laneForContainerId(containerId: string): Lane | undefined {
     for (const group of this.groups()) {
-      const lane = group.lanes.find((l) => this.laneContainerId(l.column, l.state) === containerId);
+      const lane = group.lanes.find((l) => this.laneContainerId(l.column) === containerId);
       if (lane) return lane;
     }
     return undefined;
@@ -472,7 +473,7 @@ export class Board implements OnInit {
     this.groups.set([...this.groups()]);
 
     try {
-      await this.cardsService.move(this.kanbanId, card.id, targetLane.column.id, realCurrentIndex, targetLane.state);
+      await this.cardsService.move(this.kanbanId, card.id, targetLane.column.id, realCurrentIndex);
     } catch {
       this.error.set('Le déplacement a échoué, rechargement du tableau...');
       await this.reload();

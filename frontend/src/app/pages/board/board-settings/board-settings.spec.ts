@@ -14,7 +14,7 @@ describe('BoardSettings', () => {
   let columnsService: {
     list: ReturnType<typeof vi.fn>;
     setRestricted: ReturnType<typeof vi.fn>;
-    setStates: ReturnType<typeof vi.fn>;
+    setGroupKey: ReturnType<typeof vi.fn>;
   };
   let tagsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   let epicsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
@@ -29,7 +29,7 @@ describe('BoardSettings', () => {
     columnsService = {
       list: vi.fn().mockResolvedValue(columns),
       setRestricted: vi.fn().mockResolvedValue({}),
-      setStates: vi.fn().mockResolvedValue({ ...columns[0], state_a_name: 'Derush', state_b_name: 'Montage' }),
+      setGroupKey: vi.fn().mockResolvedValue({ ...columns[0], group_key: 'group-1-2' }),
     };
     tagsService = {
       list: vi.fn().mockResolvedValue(tags),
@@ -70,31 +70,53 @@ describe('BoardSettings', () => {
     expect(component.columns()[0].restricted).toBe(false);
   });
 
-  it('updateColumnStates() persiste les 2 noms et met à jour la colonne', async () => {
+  it('updateColumnGroup() imbrique 2 colonnes (même group_key générée sur les deux)', async () => {
+    const montage: Column = { id: 2, name: '🎬Montage', position: 1 };
+    columnsService.list.mockResolvedValue([...columns, montage]);
+    columnsService.setGroupKey.mockImplementation((_kanbanId: number, id: number, groupKey: string | null) =>
+      Promise.resolve({ ...(id === 1 ? columns[0] : montage), group_key: groupKey })
+    );
     await component.reload();
-    await component.updateColumnStates(columns[0], 'Derush', 'Montage');
 
-    expect(columnsService.setStates).toHaveBeenCalledWith(1, 1, 'Derush', 'Montage');
-    expect(component.columns()[0].state_a_name).toBe('Derush');
-    expect(component.columns()[0].state_b_name).toBe('Montage');
+    await component.updateColumnGroup(columns[0], montage.id);
+
+    expect(columnsService.setGroupKey).toHaveBeenCalledWith(1, 1, 'group-1-2');
+    expect(columnsService.setGroupKey).toHaveBeenCalledWith(1, 2, 'group-1-2');
+    expect(component.columns().find((c) => c.id === 1)?.group_key).toBe('group-1-2');
+    expect(component.columns().find((c) => c.id === 2)?.group_key).toBe('group-1-2');
   });
 
-  it("updateColumnStates() avec les 2 noms vides retire la division d'une colonne déjà divisée", async () => {
-    const splitColumn: Column = { id: 2, name: '🎬Montage', position: 1, state_a_name: 'Derush', state_b_name: 'Montage' };
-    columnsService.list.mockResolvedValue([...columns, splitColumn]);
+  it('updateColumnGroup() réutilise la group_key déjà présente sur la colonne cible', async () => {
+    const montage: Column = { id: 2, name: '🎬Montage', position: 1, group_key: 'existant' };
+    columnsService.list.mockResolvedValue([...columns, montage]);
     await component.reload();
 
-    await component.updateColumnStates(splitColumn, '', '');
+    await component.updateColumnGroup(columns[0], montage.id);
 
-    expect(columnsService.setStates).toHaveBeenCalledWith(1, 2, null, null);
+    expect(columnsService.setGroupKey).toHaveBeenCalledWith(1, 1, 'existant');
+    expect(columnsService.setGroupKey).toHaveBeenCalledWith(1, 2, 'existant');
   });
 
-  it("updateColumnStates() refuse un seul des 2 noms renseigné", async () => {
+  it('updateColumnGroup(column, null) dégroupe la colonne', async () => {
+    const montage: Column = { id: 2, name: '🎬Montage', position: 1, group_key: 'g1' };
+    columnsService.list.mockResolvedValue([{ ...columns[0], group_key: 'g1' }, montage]);
+    columnsService.setGroupKey.mockResolvedValue({ ...columns[0], group_key: null });
     await component.reload();
-    await component.updateColumnStates(columns[0], 'Derush', '');
 
-    expect(columnsService.setStates).not.toHaveBeenCalled();
-    expect(component.error()).toBeTruthy();
+    await component.updateColumnGroup(component.columns()[0], null);
+
+    expect(columnsService.setGroupKey).toHaveBeenCalledWith(1, 1, null);
+    expect(component.columns()[0].group_key).toBeNull();
+  });
+
+  it('groupedWith() résout la colonne partenaire, groupableColumns() exclut la colonne elle-même', async () => {
+    const montage: Column = { id: 2, name: '🎬Montage', position: 1, group_key: 'g1' };
+    const derush: Column = { ...columns[0], group_key: 'g1' };
+    columnsService.list.mockResolvedValue([derush, montage]);
+    await component.reload();
+
+    expect(component.groupedWith(derush)?.id).toBe(2);
+    expect(component.groupableColumns(derush).map((c) => c.id)).toEqual([2]);
   });
 
   it('toggleTagVisible() inverse visible_in_filter et persiste', async () => {
