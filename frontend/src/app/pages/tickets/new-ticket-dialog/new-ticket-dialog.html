@@ -53,13 +53,6 @@
         @for (tag of activeTags(); track tag.id) {
           <option [ngValue]="tag.id">{{ tag.name }}</option>
         }
-        @if (archivedTags().length > 0) {
-          <optgroup label="Tags archivés (terminés)">
-            @for (tag of archivedTags(); track tag.id) {
-              <option [ngValue]="tag.id">{{ tag.name }} (archivé)</option>
-            }
-          </optgroup>
-        }
       </select>
     </label>
 

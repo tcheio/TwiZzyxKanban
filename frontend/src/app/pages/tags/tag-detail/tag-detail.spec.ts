@@ -13,10 +13,11 @@ describe('TagDetail', () => {
   let component: TagDetail;
   let navigate: ReturnType<typeof vi.fn>;
   let paramMap$: Subject<{ get: (key: string) => string | null }>;
+  let tagsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
 
   const tags = [
-    { id: 1, name: 'Minecraft', color: 'emerald' },
-    { id: 2, name: 'Pokémon', color: 'red' },
+    { id: 1, name: 'Minecraft', color: 'emerald', archived: false },
+    { id: 2, name: 'Pokémon', color: 'red', archived: false },
   ];
   const columns = [
     { id: 1, name: 'Idée', position: 0 },
@@ -65,13 +66,14 @@ describe('TagDetail', () => {
     },
   ];
 
-  function configure(id: string) {
+  function configure(id: string, isModerator = true) {
     navigate = vi.fn();
     paramMap$ = new Subject();
+    tagsService = { list: vi.fn().mockResolvedValue(tags), update: vi.fn().mockResolvedValue({}) };
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
-        { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
+        { provide: TagsService, useValue: tagsService },
         { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
         { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
         { provide: UsersService, useValue: { liteForKanban: vi.fn().mockResolvedValue(users) } },
@@ -80,7 +82,7 @@ describe('TagDetail', () => {
           provide: ActivatedRoute,
           useValue: {
             snapshot: {
-              data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } },
+              data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST', is_moderator: isModerator } },
               paramMap: { get: () => id },
             },
             paramMap: paramMap$.asObservable(),
@@ -154,5 +156,48 @@ describe('TagDetail', () => {
     paramMap$.next({ get: () => '2' });
     await reloadSpy.mock.results[1].value;
     expect(component.tag()?.id).toBe(2);
+  });
+
+  it('unarchiveTag() réactive le tag après confirmation', async () => {
+    tagsService.list.mockResolvedValue([{ ...tags[0], archived: true }, tags[1]]);
+    tagsService.update.mockResolvedValue({ ...tags[0], archived: false });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await component.reload();
+
+    await component.unarchiveTag();
+
+    expect(tagsService.update).toHaveBeenCalledWith(1, 1, { archived: false });
+    expect(component.tag()?.archived).toBe(false);
+  });
+
+  it("unarchiveTag() ne fait rien si l'utilisateur annule la confirmation", async () => {
+    tagsService.list.mockResolvedValue([{ ...tags[0], archived: true }, tags[1]]);
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await component.reload();
+
+    await component.unarchiveTag();
+
+    expect(tagsService.update).not.toHaveBeenCalled();
+  });
+
+  it('affiche le bouton "Désarchiver" pour un tag archivé, uniquement pour un modérateur', async () => {
+    tagsService.list.mockResolvedValue([{ ...tags[0], archived: true }, tags[1]]);
+    const fixture = TestBed.createComponent(TagDetail);
+    component = fixture.componentInstance;
+    await component.reload();
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('.unarchive-btn')).toBeTruthy();
+  });
+
+  it('masque le bouton "Désarchiver" pour un non-modérateur', async () => {
+    configure('1', false);
+    tagsService.list.mockResolvedValue([{ ...tags[0], archived: true }, tags[1]]);
+    const fixture = TestBed.createComponent(TagDetail);
+    component = fixture.componentInstance;
+    await component.reload();
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('.unarchive-btn')).toBeFalsy();
   });
 });

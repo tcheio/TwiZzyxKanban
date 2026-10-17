@@ -150,7 +150,7 @@ describe('NewTicketDialog', () => {
     expect(emitted!.cloned_from_id).toBe(7);
   });
 
-  it('les tags archivés sont séparés des tags actifs, dans un groupe "archivés" dédié', () => {
+  it('les tags archivés ne sont jamais proposés à la création (exclus du select)', () => {
     configure();
     component.tags = [
       ...tags,
@@ -159,17 +159,8 @@ describe('NewTicketDialog', () => {
     fixture.detectChanges();
 
     expect(component.activeTags().map((t) => t.id)).toEqual([1, 2]);
-    expect(component.archivedTags().map((t) => t.id)).toEqual([3]);
 
     const select = (fixture.nativeElement as HTMLElement).querySelector('#new-ticket-tag')!;
-    expect(select.querySelector('optgroup[label="Tags archivés (terminés)"] option')?.textContent?.trim()).toBe(
-      'Fortnite (archivé)'
-    );
-  });
-
-  it("archivedTags() est vide s'il n'y a aucun tag archivé (pas d'optgroup affiché)", () => {
-    const select = (fixture.nativeElement as HTMLElement).querySelector('#new-ticket-tag')!;
-    expect(component.archivedTags()).toEqual([]);
-    expect(select.querySelector('optgroup')).toBeNull();
+    expect(select.textContent).not.toContain('Fortnite');
   });
 });

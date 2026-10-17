@@ -19,7 +19,19 @@
         }
         {{ t.name }}
       </span>
+      @if (t.archived) {
+        <span class="rounded bg-surface-muted px-2 py-0.5 text-xs font-medium text-text-faint">Archivé</span>
+      }
       <span class="text-sm text-text-faint">{{ tickets().length }} ticket(s)</span>
+      @if (canManage && t.archived) {
+        <button
+          type="button"
+          class="unarchive-btn ml-auto rounded-md border border-border-strong px-3 py-1.5 text-sm text-text-soft hover:bg-surface-alt"
+          (click)="unarchiveTag()"
+        >
+          Désarchiver
+        </button>
+      }
     </div>
 
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
