@@ -161,7 +161,6 @@ describe('TicketDetail', () => {
     expect(component.tags()).toEqual(tags);
     expect(component.comments()).toEqual(comments);
     expect(component.descriptionHtml()).toBe('Notes existantes');
-    expect(component.descriptionDraftHtml()).toBe('Notes existantes');
   });
 
   it('primaryTag() résout le tag principal depuis tag_id', async () => {
@@ -421,6 +420,11 @@ describe('TicketDetail', () => {
     expect(component.ticket()?.column_id).toBe(2);
   });
 
+  function descriptionEditor(): HTMLElement {
+    return (component as unknown as { descriptionEditorRef?: { nativeElement: HTMLElement } }).descriptionEditorRef!
+      .nativeElement;
+  }
+
   it('la description démarre en lecture seule ; startEditingDescription() ouvre le mode édition', async () => {
     await component.reload();
     expect(component.descriptionEditing()).toBe(false);
@@ -428,13 +432,11 @@ describe('TicketDetail', () => {
     component.startEditingDescription();
 
     expect(component.descriptionEditing()).toBe(true);
-    expect(component.descriptionDraftHtml()).toBe(component.descriptionHtml());
   });
 
   it('cancelEditingDescription() referme le mode édition sans sauvegarder', async () => {
     await component.reload();
     component.startEditingDescription();
-    component.descriptionDraftHtml.set('Modif non enregistrée');
 
     component.cancelEditingDescription();
 
@@ -442,47 +444,35 @@ describe('TicketDetail', () => {
     expect(cardsService.update).not.toHaveBeenCalled();
   });
 
-  it('saveDescription() persiste le brouillon courant et referme le mode édition', async () => {
-    await component.reload();
-    component.startEditingDescription();
-    component.descriptionDraftHtml.set('Nouvelle description');
-    await component.saveDescription();
-    expect(cardsService.update).toHaveBeenCalledWith(5, 5, { description: 'Nouvelle description' });
-    expect(component.descriptionEditing()).toBe(false);
-    expect(component.descriptionHtml()).toBe('Nouvelle description');
-  });
-
   it(
-    'saveDescription() sauvegarde le contenu réellement affiché dans l\'éditeur (DOM), ' +
-      'pas le signal descriptionDraftHtml s\'il est resté désynchronisé — la seule garantie ' +
-      "fiable quelle que soit la cause exacte d'un désync entre les deux",
+    'saveDescription() sauvegarde le contenu réellement affiché dans l\'éditeur (DOM) et referme ' +
+      'le mode édition',
     async () => {
       await component.reload();
       component.startEditingDescription();
       fixture.detectChanges();
 
-      const editor = (component as unknown as { descriptionEditorRef?: { nativeElement: HTMLElement } })
-        .descriptionEditorRef!.nativeElement;
-      editor.innerHTML = 'Texte complet <a href="https://exemple.com/">lien</a>';
-      // Simule un signal resté en retard (ex: event input/paste manqué) : il ne doit
-      // jamais être la source de vérité envoyée au serveur.
-      component.descriptionDraftHtml.set('<a href="https://exemple.com/">lien</a>');
+      descriptionEditor().innerHTML = 'Texte complet <a href="https://exemple.com/">lien</a>';
 
       await component.saveDescription();
 
       expect(cardsService.update).toHaveBeenCalledWith(5, 5, {
         description: 'Texte complet <a href="https://exemple.com/">lien</a>',
       });
+      expect(component.descriptionEditing()).toBe(false);
     }
   );
 
   it('saveDescription() retire le src des images avant sauvegarde', async () => {
     await component.reload();
-    component.descriptionDraftHtml.set(
-      '<p>Texte</p><img src="data:image/jpeg;base64,AAA" data-card-image-id="1" alt="" class="max-w-full rounded">'
-    );
-    component.saveDescription();
-    await Promise.resolve();
+    component.startEditingDescription();
+    fixture.detectChanges();
+
+    descriptionEditor().innerHTML =
+      '<p>Texte</p><img src="data:image/jpeg;base64,AAA" data-card-image-id="1" alt="" class="max-w-full rounded">';
+
+    await component.saveDescription();
+
     expect(cardsService.update).toHaveBeenCalledWith(5, 5, {
       description: '<p>Texte</p><img data-card-image-id="1" alt="">',
     });
@@ -746,7 +736,6 @@ describe('TicketDetail', () => {
     expect(editor.innerHTML).toBe(
       'contenu<img src="data:image/jpeg;base64,AAA" alt="" class="max-w-full rounded" data-card-image-id="1">'
     );
-    expect(component.descriptionDraftHtml()).toBe(editor.innerHTML);
   });
 
   it('onDescriptionPaste() laisse passer un collage de texte normal', async () => {
@@ -778,7 +767,6 @@ describe('TicketDetail', () => {
       expect(editor.innerHTML).toBe(
         '<a href="https://exemple.com/doc" target="_blank" rel="noopener noreferrer">https://exemple.com/doc</a>'
       );
-      expect(component.descriptionDraftHtml()).toBe(editor.innerHTML);
     }
   );
 

@@ -99,7 +99,6 @@ export class TicketDetail implements OnInit {
   // descriptionHtml n'est modifié que par reload() (jamais par la saisie) pour que le
   // binding [innerHTML] ne réinitialise pas le curseur à chaque frappe.
   readonly descriptionHtml = signal('');
-  readonly descriptionDraftHtml = signal('');
   readonly descriptionEditing = signal(false);
   readonly newCommentDraftHtml = signal('');
   readonly cloneDialogOpen = signal(false);
@@ -133,9 +132,6 @@ export class TicketDetail implements OnInit {
       this.loading.set(true);
     }
     this.error.set(null);
-    // En rafraîchissement silencieux, si l'édition de la description est ouverte, on ne
-    // veut pas écraser la saisie de l'utilisateur.
-    const hasUnsavedDescription = options.silent && this.descriptionEditing();
     try {
       const [ticket, columns, users, tags, epics, comments, links, images, cards, assignees, assignmentHistory] =
         await Promise.all([
@@ -162,10 +158,10 @@ export class TicketDetail implements OnInit {
       this.cards.set(cards);
       this.assignees.set(assignees);
       this.assignmentHistory.set(assignmentHistory);
-      const hydratedDescription = hydrateCardImages(ticket.description ?? '', images);
-      this.descriptionHtml.set(hydratedDescription);
-      if (!hasUnsavedDescription) {
-        this.descriptionDraftHtml.set(hydratedDescription);
+      // En rafraîchissement silencieux, si l'édition de la description est ouverte, on ne
+      // veut pas écraser la saisie de l'utilisateur en cours.
+      if (!options.silent || !this.descriptionEditing()) {
+        this.descriptionHtml.set(hydrateCardImages(ticket.description ?? '', images));
       }
       this.titleService.setTitle(`${ticket.title} - TwiZzyxKanban`);
     } catch {
@@ -531,10 +527,6 @@ export class TicketDetail implements OnInit {
     }
   }
 
-  onDescriptionInput(event: Event): void {
-    this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
-  }
-
   // Dans un `contenteditable`, un clic simple sur un lien place juste le curseur au lieu
   // de naviguer : on l'ouvre nous-mêmes dans un nouvel onglet.
   onEditableContentClick(event: MouseEvent): void {
@@ -542,14 +534,12 @@ export class TicketDetail implements OnInit {
   }
 
   async onDescriptionPaste(event: ClipboardEvent): Promise<void> {
-    const onInsert = () => this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
-    await this.handlePaste(event, onInsert);
+    await this.handlePaste(event);
   }
 
   // La description est en lecture seule par défaut (pour éviter toute modification
   // accidentelle) ; ces trois méthodes gèrent le bascule vers/depuis le mode édition.
   startEditingDescription(): void {
-    this.descriptionDraftHtml.set(this.descriptionHtml());
     this.descriptionEditing.set(true);
   }
 
@@ -558,11 +548,9 @@ export class TicketDetail implements OnInit {
   }
 
   async saveDescription(): Promise<void> {
-    // Lit le DOM réel de l'éditeur plutôt que de faire confiance au signal
-    // `descriptionDraftHtml` (qui n'est resynchronisé que par les events input/paste et
-    // peut donc être en retard d'une frappe) : c'est ce qui est visiblement affiché à
-    // l'écran au moment d'enregistrer qui doit être sauvegardé, point final.
-    const html = this.descriptionEditorRef?.nativeElement.innerHTML ?? this.descriptionDraftHtml();
+    // Lit le DOM réel de l'éditeur : c'est ce qui est visiblement affiché à l'écran au
+    // moment d'enregistrer qui doit être sauvegardé, point final.
+    const html = this.descriptionEditorRef?.nativeElement.innerHTML ?? '';
     const saved = await this.patch({ description: stripCardImageSrc(html) || null });
     if (!saved) return;
     const ticket = this.ticket();
@@ -574,7 +562,6 @@ export class TicketDetail implements OnInit {
     const editor = this.descriptionEditorRef?.nativeElement;
     if (!editor) return;
     applyRichTextCommand(editor, command);
-    this.descriptionDraftHtml.set(editor.innerHTML);
   }
 
   // Utilisé par le template (désactivation du bouton "Envoyer") : se base sur le signal,
@@ -715,11 +702,11 @@ export class TicketDetail implements OnInit {
     return imageItem?.getAsFile() ?? null;
   }
 
-  private async uploadAndInsertImage(file: File, editor: HTMLElement, onInsert: () => void): Promise<void> {
+  private async uploadAndInsertImage(file: File, editor: HTMLElement, onInsert?: () => void): Promise<void> {
     try {
       const image = await this.cardImagesService.upload(this.kanbanId, this.ticketId, file);
       insertNodeAtCursor(editor, this.imageNode(image));
-      onInsert();
+      onInsert?.();
       this.images.set(await this.cardImagesService.list(this.kanbanId, this.ticketId));
     } catch {
       this.error.set("Échec de l'ajout de l'image.");
@@ -729,7 +716,7 @@ export class TicketDetail implements OnInit {
   // Décide de façon synchrone (image collée ou non) et appelle event.preventDefault()
   // avant toute opération asynchrone (cf commentaire d'extractPastedImageFile) ; seul
   // l'upload proprement dit, une fois la décision prise, est asynchrone.
-  private async handlePaste(event: ClipboardEvent, onInsert: () => void): Promise<void> {
+  private async handlePaste(event: ClipboardEvent, onInsert?: () => void): Promise<void> {
     const imageFile = this.extractPastedImageFile(event);
     if (imageFile) {
       event.preventDefault();
@@ -742,14 +729,14 @@ export class TicketDetail implements OnInit {
   // Si le texte collé est entièrement une URL, on l'insère directement comme lien cliquable
   // plutôt qu'en texte brut. Renvoie true si pris en charge (sinon le collage par défaut du
   // navigateur suit son cours, ex. pour un texte enrichi copié depuis une autre page).
-  private handleLinkPaste(event: ClipboardEvent, onInsert: () => void): boolean {
+  private handleLinkPaste(event: ClipboardEvent, onInsert?: () => void): boolean {
     const text = event.clipboardData?.getData?.('text/plain');
     if (!text) return false;
     const link = linkifyPastedUrl(text);
     if (!link) return false;
     event.preventDefault();
     insertLinkAtCursor(event.target as HTMLElement, link);
-    onInsert();
+    onInsert?.();
     return true;
   }
 
