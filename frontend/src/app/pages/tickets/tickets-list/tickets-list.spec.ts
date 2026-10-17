@@ -13,7 +13,7 @@ describe('TicketsList', () => {
   let component: TicketsList;
   let fixture: ReturnType<typeof TestBed.createComponent<TicketsList>>;
   let cardsService: { list: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
-  let tagsService: { list: ReturnType<typeof vi.fn> };
+  let tagsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   let navigate: ReturnType<typeof vi.fn>;
 
   const columns = [
@@ -79,6 +79,7 @@ describe('TicketsList', () => {
     };
     tagsService = {
       list: vi.fn().mockResolvedValue(tags),
+      update: vi.fn().mockResolvedValue({}),
     };
 
     TestBed.resetTestingModule();
@@ -163,6 +164,45 @@ describe('TicketsList', () => {
     expect(cardsService.create).toHaveBeenCalled();
     expect(component.dialogOpen()).toBe(false);
     expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST-99']);
+  });
+
+  it('createTicket() avec un tag archivé demande confirmation puis le réactive avant de créer', async () => {
+    tagsService.list.mockResolvedValue([...tags, { id: 3, name: 'Fortnite', color: 'violet', archived: true }]);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await component.reload();
+
+    await component.createTicket({
+      title: 'Nouveau',
+      column_id: 1,
+      tag_id: 3,
+      epic_id: null,
+      cloned_from_id: null,
+      assigned_user_id: null,
+      priority: 'medium',
+    });
+
+    expect(window.confirm).toHaveBeenCalled();
+    expect(tagsService.update).toHaveBeenCalledWith(1, 3, { archived: false });
+    expect(cardsService.create).toHaveBeenCalled();
+  });
+
+  it("createTicket() n'appelle pas create() si la réactivation du tag archivé est annulée", async () => {
+    tagsService.list.mockResolvedValue([...tags, { id: 3, name: 'Fortnite', color: 'violet', archived: true }]);
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await component.reload();
+
+    await component.createTicket({
+      title: 'Nouveau',
+      column_id: 1,
+      tag_id: 3,
+      epic_id: null,
+      cloned_from_id: null,
+      assigned_user_id: null,
+      priority: 'medium',
+    });
+
+    expect(tagsService.update).not.toHaveBeenCalled();
+    expect(cardsService.create).not.toHaveBeenCalled();
   });
 
   it('filteredTickets() sans filtre retourne tous les tickets', async () => {

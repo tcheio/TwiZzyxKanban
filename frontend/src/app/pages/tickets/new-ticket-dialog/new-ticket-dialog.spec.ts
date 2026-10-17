@@ -13,8 +13,8 @@ describe('NewTicketDialog', () => {
   ];
   const users = [{ id: 1, username: 'alice' }];
   const tags = [
-    { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true },
-    { id: 2, name: 'Pokémon', color: 'red', emote_url: null, visible_in_filter: true },
+    { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true, archived: false },
+    { id: 2, name: 'Pokémon', color: 'red', emote_url: null, visible_in_filter: true, archived: false },
   ];
   const epics = [
     { id: 1, name: 'TwiZzyx', color: 'red', emote_url: null, visible_in_filter: true },
@@ -148,5 +148,28 @@ describe('NewTicketDialog', () => {
     component.submit();
 
     expect(emitted!.cloned_from_id).toBe(7);
+  });
+
+  it('les tags archivés sont séparés des tags actifs, dans un groupe "archivés" dédié', () => {
+    configure();
+    component.tags = [
+      ...tags,
+      { id: 3, name: 'Fortnite', color: 'violet', emote_url: null, visible_in_filter: true, archived: true },
+    ];
+    fixture.detectChanges();
+
+    expect(component.activeTags().map((t) => t.id)).toEqual([1, 2]);
+    expect(component.archivedTags().map((t) => t.id)).toEqual([3]);
+
+    const select = (fixture.nativeElement as HTMLElement).querySelector('#new-ticket-tag')!;
+    expect(select.querySelector('optgroup[label="Tags archivés (terminés)"] option')?.textContent?.trim()).toBe(
+      'Fortnite (archivé)'
+    );
+  });
+
+  it("archivedTags() est vide s'il n'y a aucun tag archivé (pas d'optgroup affiché)", () => {
+    const select = (fixture.nativeElement as HTMLElement).querySelector('#new-ticket-tag')!;
+    expect(component.archivedTags()).toEqual([]);
+    expect(select.querySelector('optgroup')).toBeNull();
   });
 });

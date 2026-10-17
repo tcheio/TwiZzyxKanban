@@ -66,6 +66,12 @@ export class TagsList implements OnInit {
     return this.cards().filter((c) => c.tag_id === tagId || (c.tag_ids ?? []).includes(tagId)).length;
   }
 
+  // Les tags archivés sont affichés en dernier, pour que la liste reste dominée par les
+  // tags encore d'actualité.
+  sortedTags(): Tag[] {
+    return [...this.tags()].sort((a, b) => Number(a.archived) - Number(b.archived) || a.name.localeCompare(b.name));
+  }
+
   tagClass(tag: Tag): string {
     return tagBadgeClass(tag.color);
   }
@@ -121,6 +127,19 @@ export class TagsList implements OnInit {
       await this.reload();
     } catch {
       this.error.set('Échec de la suppression du tag.');
+    }
+  }
+
+  // Archiver ne demande pas de confirmation (c'est réversible et sans impact sur les
+  // tickets existants) ; réactiver en demande une, pour éviter un clic accidentel sur un
+  // tag qu'on pensait terminé pour de bon.
+  async toggleArchived(tag: Tag): Promise<void> {
+    if (tag.archived && !confirm(`Réactiver le tag "${tag.name}" ?`)) return;
+    try {
+      await this.tagsService.update(this.kanbanId, tag.id, { archived: !tag.archived });
+      this.tags.update((list) => list.map((t) => (t.id === tag.id ? { ...t, archived: !t.archived } : t)));
+    } catch {
+      this.error.set('Échec de la mise à jour du tag.');
     }
   }
 }

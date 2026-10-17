@@ -203,6 +203,7 @@ export class TicketsList implements OnInit {
   }
 
   async createTicket(input: CardInput): Promise<void> {
+    if (!(await this.confirmTagReactivationIfNeeded(input.tag_id))) return;
     try {
       const created = await this.cardsService.create(this.kanbanId, input);
       this.dialogOpen.set(false);
@@ -212,4 +213,19 @@ export class TicketsList implements OnInit {
     }
   }
 
+  // Un tag archivé reste choisissable à la création (cf new-ticket-dialog), mais on
+  // demande confirmation avant de le réactiver silencieusement.
+  private async confirmTagReactivationIfNeeded(tagId: number | null | undefined): Promise<boolean> {
+    const tag = tagId == null ? null : this.tags().find((t) => t.id === tagId);
+    if (!tag?.archived) return true;
+    if (!confirm(`Le tag "${tag.name}" est archivé. Le réactiver pour l'utiliser sur ce ticket ?`)) return false;
+    try {
+      await this.tagsService.update(this.kanbanId, tag.id, { archived: false });
+      this.tags.update((list) => list.map((t) => (t.id === tag.id ? { ...t, archived: false } : t)));
+      return true;
+    } catch {
+      this.error.set('Échec de la réactivation du tag.');
+      return false;
+    }
+  }
 }

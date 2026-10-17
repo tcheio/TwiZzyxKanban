@@ -50,8 +50,15 @@
         class="rounded-md border border-border-strong px-2.5 py-2 text-sm text-text focus:border-brand focus:outline-none"
       >
         <option [ngValue]="null">— Aucun tag —</option>
-        @for (tag of tags; track tag.id) {
+        @for (tag of activeTags(); track tag.id) {
           <option [ngValue]="tag.id">{{ tag.name }}</option>
+        }
+        @if (archivedTags().length > 0) {
+          <optgroup label="Tags archivés (terminés)">
+            @for (tag of archivedTags(); track tag.id) {
+              <option [ngValue]="tag.id">{{ tag.name }} (archivé)</option>
+            }
+          </optgroup>
         }
       </select>
     </label>

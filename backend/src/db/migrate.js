@@ -67,6 +67,12 @@ function addVisibleInFilterColumn(tableName) {
   db.exec(`ALTER TABLE ${tableName} ADD COLUMN visible_in_filter INTEGER NOT NULL DEFAULT 1`);
 }
 
+function addArchivedColumn() {
+  const columns = db.prepare('PRAGMA table_info(tags)').all();
+  if (columns.some((col) => col.name === 'archived')) return;
+  db.exec('ALTER TABLE tags ADD COLUMN archived INTEGER NOT NULL DEFAULT 0');
+}
+
 // Colonne ajoutée après coup : les bases déjà existantes ont une colonne "💡Idées" qui
 // n'avait jamais été restreinte. On la bascule en restreinte dès l'ajout de la colonne
 // (une seule fois, puisque l'ALTER TABLE ne se produit qu'une fois par base) pour que le
@@ -201,6 +207,7 @@ function migrate() {
   addEmoteUrlColumn('epics');
   addVisibleInFilterColumn('tags');
   addVisibleInFilterColumn('epics');
+  addArchivedColumn();
 
   renameLegacyColumnNames();
   addRestrictedColumn();

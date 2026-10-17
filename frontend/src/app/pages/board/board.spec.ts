@@ -81,8 +81,8 @@ describe('Board', () => {
     { id: 3, username: 'carol', avatar_url: null },
   ];
   const tags = [
-    { id: 1, name: 'Minecraft', color: 'emerald', visible_in_filter: true },
-    { id: 2, name: 'Aventure', color: 'sky', visible_in_filter: true },
+    { id: 1, name: 'Minecraft', color: 'emerald', visible_in_filter: true, archived: false },
+    { id: 2, name: 'Aventure', color: 'sky', visible_in_filter: true, archived: false },
   ];
   const epics = [
     { id: 1, name: 'Saison 2', color: 'red', visible_in_filter: true },
@@ -368,8 +368,8 @@ describe('Board', () => {
     expect(component.visibleEpicFilters().map((e) => e.id)).toEqual([1, 2]);
 
     component.tags.set([
-      { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true },
-      { id: 2, name: 'Aventure', color: 'sky', emote_url: null, visible_in_filter: false },
+      { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true, archived: false },
+      { id: 2, name: 'Aventure', color: 'sky', emote_url: null, visible_in_filter: false, archived: false },
     ]);
     expect(component.visibleTagFilters().map((t) => t.id)).toEqual([1]);
   });

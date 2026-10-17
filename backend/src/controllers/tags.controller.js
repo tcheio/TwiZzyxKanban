@@ -6,13 +6,17 @@ function isAllowedEmote(emoteUrl) {
   return listEmoteFiles().some((e) => e.path === emoteUrl);
 }
 
+function serialize(tag) {
+  return { ...tag, visible_in_filter: !!tag.visible_in_filter, archived: !!tag.archived };
+}
+
 function list(req, res) {
   const tags = db.prepare('SELECT * FROM tags WHERE kanban_id = ? ORDER BY name').all(req.kanbanId);
-  res.json(tags.map((t) => ({ ...t, visible_in_filter: !!t.visible_in_filter })));
+  res.json(tags.map(serialize));
 }
 
 function create(req, res) {
-  const { name, color, emote_url, visible_in_filter } = req.body || {};
+  const { name, color, emote_url, visible_in_filter, archived } = req.body || {};
   if (!name?.trim()) {
     return res.status(400).json({ error: 'name requis' });
   }
@@ -25,17 +29,29 @@ function create(req, res) {
   if (visible_in_filter !== undefined && typeof visible_in_filter !== 'boolean') {
     return res.status(400).json({ error: 'visible_in_filter doit être un booléen' });
   }
+  if (archived !== undefined && typeof archived !== 'boolean') {
+    return res.status(400).json({ error: 'archived doit être un booléen' });
+  }
 
   const result = db
-    .prepare('INSERT INTO tags (kanban_id, name, color, emote_url, visible_in_filter) VALUES (?, ?, ?, ?, ?)')
-    .run(req.kanbanId, name.trim(), color || 'gray', emote_url || null, visible_in_filter === false ? 0 : 1);
+    .prepare(
+      'INSERT INTO tags (kanban_id, name, color, emote_url, visible_in_filter, archived) VALUES (?, ?, ?, ?, ?, ?)'
+    )
+    .run(
+      req.kanbanId,
+      name.trim(),
+      color || 'gray',
+      emote_url || null,
+      visible_in_filter === false ? 0 : 1,
+      archived ? 1 : 0
+    );
   const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(result.lastInsertRowid);
-  res.status(201).json({ ...tag, visible_in_filter: !!tag.visible_in_filter });
+  res.status(201).json(serialize(tag));
 }
 
 function update(req, res) {
   const id = Number(req.params.id);
-  const { name, color, emote_url, visible_in_filter } = req.body || {};
+  const { name, color, emote_url, visible_in_filter, archived } = req.body || {};
 
   const tag = db.prepare('SELECT * FROM tags WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!tag) {
@@ -53,16 +69,22 @@ function update(req, res) {
   if (visible_in_filter !== undefined && typeof visible_in_filter !== 'boolean') {
     return res.status(400).json({ error: 'visible_in_filter doit être un booléen' });
   }
+  if (archived !== undefined && typeof archived !== 'boolean') {
+    return res.status(400).json({ error: 'archived doit être un booléen' });
+  }
 
-  db.prepare('UPDATE tags SET name = ?, color = ?, emote_url = ?, visible_in_filter = ? WHERE id = ?').run(
+  db.prepare(
+    'UPDATE tags SET name = ?, color = ?, emote_url = ?, visible_in_filter = ?, archived = ? WHERE id = ?'
+  ).run(
     name ? name.trim() : tag.name,
     color || tag.color,
     emote_url !== undefined ? emote_url || null : tag.emote_url,
     visible_in_filter !== undefined ? (visible_in_filter ? 1 : 0) : tag.visible_in_filter,
+    archived !== undefined ? (archived ? 1 : 0) : tag.archived,
     id
   );
   const updated = db.prepare('SELECT * FROM tags WHERE id = ?').get(id);
-  res.json({ ...updated, visible_in_filter: !!updated.visible_in_filter });
+  res.json(serialize(updated));
 }
 
 function remove(req, res) {

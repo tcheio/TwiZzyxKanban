@@ -51,6 +51,17 @@ export class NewTicketDialog implements OnInit {
     }
   }
 
+  // Les tags archivés sont affichés à part (dans un groupe dédié), pour qu'ils restent
+  // sélectionnables (ex: cloner un ticket qui en avait un, ou le réactiver directement à
+  // la création) sans pour autant polluer la liste principale.
+  activeTags(): Tag[] {
+    return this.tags.filter((t) => !t.archived);
+  }
+
+  archivedTags(): Tag[] {
+    return this.tags.filter((t) => t.archived);
+  }
+
   submit(): void {
     if (this.form.invalid) return;
     const raw = this.form.getRawValue();
