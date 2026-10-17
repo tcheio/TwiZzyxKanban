@@ -53,6 +53,7 @@ describe('TicketDetail', () => {
     remove: ReturnType<typeof vi.fn>;
   };
   let columnsService: { list: ReturnType<typeof vi.fn> };
+  let tagsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   let navigate: ReturnType<typeof vi.fn>;
   let currentUser: ReturnType<typeof vi.fn>;
 
@@ -122,13 +123,14 @@ describe('TicketDetail', () => {
       remove: vi.fn().mockResolvedValue(undefined),
     };
     columnsService = { list: vi.fn().mockResolvedValue(columns) };
+    tagsService = { list: vi.fn().mockResolvedValue(tags), update: vi.fn().mockResolvedValue({}) };
 
     TestBed.configureTestingModule({
       providers: [
         { provide: CardsService, useValue: cardsService },
         { provide: ColumnsService, useValue: columnsService },
         { provide: UsersService, useValue: { liteForKanban: vi.fn().mockResolvedValue(users) } },
-        { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
+        { provide: TagsService, useValue: tagsService },
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: CommentsService, useValue: commentsService },
         { provide: CardLinksService, useValue: cardLinksService },
@@ -199,6 +201,36 @@ describe('TicketDetail', () => {
     cardsService.get.mockResolvedValue({ ...ticket, tag_id: 1, tag_ids: [] });
     await component.reload();
     expect(component.addableTagOptions().map((o) => o.label)).toEqual(['Pokémon']);
+  });
+
+  it('addableTagOptions() marque les tags archivés avec un suffixe "(archivé)"', async () => {
+    tagsService.list.mockResolvedValue([...tags, { id: 3, name: 'Fortnite', color: 'violet', archived: true }]);
+    cardsService.get.mockResolvedValue({ ...ticket, tag_id: 1, tag_ids: [] });
+    await component.reload();
+    expect(component.addableTagOptions().map((o) => o.label)).toEqual(['Pokémon', 'Fortnite (archivé)']);
+  });
+
+  it('addTag() avec un tag archivé demande confirmation puis le réactive avant de l\'ajouter', async () => {
+    tagsService.list.mockResolvedValue([...tags, { id: 3, name: 'Fortnite', color: 'violet', archived: true }]);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await component.reload();
+
+    await component.addTag(3);
+
+    expect(window.confirm).toHaveBeenCalled();
+    expect(tagsService.update).toHaveBeenCalledWith(5, 3, { archived: false });
+    expect(cardTagsService.add).toHaveBeenCalledWith(5, 5, 3);
+  });
+
+  it("addTag() n'ajoute pas le tag si la réactivation est annulée", async () => {
+    tagsService.list.mockResolvedValue([...tags, { id: 3, name: 'Fortnite', color: 'violet', archived: true }]);
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await component.reload();
+
+    await component.addTag(3);
+
+    expect(tagsService.update).not.toHaveBeenCalled();
+    expect(cardTagsService.add).not.toHaveBeenCalled();
   });
 
   it('addExtraTag() appelle le service et met à jour le ticket', async () => {
@@ -648,6 +680,44 @@ describe('TicketDetail', () => {
     );
     expect(component.cloneDialogOpen()).toBe(false);
     expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST-99']);
+  });
+
+  it('createClone() avec un tag archivé demande confirmation puis le réactive avant de créer', async () => {
+    tagsService.list.mockResolvedValue([...tags, { id: 3, name: 'Fortnite', color: 'violet', archived: true }]);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await component.reload();
+
+    await component.createClone({
+      title: 'COPIE - Mon ticket',
+      column_id: 1,
+      tag_id: 3,
+      epic_id: null,
+      cloned_from_id: 5,
+      assigned_user_id: null,
+      priority: 'medium',
+    });
+
+    expect(tagsService.update).toHaveBeenCalledWith(5, 3, { archived: false });
+    expect(cardsService.create).toHaveBeenCalled();
+  });
+
+  it("createClone() n'appelle pas create() si la réactivation du tag archivé est annulée", async () => {
+    tagsService.list.mockResolvedValue([...tags, { id: 3, name: 'Fortnite', color: 'violet', archived: true }]);
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await component.reload();
+
+    await component.createClone({
+      title: 'COPIE - Mon ticket',
+      column_id: 1,
+      tag_id: 3,
+      epic_id: null,
+      cloned_from_id: 5,
+      assigned_user_id: null,
+      priority: 'medium',
+    });
+
+    expect(tagsService.update).not.toHaveBeenCalled();
+    expect(cardsService.create).not.toHaveBeenCalled();
   });
 
   it('linkedBefore() liste les tickets à faire avant', async () => {

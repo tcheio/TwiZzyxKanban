@@ -221,7 +221,12 @@ export class TicketDetail implements OnInit {
     const used = new Set([ticket.tag_id, ...(ticket.tag_ids ?? [])]);
     return this.tags()
       .filter((t) => !used.has(t.id))
-      .map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.color), iconUrl: t.emote_url }));
+      .map((t) => ({
+        id: t.id,
+        label: t.archived ? `${t.name} (archivé)` : t.name,
+        badgeClass: tagBadgeClass(t.color),
+        iconUrl: t.emote_url,
+      }));
   }
 
   // Point d'entrée unique du picker "+ Ajouter" : si le ticket n'a pas encore de tag
@@ -230,6 +235,7 @@ export class TicketDetail implements OnInit {
   // autres) alors que pour l'utilisateur il s'agit juste d'"ajouter un tag".
   async addTag(tagId: number | null): Promise<void> {
     if (tagId === null) return;
+    if (!(await this.confirmTagReactivationIfNeeded(tagId))) return;
     const ticket = this.ticket();
     if (!ticket) return;
     if (!ticket.tag_id) {
@@ -237,6 +243,23 @@ export class TicketDetail implements OnInit {
       return;
     }
     await this.addExtraTag(tagId);
+  }
+
+  // Un tag archivé reste choisissable (ex: tag d'un ticket cloné, ou choix explicite dans
+  // le groupe "archivés" du picker), mais on demande confirmation avant de le réactiver
+  // silencieusement pour tout le kanban.
+  private async confirmTagReactivationIfNeeded(tagId: number | null | undefined): Promise<boolean> {
+    const tag = tagId == null ? null : this.tags().find((t) => t.id === tagId);
+    if (!tag?.archived) return true;
+    if (!confirm(`Le tag "${tag.name}" est archivé. Le réactiver pour l'utiliser sur ce ticket ?`)) return false;
+    try {
+      await this.tagsService.update(this.kanbanId, tag.id, { archived: false });
+      this.tags.update((list) => list.map((t) => (t.id === tag.id ? { ...t, archived: false } : t)));
+      return true;
+    } catch {
+      this.error.set('Échec de la réactivation du tag.');
+      return false;
+    }
   }
 
   async addExtraTag(tagId: number | null): Promise<void> {
@@ -350,6 +373,7 @@ export class TicketDetail implements OnInit {
   }
 
   async createClone(input: CardInput): Promise<void> {
+    if (!(await this.confirmTagReactivationIfNeeded(input.tag_id))) return;
     try {
       const created = await this.cardsService.create(this.kanbanId, input);
       this.cloneDialogOpen.set(false);

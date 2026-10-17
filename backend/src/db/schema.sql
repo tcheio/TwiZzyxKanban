@@ -46,6 +46,9 @@ CREATE TABLE IF NOT EXISTS tags (
   color TEXT NOT NULL DEFAULT 'gray',
   emote_url TEXT,
   visible_in_filter INTEGER NOT NULL DEFAULT 1,
+  -- Tag "archivé"/terminé : masqué par défaut des sélecteurs de création, mais toujours
+  -- assignable (il se réactive alors automatiquement, cf cards/cardTags controllers).
+  archived INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

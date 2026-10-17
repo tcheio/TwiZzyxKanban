@@ -34,6 +34,7 @@ export class TagDetail implements OnInit {
   private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
   protected readonly kanbanId = this.kanban.id;
   protected readonly kanbanCode = this.kanban.code;
+  protected readonly canManage = this.kanban.is_moderator;
 
   readonly tag = signal<Tag | null>(null);
   readonly columns = signal<Column[]>([]);
@@ -139,5 +140,15 @@ export class TagDetail implements OnInit {
 
   openTicket(card: Card): void {
     this.router.navigate(['/kanbans', `${this.kanban.code}-${card.id}`]);
+  }
+
+  async unarchiveTag(): Promise<void> {
+    const tag = this.tag();
+    if (!tag || !confirm(`Réactiver le tag "${tag.name}" ?`)) return;
+    try {
+      this.tag.set(await this.tagsService.update(this.kanbanId, tag.id, { archived: false }));
+    } catch {
+      this.error.set('Échec de la réactivation du tag.');
+    }
   }
 }

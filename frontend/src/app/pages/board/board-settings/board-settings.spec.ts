@@ -20,7 +20,9 @@ describe('BoardSettings', () => {
   let epicsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
 
   const columns: Column[] = [{ id: 1, name: '💡Idées', position: 0, restricted: true }];
-  const tags: Tag[] = [{ id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true }];
+  const tags: Tag[] = [
+    { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true, archived: false },
+  ];
   const epics: Epic[] = [{ id: 1, name: 'Saison 2', color: 'red', emote_url: null, visible_in_filter: false }];
 
   beforeEach(() => {

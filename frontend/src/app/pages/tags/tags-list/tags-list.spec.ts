@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TagsList } from './tags-list';
 import { TagsService } from '../../../services/board/tags.service';
 import { CardsService } from '../../../services/tickets/cards.service';
@@ -18,8 +18,8 @@ describe('TagsList', () => {
   let navigate: ReturnType<typeof vi.fn>;
 
   const tags = [
-    { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true },
-    { id: 2, name: 'Pokémon', color: 'red', emote_url: null, visible_in_filter: true },
+    { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true, archived: false },
+    { id: 2, name: 'Pokémon', color: 'red', emote_url: null, visible_in_filter: true, archived: false },
   ];
   const cards: Card[] = [
     {
@@ -92,6 +92,7 @@ describe('TagsList', () => {
   }
 
   beforeEach(() => configure(true));
+  afterEach(() => vi.restoreAllMocks());
 
   it('reload() charge les tags et les cartes', async () => {
     await component.reload();
@@ -192,5 +193,46 @@ describe('TagsList', () => {
     await component.deleteTag(tags[0]);
 
     expect(tagsService.remove).not.toHaveBeenCalled();
+  });
+
+  it("toggleArchived() archive un tag actif sans demander de confirmation", async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    await component.reload();
+
+    await component.toggleArchived(tags[0]);
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(tagsService.update).toHaveBeenCalledWith(1, 1, { archived: true });
+    expect(component.tags().find((t) => t.id === 1)?.archived).toBe(true);
+  });
+
+  it('toggleArchived() réactive un tag archivé après confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await component.reload();
+    component.tags.update((list) => list.map((t) => (t.id === 1 ? { ...t, archived: true } : t)));
+
+    await component.toggleArchived({ ...tags[0], archived: true });
+
+    expect(tagsService.update).toHaveBeenCalledWith(1, 1, { archived: false });
+    expect(component.tags().find((t) => t.id === 1)?.archived).toBe(false);
+  });
+
+  it("toggleArchived() ne réactive pas si l'utilisateur annule la confirmation", async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await component.reload();
+
+    await component.toggleArchived({ ...tags[0], archived: true });
+
+    expect(tagsService.update).not.toHaveBeenCalled();
+  });
+
+  it('sortedTags() place les tags archivés après les tags actifs', async () => {
+    tagsService.list.mockResolvedValue([
+      { ...tags[1], archived: true },
+      tags[0],
+    ]);
+    await component.reload();
+
+    expect(component.sortedTags().map((t) => t.id)).toEqual([1, 2]);
   });
 });
