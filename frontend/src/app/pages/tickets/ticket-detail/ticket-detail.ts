@@ -32,6 +32,8 @@ import {
   applyRichTextCommand,
   openRichTextLinkOnClick,
   linkifyPastedUrl,
+  insertLinkAtCursor,
+  insertNodeAtCursor,
   RichTextCommand,
 } from '../../../shared/rich-text';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
@@ -541,8 +543,7 @@ export class TicketDetail implements OnInit {
 
   async onDescriptionPaste(event: ClipboardEvent): Promise<void> {
     const onInsert = () => this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
-    if (await this.handleImagePaste(event, onInsert)) return;
-    this.handleLinkPaste(event, onInsert);
+    await this.handlePaste(event, onInsert);
   }
 
   // La description est en lecture seule par défaut (pour éviter toute modification
@@ -557,7 +558,12 @@ export class TicketDetail implements OnInit {
   }
 
   async saveDescription(): Promise<void> {
-    const saved = await this.patch({ description: stripCardImageSrc(this.descriptionDraftHtml()) || null });
+    // Lit le DOM réel de l'éditeur plutôt que de faire confiance au signal
+    // `descriptionDraftHtml` (qui n'est resynchronisé que par les events input/paste et
+    // peut donc être en retard d'une frappe) : c'est ce qui est visiblement affiché à
+    // l'écran au moment d'enregistrer qui doit être sauvegardé, point final.
+    const html = this.descriptionEditorRef?.nativeElement.innerHTML ?? this.descriptionDraftHtml();
+    const saved = await this.patch({ description: stripCardImageSrc(html) || null });
     if (!saved) return;
     const ticket = this.ticket();
     this.descriptionHtml.set(hydrateCardImages(ticket?.description ?? '', this.images()));
@@ -571,8 +577,13 @@ export class TicketDetail implements OnInit {
     this.descriptionDraftHtml.set(editor.innerHTML);
   }
 
+  // Utilisé par le template (désactivation du bouton "Envoyer") : se base sur le signal,
+  // c'est le seul endroit où on en a besoin pour réagir à chaque frappe sans relire le DOM.
   hasCommentContent(): boolean {
-    const html = this.newCommentDraftHtml();
+    return this.hasCommentContentIn(this.newCommentDraftHtml());
+  }
+
+  private hasCommentContentIn(html: string): boolean {
     if (/<img[\s>]/i.test(html)) return true;
     const container = document.createElement('div');
     container.innerHTML = html;
@@ -592,8 +603,7 @@ export class TicketDetail implements OnInit {
 
   async onCommentPaste(event: ClipboardEvent): Promise<void> {
     const onInsert = () => this.newCommentDraftHtml.set((event.target as HTMLElement).innerHTML);
-    if (await this.handleImagePaste(event, onInsert)) return;
-    this.handleLinkPaste(event, onInsert);
+    await this.handlePaste(event, onInsert);
   }
 
   async onCommentImageSelected(event: Event): Promise<void> {
@@ -603,7 +613,7 @@ export class TicketDetail implements OnInit {
     if (!file) return;
     try {
       const image = await this.cardImagesService.upload(this.kanbanId, this.ticketId, file);
-      this.commentEditorRef?.nativeElement.insertAdjacentHTML('beforeend', this.imageTag(image));
+      this.commentEditorRef?.nativeElement.appendChild(this.imageNode(image));
       this.newCommentDraftHtml.set(this.commentEditorRef?.nativeElement.innerHTML ?? '');
       this.images.set(await this.cardImagesService.list(this.kanbanId, this.ticketId));
     } catch {
@@ -612,9 +622,13 @@ export class TicketDetail implements OnInit {
   }
 
   async addComment(): Promise<void> {
-    if (!this.hasCommentContent()) return;
+    // Même principe que saveDescription() : on lit le DOM réel de l'éditeur plutôt que
+    // le signal `newCommentDraftHtml`, pour ne jamais dépendre de la fraîcheur du dernier
+    // event input/paste reçu.
+    const html = this.commentEditorRef?.nativeElement.innerHTML ?? this.newCommentDraftHtml();
+    if (!this.hasCommentContentIn(html)) return;
     try {
-      await this.commentsService.create(this.kanbanId, this.ticketId, this.newCommentDraftHtml());
+      await this.commentsService.create(this.kanbanId, this.ticketId, html);
       this.newCommentDraftHtml.set('');
       // La zone de commentaire est un contenteditable "non contrôlé" : son contenu (texte
       // et images insérées) vit hors du binding Angular, donc on le vide directement dans
@@ -677,29 +691,52 @@ export class TicketDetail implements OnInit {
     }
   }
 
-  private imageTag(image: CardImage): string {
-    return `<img src="${image.data_url}" data-card-image-id="${image.id}" alt="" class="max-w-full rounded">`;
+  private imageNode(image: CardImage): HTMLImageElement {
+    const img = document.createElement('img');
+    img.src = image.data_url;
+    img.alt = '';
+    img.className = 'max-w-full rounded';
+    img.dataset['cardImageId'] = String(image.id);
+    return img;
   }
 
-  // Renvoie true si le collage a été pris en charge (image trouvée), pour que l'appelant
-  // sache qu'il ne doit pas retenter d'autres traitements (ex. auto-détection de lien).
-  private async handleImagePaste(event: ClipboardEvent, onInsert: () => void): Promise<boolean> {
+  // Pure et synchrone (aucun `await`) : juste détecter une image dans le presse-papiers,
+  // sans l'uploader. Sert à décider — et appeler event.preventDefault() — de façon
+  // synchrone dans handlePaste(), avant toute opération asynchrone. Un handler
+  // d'événement `async` ne bloque pas le navigateur : dès le premier `await` (même sur
+  // une valeur déjà résolue), la main est rendue et le collage par défaut du navigateur
+  // s'exécute si preventDefault() n'a pas déjà été appelé — ce qui, avant ce correctif,
+  // dupliquait/écrasait le contenu existant lors du collage d'un lien dans une
+  // description non vide.
+  private extractPastedImageFile(event: ClipboardEvent): File | null {
     const items = event.clipboardData?.items;
-    if (!items) return false;
+    if (!items) return null;
     const imageItem = Array.from(items).find((item) => item.type.startsWith('image/'));
-    if (!imageItem) return false;
-    const file = imageItem.getAsFile();
-    if (!file) return false;
-    event.preventDefault();
+    return imageItem?.getAsFile() ?? null;
+  }
+
+  private async uploadAndInsertImage(file: File, editor: HTMLElement, onInsert: () => void): Promise<void> {
     try {
       const image = await this.cardImagesService.upload(this.kanbanId, this.ticketId, file);
-      document.execCommand('insertHTML', false, this.imageTag(image));
+      insertNodeAtCursor(editor, this.imageNode(image));
       onInsert();
       this.images.set(await this.cardImagesService.list(this.kanbanId, this.ticketId));
     } catch {
       this.error.set("Échec de l'ajout de l'image.");
     }
-    return true;
+  }
+
+  // Décide de façon synchrone (image collée ou non) et appelle event.preventDefault()
+  // avant toute opération asynchrone (cf commentaire d'extractPastedImageFile) ; seul
+  // l'upload proprement dit, une fois la décision prise, est asynchrone.
+  private async handlePaste(event: ClipboardEvent, onInsert: () => void): Promise<void> {
+    const imageFile = this.extractPastedImageFile(event);
+    if (imageFile) {
+      event.preventDefault();
+      await this.uploadAndInsertImage(imageFile, event.target as HTMLElement, onInsert);
+      return;
+    }
+    this.handleLinkPaste(event, onInsert);
   }
 
   // Si le texte collé est entièrement une URL, on l'insère directement comme lien cliquable
@@ -708,10 +745,10 @@ export class TicketDetail implements OnInit {
   private handleLinkPaste(event: ClipboardEvent, onInsert: () => void): boolean {
     const text = event.clipboardData?.getData?.('text/plain');
     if (!text) return false;
-    const linkHtml = linkifyPastedUrl(text);
-    if (!linkHtml) return false;
+    const link = linkifyPastedUrl(text);
+    if (!link) return false;
     event.preventDefault();
-    document.execCommand('insertHTML', false, linkHtml);
+    insertLinkAtCursor(event.target as HTMLElement, link);
     onInsert();
     return true;
   }
