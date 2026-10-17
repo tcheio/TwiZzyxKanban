@@ -2,8 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EpicsList } from './epics-list';
-import { EpicsService } from '../../../services/epics.service';
-import { CardsService } from '../../../services/cards.service';
+import { EpicsService } from '../../../services/board/epics.service';
+import { CardsService } from '../../../services/tickets/cards.service';
 import { Card } from '../../../models/card.model';
 
 describe('EpicsList', () => {
@@ -18,8 +18,8 @@ describe('EpicsList', () => {
   let navigate: ReturnType<typeof vi.fn>;
 
   const epics = [
-    { id: 1, name: 'TwiZzyx', color: 'red', emote_url: null },
-    { id: 2, name: 'Twitch', color: 'violet', emote_url: null },
+    { id: 1, name: 'TwiZzyx', color: 'red', emote_url: null, visible_in_filter: true },
+    { id: 2, name: 'Twitch', color: 'violet', emote_url: null, visible_in_filter: true },
   ];
   const cards: Card[] = [
     {

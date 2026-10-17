@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { KanbansService } from '../../../services/kanbans.service';
+import { KanbansService } from '../../../services/board/kanbans.service';
 import { AuthService } from '../../../core/auth.service';
 import { Kanban, KanbanTemplate } from '../../../models/kanban.model';
 

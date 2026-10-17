@@ -83,4 +83,12 @@ describe('CardsService', () => {
     req.flush({});
     await promise;
   });
+
+  it("move() inclut state quand fourni (y compris null pour l'effacer)", async () => {
+    const promise = service.move(kanbanId, 7, 2, 3, 'b');
+    const req = httpMock.expectOne('/api/kanbans/1/cards/7/move');
+    expect(req.request.body).toEqual({ columnId: 2, position: 3, state: 'b' });
+    req.flush({});
+    await promise;
+  });
 });

@@ -1,8 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { CardImage } from '../models/card-image.model';
-import { resizeImageToDataUrl } from '../shared/image-to-data-url';
+import { CardImage } from '../../models/card-image.model';
+import { resizeImageToDataUrl } from '../../shared/image-to-data-url';
 
 @Injectable({ providedIn: 'root' })
 export class CardImagesService {

@@ -9,11 +9,12 @@ import {
   moveItemInArray,
   transferArrayItem,
 } from '@angular/cdk/drag-drop';
-import { ColumnsService } from '../../services/columns.service';
-import { CardsService } from '../../services/cards.service';
-import { UsersService } from '../../services/users.service';
-import { TagsService } from '../../services/tags.service';
-import { EpicsService } from '../../services/epics.service';
+import { ColumnsService } from '../../services/board/columns.service';
+import { CardsService } from '../../services/tickets/cards.service';
+import { UsersService } from '../../services/account/users.service';
+import { TagsService } from '../../services/board/tags.service';
+import { EpicsService } from '../../services/board/epics.service';
+import { AuthService } from '../../core/auth.service';
 import { Column } from '../../models/column.model';
 import { Kanban } from '../../models/kanban.model';
 import { Card, Priority } from '../../models/card.model';
@@ -22,11 +23,22 @@ import { Tag } from '../../models/tag.model';
 import { Epic } from '../../models/epic.model';
 import { epicBadgeClass } from '../../shared/epic-colors';
 import { tagBadgeClass } from '../../shared/tag-colors';
+import { priorityLabel, priorityDotClass } from '../../shared/priority';
 import { startAutoRefresh } from '../../shared/auto-refresh';
+
+// Une colonne non divisée produit 1 lane (state: null) ; une colonne divisée en 2
+// états (column.state_a_name/state_b_name) produit 2 lanes ('a' puis 'b'). Chaque lane
+// se comporte comme une mini-colonne autonome pour le drag & drop (tri, filtres,
+// position) — c'est ce qui permet de réutiliser tel quel tout le mécanisme existant.
+interface Lane {
+  column: Column;
+  state: 'a' | 'b' | null;
+  cards: Card[];
+}
 
 interface ColumnGroup {
   column: Column;
-  cards: Card[];
+  lanes: Lane[];
 }
 
 const PUBLISHED_COLUMN_NAME = '✅Publié';
@@ -35,27 +47,23 @@ const DUE_SOON_DAYS = 7;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const TOAST_DURATION_MS = 6000;
 
-const PRIORITY_CLASSES: Record<Priority, string> = {
-  low: 'bg-text-faint',
-  medium: 'bg-amber-500',
-  high: 'bg-danger',
-};
-
 // Plus la valeur est basse, plus la carte remonte quand le tri "Priorité" est actif.
 const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
 
-export type SortKey = 'name' | 'priority' | 'due_date' | 'tag' | 'epic';
+export type SortKey = 'name' | 'priority' | 'due_date';
 
 // Ordre canonique appliqué quand plusieurs critères de tri sont actifs en même temps :
 // chaque critère actif départage les égalités du précédent, dans cet ordre.
-const SORT_KEY_ORDER: SortKey[] = ['name', 'priority', 'due_date', 'tag', 'epic'];
+const SORT_KEY_ORDER: SortKey[] = ['name', 'priority', 'due_date'];
 const SORT_KEY_LABELS: Record<SortKey, string> = {
   name: 'Nom',
   priority: 'Priorité',
   due_date: 'Échéance',
-  tag: 'Tag',
-  epic: 'Épic',
 };
+
+// Pseudo-id (jamais un vrai tag_id) représentant le filtre "Aucun tag" : les tickets qui
+// n'ont ni tag principal ni tag additionnel. Il n'existe pas d'équivalent pour les EPICs.
+export const NO_TAG_FILTER_ID = -1;
 
 @Component({
   selector: 'app-board',
@@ -82,7 +90,10 @@ export class Board implements OnInit {
   private dragInProgress = false;
 
   readonly selectedAssigneeId = signal<number | null>(null);
+  readonly selectedTagFilterId = signal<number | null>(null);
+  readonly selectedEpicFilterId = signal<number | null>(null);
   readonly searchQuery = signal('');
+  readonly noTagFilterId = NO_TAG_FILTER_ID;
 
   // Tri(s) actif(s) en plus de l'ordre personnalisé (glisser-déposer) : aucun par défaut,
   // et jamais persisté (réinitialisé à chaque rechargement de page).
@@ -95,7 +106,8 @@ export class Board implements OnInit {
     private readonly cardsService: CardsService,
     private readonly usersService: UsersService,
     private readonly tagsService: TagsService,
-    private readonly epicsService: EpicsService
+    private readonly epicsService: EpicsService,
+    private readonly authService: AuthService
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -123,16 +135,7 @@ export class Board implements OnInit {
       this.users.set(users);
       this.tags.set(tags);
       this.epics.set(epics);
-      this.groups.set(
-        columns.map((column) => ({
-          column,
-          cards: cards
-            .filter((c) => c.column_id === column.id)
-            .filter((c) => !c.cancelled_at)
-            .filter((c) => this.isVisibleInColumn(c, column))
-            .sort((a, b) => a.position - b.position),
-        }))
-      );
+      this.groups.set(columns.map((column) => this.buildColumnGroup(column, cards)));
     } catch {
       this.error.set('Impossible de charger le tableau.');
     } finally {
@@ -169,13 +172,21 @@ export class Board implements OnInit {
     return ids.map((id) => this.userName(id)).join(', ');
   }
 
-  visibleCards(group: ColumnGroup): Card[] {
+  visibleCards(lane: Lane): Card[] {
     const assigneeId = this.selectedAssigneeId();
+    const tagFilterId = this.selectedTagFilterId();
+    const epicFilterId = this.selectedEpicFilterId();
     const query = this.searchQuery().trim().toLowerCase();
-    const filtered = group.cards.filter((c) => {
+    const filtered = lane.cards.filter((c) => {
       if (assigneeId !== null && c.assigned_user_id !== assigneeId && !(c.assignee_ids ?? []).includes(assigneeId)) {
         return false;
       }
+      if (tagFilterId === NO_TAG_FILTER_ID) {
+        if (c.tag_id || (c.tag_ids ?? []).length) return false;
+      } else if (tagFilterId !== null && c.tag_id !== tagFilterId && !(c.tag_ids ?? []).includes(tagFilterId)) {
+        return false;
+      }
+      if (epicFilterId !== null && c.epic_id !== epicFilterId) return false;
       if (query && !c.title.toLowerCase().includes(query)) return false;
       return true;
     });
@@ -185,9 +196,31 @@ export class Board implements OnInit {
     return [...filtered].sort((a, b) => this.compareCards(a, b, activeKeys));
   }
 
+  hasActiveFilters(): boolean {
+    return (
+      this.selectedAssigneeId() !== null || this.selectedTagFilterId() !== null || this.selectedEpicFilterId() !== null
+    );
+  }
+
   toggleAssigneeFilter(userId: number | null): void {
     if (userId === null) return;
     this.selectedAssigneeId.set(this.selectedAssigneeId() === userId ? null : userId);
+  }
+
+  visibleTagFilters(): Tag[] {
+    return this.tags().filter((t) => t.visible_in_filter);
+  }
+
+  visibleEpicFilters(): Epic[] {
+    return this.epics().filter((e) => e.visible_in_filter);
+  }
+
+  toggleTagFilter(tagId: number): void {
+    this.selectedTagFilterId.set(this.selectedTagFilterId() === tagId ? null : tagId);
+  }
+
+  toggleEpicFilter(epicId: number): void {
+    this.selectedEpicFilterId.set(this.selectedEpicFilterId() === epicId ? null : epicId);
   }
 
   clearAssigneeFilter(): void {
@@ -226,14 +259,6 @@ export class Board implements OnInit {
           b.due_date,
           (x, y) => new Date(x).getTime() - new Date(y).getTime()
         );
-      case 'tag':
-        return this.compareNullableThenValue(this.tagName(a.tag_id), this.tagName(b.tag_id), (x, y) =>
-          x.localeCompare(y, 'fr', { sensitivity: 'base' })
-        );
-      case 'epic':
-        return this.compareNullableThenValue(this.epicName(a.epic_id), this.epicName(b.epic_id), (x, y) =>
-          x.localeCompare(y, 'fr', { sensitivity: 'base' })
-        );
     }
   }
 
@@ -251,9 +276,8 @@ export class Board implements OnInit {
     return this.tags().find((t) => t.id === tagId)?.name ?? null;
   }
 
-  priorityClass(priority: Priority): string {
-    return PRIORITY_CLASSES[priority];
-  }
+  readonly priorityClass = priorityDotClass;
+  readonly priorityLabel = priorityLabel;
 
   tagClass(tagId: number | null): string {
     if (!tagId) return '';
@@ -293,6 +317,41 @@ export class Board implements OnInit {
     return diffDays <= DUE_SOON_DAYS;
   }
 
+  private buildColumnGroup(column: Column, allCards: Card[]): ColumnGroup {
+    const columnCards = allCards
+      .filter((c) => c.column_id === column.id)
+      .filter((c) => !c.cancelled_at)
+      .filter((c) => this.isVisibleInColumn(c, column))
+      .sort((a, b) => a.position - b.position);
+
+    if (!column.state_a_name) {
+      return { column, lanes: [{ column, state: null, cards: columnCards }] };
+    }
+    // Cas limite : une carte dont l'état ne correspond à aucun état connu (ex: colonne
+    // divisée après coup, cf columns.controller.js::update) retombe dans la 1ère lane.
+    return {
+      column,
+      lanes: [
+        { column, state: 'a', cards: columnCards.filter((c) => c.state !== 'b') },
+        { column, state: 'b', cards: columnCards.filter((c) => c.state === 'b') },
+      ],
+    };
+  }
+
+  stateLabel(column: Column, state: 'a' | 'b' | null): string | null {
+    if (state === 'a') return column.state_a_name ?? null;
+    if (state === 'b') return column.state_b_name ?? null;
+    return null;
+  }
+
+  laneContainerId(column: Column, state: 'a' | 'b' | null): string {
+    return state ? `col-${column.id}-${state}` : `col-${column.id}`;
+  }
+
+  totalVisibleCount(group: ColumnGroup): number {
+    return group.lanes.reduce((sum, lane) => sum + this.visibleCards(lane).length, 0);
+  }
+
   private isVisibleInColumn(card: Card, column: Column): boolean {
     if (column.name !== PUBLISHED_COLUMN_NAME || !card.published_at) return true;
     const ageDays = (Date.now() - new Date(card.published_at).getTime()) / MS_PER_DAY;
@@ -303,9 +362,21 @@ export class Board implements OnInit {
     return this.groups().find((g) => g.column.id === card.column_id)?.column.name === PUBLISHED_COLUMN_NAME;
   }
 
+  // Seuls les modérateurs du kanban et les responsables (principal ou additionnel) du
+  // ticket peuvent changer son statut (déplacement de colonne) — reflète la règle
+  // appliquée côté backend (cards.controller.js::move/cancel/restore).
+  canChangeStatus(card: Card): boolean {
+    if (this.kanban.is_moderator) return true;
+    const userId = this.authService.currentUser()?.id;
+    if (!userId) return false;
+    return card.assigned_user_id === userId || (card.assignee_ids ?? []).includes(userId);
+  }
+
   canEnter = (drag: CdkDrag<Card>, drop: CdkDropList): boolean => {
     const card = drag.data;
-    const allowed = !this.isPublished(card) || drop.id === 'col-' + card.column_id;
+    // Comparaison au niveau colonne (pas lane) : un ticket publié peut toujours se
+    // réordonner entre les 2 états d'une même colonne, mais pas en sortir.
+    const allowed = !this.isPublished(card) || this.columnIdForContainerId(drop.id) === card.column_id;
     if (!allowed) {
       this.blockedDragAttempt = true;
     }
@@ -333,8 +404,16 @@ export class Board implements OnInit {
     this.toastTimeout = setTimeout(() => this.toastMessage.set(null), TOAST_DURATION_MS);
   }
 
-  private groupForContainerId(containerId: string): ColumnGroup | undefined {
-    return this.groups().find((g) => 'col-' + g.column.id === containerId);
+  private columnIdForContainerId(containerId: string): number {
+    return Number(containerId.replace(/^col-/, '').replace(/-[ab]$/, ''));
+  }
+
+  private laneForContainerId(containerId: string): Lane | undefined {
+    for (const group of this.groups()) {
+      const lane = group.lanes.find((l) => this.laneContainerId(l.column, l.state) === containerId);
+      if (lane) return lane;
+    }
+    return undefined;
   }
 
   // Quand une recherche/un filtre destinataire est actif, l'index donné par CDK
@@ -370,30 +449,30 @@ export class Board implements OnInit {
       return;
     }
 
-    const previousGroup = this.groupForContainerId(event.previousContainer.id);
-    const targetGroup = this.groupForContainerId(event.container.id);
-    if (!previousGroup || !targetGroup) return;
+    const previousLane = this.laneForContainerId(event.previousContainer.id);
+    const targetLane = this.laneForContainerId(event.container.id);
+    if (!previousLane || !targetLane) return;
 
-    const realPreviousIndex = previousGroup.cards.findIndex((c) => c.id === card.id);
+    const realPreviousIndex = previousLane.cards.findIndex((c) => c.id === card.id);
     if (realPreviousIndex === -1) return;
 
-    const targetVisible = this.visibleCards(targetGroup);
+    const targetVisible = this.visibleCards(targetLane);
     const realCurrentIndex = this.resolveRealTargetIndex(
-      targetGroup.cards,
+      targetLane.cards,
       targetVisible,
       event.currentIndex,
       card.id
     );
 
-    if (previousGroup === targetGroup) {
-      moveItemInArray(previousGroup.cards, realPreviousIndex, realCurrentIndex);
+    if (previousLane === targetLane) {
+      moveItemInArray(previousLane.cards, realPreviousIndex, realCurrentIndex);
     } else {
-      transferArrayItem(previousGroup.cards, targetGroup.cards, realPreviousIndex, realCurrentIndex);
+      transferArrayItem(previousLane.cards, targetLane.cards, realPreviousIndex, realCurrentIndex);
     }
     this.groups.set([...this.groups()]);
 
     try {
-      await this.cardsService.move(this.kanbanId, card.id, targetGroup.column.id, realCurrentIndex);
+      await this.cardsService.move(this.kanbanId, card.id, targetLane.column.id, realCurrentIndex, targetLane.state);
     } catch {
       this.error.set('Le déplacement a échoué, rechargement du tableau...');
       await this.reload();

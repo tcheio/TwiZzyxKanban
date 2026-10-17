@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { Role, User, UserLite } from '../models/user.model';
+import { Role, User, UserLite } from '../../models/user.model';
 
 export interface UserInput {
   username: string;

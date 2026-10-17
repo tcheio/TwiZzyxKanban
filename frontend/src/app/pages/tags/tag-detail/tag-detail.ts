@@ -1,10 +1,10 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
-import { TagsService } from '../../../services/tags.service';
-import { CardsService } from '../../../services/cards.service';
-import { ColumnsService } from '../../../services/columns.service';
-import { UsersService } from '../../../services/users.service';
+import { TagsService } from '../../../services/board/tags.service';
+import { CardsService } from '../../../services/tickets/cards.service';
+import { ColumnsService } from '../../../services/board/columns.service';
+import { UsersService } from '../../../services/account/users.service';
 import { Tag } from '../../../models/tag.model';
 import { Card, Priority } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
@@ -14,19 +14,8 @@ import { ChartComponent } from '../../../shared/chart/chart';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { StatusChip } from '../../../shared/status-chip/status-chip';
 import { cancelledTitleClass } from '../../../shared/ticket-status';
+import { PRIORITY_LABELS, priorityLabel, priorityDotClass } from '../../../shared/priority';
 import { startAutoRefresh } from '../../../shared/auto-refresh';
-
-const PRIORITY_LABELS: Record<Priority, string> = {
-  low: 'Basse',
-  medium: 'Moyenne',
-  high: 'Haute',
-};
-
-const PRIORITY_DOT_CLASSES: Record<Priority, string> = {
-  low: 'bg-text-faint',
-  medium: 'bg-amber-500',
-  high: 'bg-danger',
-};
 
 @Component({
   selector: 'app-tag-detail',
@@ -145,9 +134,8 @@ export class TagDetail implements OnInit {
     return tagBadgeClass(this.tag()?.color);
   }
 
-  priorityDotClass(priority: Priority): string {
-    return PRIORITY_DOT_CLASSES[priority];
-  }
+  readonly priorityDotClass = priorityDotClass;
+  readonly priorityLabel = priorityLabel;
 
   openTicket(card: Card): void {
     this.router.navigate(['/kanbans', `${this.kanban.code}-${card.id}`]);

@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AdminUsers } from './admin-users';
-import { UsersService } from '../../services/users.service';
+import { UsersService } from '../../services/account/users.service';
 import { AuthService } from '../../core/auth.service';
 import { User } from '../../models/user.model';
 

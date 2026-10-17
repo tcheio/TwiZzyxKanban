@@ -2,16 +2,16 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TicketDetail } from './ticket-detail';
-import { CardsService } from '../../../services/cards.service';
-import { ColumnsService } from '../../../services/columns.service';
-import { UsersService } from '../../../services/users.service';
-import { CommentsService } from '../../../services/comments.service';
-import { CardLinksService } from '../../../services/card-links.service';
-import { CardImagesService } from '../../../services/card-images.service';
-import { CardAssigneesService } from '../../../services/card-assignees.service';
-import { CardTagsService } from '../../../services/card-tags.service';
-import { TagsService } from '../../../services/tags.service';
-import { EpicsService } from '../../../services/epics.service';
+import { CardsService } from '../../../services/tickets/cards.service';
+import { ColumnsService } from '../../../services/board/columns.service';
+import { UsersService } from '../../../services/account/users.service';
+import { CommentsService } from '../../../services/tickets/comments.service';
+import { CardLinksService } from '../../../services/tickets/card-links.service';
+import { CardImagesService } from '../../../services/tickets/card-images.service';
+import { CardAssigneesService } from '../../../services/tickets/card-assignees.service';
+import { CardTagsService } from '../../../services/tickets/card-tags.service';
+import { TagsService } from '../../../services/board/tags.service';
+import { EpicsService } from '../../../services/board/epics.service';
 import { AuthService } from '../../../core/auth.service';
 import { Card } from '../../../models/card.model';
 import { Comment } from '../../../models/comment.model';
@@ -322,6 +322,74 @@ describe('TicketDetail', () => {
     await component.reload();
 
     expect(component.isPublished()).toBe(true);
+  });
+
+  it('canChangeStatus() autorise le responsable principal (non modérateur)', async () => {
+    await component.reload();
+    expect(component.canChangeStatus()).toBe(true);
+  });
+
+  it('canChangeStatus() refuse un membre simple non assigné', async () => {
+    cardsService.get.mockResolvedValue({ ...ticket, assigned_user_id: 2 });
+    await component.reload();
+    expect(component.canChangeStatus()).toBe(false);
+  });
+
+  it('canChangeStatus() autorise un responsable additionnel', async () => {
+    cardsService.get.mockResolvedValue({ ...ticket, assigned_user_id: 2, assignee_ids: [1] });
+    await component.reload();
+    expect(component.canChangeStatus()).toBe(true);
+  });
+
+  it('canChangeStatus() autorise toujours un modérateur du kanban', async () => {
+    kanbanData.is_moderator = true;
+    cardsService.get.mockResolvedValue({ ...ticket, assigned_user_id: 2 });
+    await component.reload();
+    expect(component.canChangeStatus()).toBe(true);
+  });
+
+  it("currentColumnStates() vaut null si la colonne n'est pas divisée", async () => {
+    await component.reload();
+    expect(component.currentColumnStates()).toBeNull();
+  });
+
+  it('currentColumnStates() résout les noms des 2 états si la colonne est divisée', async () => {
+    columnsService.list.mockResolvedValue([
+      ...columns,
+      { id: 3, name: '🎬Montage', position: 2, state_a_name: 'Derush', state_b_name: 'Montage' },
+    ]);
+    cardsService.get.mockResolvedValue({ ...ticket, column_id: 3, state: 'a' });
+    await component.reload();
+
+    expect(component.currentColumnStates()).toEqual({ a: 'Derush', b: 'Montage' });
+  });
+
+  it("updateCardState() appelle move() avec le nouvel état et met à jour le ticket", async () => {
+    columnsService.list.mockResolvedValue([
+      ...columns,
+      { id: 3, name: '🎬Montage', position: 2, state_a_name: 'Derush', state_b_name: 'Montage' },
+    ]);
+    cardsService.get.mockResolvedValue({ ...ticket, column_id: 3, state: 'a' });
+    cardsService.move.mockResolvedValue({ ...ticket, column_id: 3, state: 'b' });
+    await component.reload();
+
+    await component.updateCardState('b');
+
+    expect(cardsService.move).toHaveBeenCalledWith(5, 5, 3, undefined, 'b');
+    expect(component.ticket()?.state).toBe('b');
+  });
+
+  it("updateCardState() ne fait rien si l'état cible est déjà l'état courant", async () => {
+    columnsService.list.mockResolvedValue([
+      ...columns,
+      { id: 3, name: '🎬Montage', position: 2, state_a_name: 'Derush', state_b_name: 'Montage' },
+    ]);
+    cardsService.get.mockResolvedValue({ ...ticket, column_id: 3, state: 'a' });
+    await component.reload();
+
+    await component.updateCardState('a');
+
+    expect(cardsService.move).not.toHaveBeenCalled();
   });
 
   it('updateStatus() ne fait rien si le ticket est déjà publié', async () => {

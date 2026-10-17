@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AdminAnnouncements } from './admin-announcements';
-import { AnnouncementsService } from '../../services/announcements.service';
-import { KanbansService } from '../../services/kanbans.service';
+import { AnnouncementsService } from '../../services/platform/announcements.service';
+import { KanbansService } from '../../services/board/kanbans.service';
 import { Announcement } from '../../models/announcement.model';
 
 describe('AdminAnnouncements', () => {

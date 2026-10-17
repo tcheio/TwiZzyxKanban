@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GlobalSearch } from './global-search';
-import { SearchService } from '../../services/search.service';
+import { SearchService } from '../../services/platform/search.service';
 import { TicketSearchResult } from '../../models/search-result.model';
 
 describe('GlobalSearch', () => {

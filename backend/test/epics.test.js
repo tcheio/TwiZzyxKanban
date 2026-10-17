@@ -44,6 +44,38 @@ test('POST crée une epic avec une couleur valide', async () => {
   assert.equal(res.body.color, 'sky');
 });
 
+test('POST sans visible_in_filter laisse l\'epic visible (true) par défaut', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/epics`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'AutreChaine' });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.visible_in_filter, true);
+});
+
+test('POST avec visible_in_filter: false crée une epic masquée du filtre', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/epics`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'AutreChaine', visible_in_filter: false });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.visible_in_filter, false);
+});
+
+test('PATCH change visible_in_filter', async () => {
+  const created = await request(app)
+    .post(`/api/kanbans/${kanbanId}/epics`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'AutreChaine' });
+
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/epics/${created.body.id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ visible_in_filter: false });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.visible_in_filter, false);
+});
+
 test('POST sans nom retourne 400', async () => {
   const res = await request(app).post(`/api/kanbans/${kanbanId}/epics`).set('Authorization', `Bearer ${adminToken}`).send({});
   assert.equal(res.status, 400);

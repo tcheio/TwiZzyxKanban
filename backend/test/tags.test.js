@@ -51,6 +51,48 @@ test('POST crée un tag avec une couleur valide', async () => {
   assert.equal(res.body.color, 'rose');
 });
 
+test('POST sans visible_in_filter le laisse visible (true) par défaut', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/tags`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'One Piece' });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.visible_in_filter, true);
+});
+
+test('POST avec visible_in_filter: false crée un tag masqué du filtre', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/tags`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'One Piece', visible_in_filter: false });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.visible_in_filter, false);
+});
+
+test('POST avec visible_in_filter non booléen retourne 400', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/tags`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'One Piece', visible_in_filter: 'yes' });
+  assert.equal(res.status, 400);
+});
+
+test('PATCH change visible_in_filter', async () => {
+  const list = await request(app).get(`/api/kanbans/${kanbanId}/tags`).set('Authorization', `Bearer ${adminToken}`);
+  const id = list.body[0].id;
+  assert.equal(list.body[0].visible_in_filter, true);
+
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/tags/${id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ visible_in_filter: false });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.visible_in_filter, false);
+
+  const refetched = await request(app).get(`/api/kanbans/${kanbanId}/tags`).set('Authorization', `Bearer ${adminToken}`);
+  assert.equal(refetched.body.find((t) => t.id === id).visible_in_filter, false);
+});
+
 test('POST sans couleur utilise gray par défaut', async () => {
   const res = await request(app)
     .post(`/api/kanbans/${kanbanId}/tags`)

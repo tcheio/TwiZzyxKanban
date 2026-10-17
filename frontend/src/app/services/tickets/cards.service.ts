@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { Card, CardInput } from '../models/card.model';
+import { Card, CardInput } from '../../models/card.model';
 
 @Injectable({ providedIn: 'root' })
 export class CardsService {
@@ -27,10 +27,19 @@ export class CardsService {
     return firstValueFrom(this.http.delete<void>(`/api/kanbans/${kanbanId}/cards/${id}`));
   }
 
-  move(kanbanId: number, id: number, columnId: number, position?: number): Promise<Card> {
-    const body: { columnId: number; position?: number } = { columnId };
+  move(
+    kanbanId: number,
+    id: number,
+    columnId: number,
+    position?: number,
+    state?: 'a' | 'b' | null
+  ): Promise<Card> {
+    const body: { columnId: number; position?: number; state?: 'a' | 'b' | null } = { columnId };
     if (position !== undefined) {
       body.position = position;
+    }
+    if (state !== undefined) {
+      body.state = state;
     }
     return firstValueFrom(this.http.patch<Card>(`/api/kanbans/${kanbanId}/cards/${id}/move`, body));
   }

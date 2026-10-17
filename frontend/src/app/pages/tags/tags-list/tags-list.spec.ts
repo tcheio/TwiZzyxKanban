@@ -2,8 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TagsList } from './tags-list';
-import { TagsService } from '../../../services/tags.service';
-import { CardsService } from '../../../services/cards.service';
+import { TagsService } from '../../../services/board/tags.service';
+import { CardsService } from '../../../services/tickets/cards.service';
 import { Card } from '../../../models/card.model';
 
 describe('TagsList', () => {
@@ -18,8 +18,8 @@ describe('TagsList', () => {
   let navigate: ReturnType<typeof vi.fn>;
 
   const tags = [
-    { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null },
-    { id: 2, name: 'Pokémon', color: 'red', emote_url: null },
+    { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true },
+    { id: 2, name: 'Pokémon', color: 'red', emote_url: null, visible_in_filter: true },
   ];
   const cards: Card[] = [
     {

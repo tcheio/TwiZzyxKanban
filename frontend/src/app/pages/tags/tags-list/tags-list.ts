@@ -1,8 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { TagsService } from '../../../services/tags.service';
-import { CardsService } from '../../../services/cards.service';
+import { TagsService } from '../../../services/board/tags.service';
+import { CardsService } from '../../../services/tickets/cards.service';
 import { Tag } from '../../../models/tag.model';
 import { Card } from '../../../models/card.model';
 import { Kanban } from '../../../models/kanban.model';

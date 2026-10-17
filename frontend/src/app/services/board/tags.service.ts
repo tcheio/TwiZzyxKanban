@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { Tag } from '../models/tag.model';
+import { Tag } from '../../models/tag.model';
 
 @Injectable({ providedIn: 'root' })
 export class TagsService {
@@ -17,7 +17,11 @@ export class TagsService {
     );
   }
 
-  update(kanbanId: number, id: number, changes: { name?: string; color?: string; emote_url?: string | null }): Promise<Tag> {
+  update(
+    kanbanId: number,
+    id: number,
+    changes: { name?: string; color?: string; emote_url?: string | null; visible_in_filter?: boolean }
+  ): Promise<Tag> {
     return firstValueFrom(this.http.patch<Tag>(`/api/kanbans/${kanbanId}/tags/${id}`, changes));
   }
 

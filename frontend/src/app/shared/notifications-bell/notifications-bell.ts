@@ -1,6 +1,6 @@
 import { Component, DestroyRef, ElementRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { NotificationsService } from '../../services/notifications.service';
+import { NotificationsService } from '../../services/platform/notifications.service';
 import { AppNotification } from '../../models/notification.model';
 import { startAutoRefresh } from '../auto-refresh';
 

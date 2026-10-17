@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { RedirectCommand, ResolveFn, Router } from '@angular/router';
-import { KanbansService } from '../services/kanbans.service';
+import { KanbansService } from '../services/board/kanbans.service';
 import { Kanban } from '../models/kanban.model';
 
 // Résout le segment :kanbanCode de l'URL (ex. "TK-TWIZZYX") vers le Kanban complet

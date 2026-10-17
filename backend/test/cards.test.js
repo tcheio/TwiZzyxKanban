@@ -598,7 +598,7 @@ test('PATCH /:id/cancel annule une carte', async () => {
   assert.ok(res.body.cancelled_at);
 });
 
-test('PATCH /:id/cancel par un membre simple fonctionne (statut ouvert à tous les membres)', async () => {
+test('PATCH /:id/cancel par un membre simple non assigné retourne 403', async () => {
   const { id, token } = await createUser('alice');
   await addMember(adminToken, kanbanId, id, false);
 
@@ -610,8 +610,102 @@ test('PATCH /:id/cancel par un membre simple fonctionne (statut ouvert à tous l
   const res = await request(app)
     .patch(`/api/kanbans/${kanbanId}/cards/${created.body.id}/cancel`)
     .set('Authorization', `Bearer ${token}`);
+  assert.equal(res.status, 403);
+});
+
+test('PATCH /:id/cancel par le responsable principal (non modérateur) fonctionne', async () => {
+  const { id, token } = await createUser('alice');
+  await addMember(adminToken, kanbanId, id, false);
+
+  const created = await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id, assigned_user_id: id });
+
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/cards/${created.body.id}/cancel`)
+    .set('Authorization', `Bearer ${token}`);
   assert.equal(res.status, 200);
   assert.ok(res.body.cancelled_at);
+});
+
+test('PATCH /:id/cancel par un responsable additionnel (non modérateur) fonctionne', async () => {
+  const { id, token } = await createUser('alice');
+  await addMember(adminToken, kanbanId, id, false);
+
+  const created = await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+  await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards/${created.body.id}/assignees`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ action: 'add', user_id: id, reason: 'Renfort' });
+
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/cards/${created.body.id}/cancel`)
+    .set('Authorization', `Bearer ${token}`);
+  assert.equal(res.status, 200);
+  assert.ok(res.body.cancelled_at);
+});
+
+test('PATCH /:id/move par un membre simple non assigné retourne 403', async () => {
+  const { id, token } = await createUser('alice');
+  await addMember(adminToken, kanbanId, id, false);
+
+  const created = await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/cards/${created.body.id}/move`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ columnId: columns[1].id });
+  assert.equal(res.status, 403);
+});
+
+test('PATCH /:id/move par le responsable assigné (non modérateur) notifie les modérateurs', async () => {
+  const { id, token } = await createUser('alice');
+  await addMember(adminToken, kanbanId, id, false);
+  const { id: modId, token: modToken } = await createUser('mod');
+  await addMember(adminToken, kanbanId, modId, true);
+
+  const created = await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id, assigned_user_id: id });
+
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/cards/${created.body.id}/move`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ columnId: columns[1].id });
+  assert.equal(res.status, 200);
+
+  const modNotifs = await request(app).get('/api/notifications').set('Authorization', `Bearer ${modToken}`);
+  assert.equal(modNotifs.body.length, 1);
+  assert.equal(modNotifs.body[0].type, 'status');
+  assert.match(modNotifs.body[0].message, /déplacé/);
+});
+
+test('PATCH /:id/move par un modérateur ne notifie pas les autres modérateurs', async () => {
+  const { id: modId, token: modToken } = await createUser('mod');
+  await addMember(adminToken, kanbanId, modId, true);
+  const { id: mod2Id, token: mod2Token } = await createUser('mod2');
+  await addMember(adminToken, kanbanId, mod2Id, true);
+
+  const created = await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'X', column_id: columns[0].id });
+
+  await request(app)
+    .patch(`/api/kanbans/${kanbanId}/cards/${created.body.id}/move`)
+    .set('Authorization', `Bearer ${modToken}`)
+    .send({ columnId: columns[1].id });
+
+  const mod2Notifs = await request(app).get('/api/notifications').set('Authorization', `Bearer ${mod2Token}`);
+  assert.equal(mod2Notifs.body.length, 0);
 });
 
 test('PATCH /:id/cancel sur une carte inexistante retourne 404', async () => {

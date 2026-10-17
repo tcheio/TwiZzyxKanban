@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { Epic } from '../models/epic.model';
+import { Epic } from '../../models/epic.model';
 
 @Injectable({ providedIn: 'root' })
 export class EpicsService {
@@ -17,7 +17,11 @@ export class EpicsService {
     );
   }
 
-  update(kanbanId: number, id: number, changes: { name?: string; color?: string; emote_url?: string | null }): Promise<Epic> {
+  update(
+    kanbanId: number,
+    id: number,
+    changes: { name?: string; color?: string; emote_url?: string | null; visible_in_filter?: boolean }
+  ): Promise<Epic> {
     return firstValueFrom(this.http.patch<Epic>(`/api/kanbans/${kanbanId}/epics/${id}`, changes));
   }
 

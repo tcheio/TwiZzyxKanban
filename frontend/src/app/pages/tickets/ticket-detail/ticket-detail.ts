@@ -2,16 +2,16 @@ import { Component, DestroyRef, ElementRef, HostListener, OnInit, ViewChild, inj
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
-import { CardsService } from '../../../services/cards.service';
-import { ColumnsService } from '../../../services/columns.service';
-import { UsersService } from '../../../services/users.service';
-import { CommentsService } from '../../../services/comments.service';
-import { CardLinksService } from '../../../services/card-links.service';
-import { CardImagesService } from '../../../services/card-images.service';
-import { CardAssigneesService } from '../../../services/card-assignees.service';
-import { CardTagsService } from '../../../services/card-tags.service';
-import { TagsService } from '../../../services/tags.service';
-import { EpicsService } from '../../../services/epics.service';
+import { CardsService } from '../../../services/tickets/cards.service';
+import { ColumnsService } from '../../../services/board/columns.service';
+import { UsersService } from '../../../services/account/users.service';
+import { CommentsService } from '../../../services/tickets/comments.service';
+import { CardLinksService } from '../../../services/tickets/card-links.service';
+import { CardImagesService } from '../../../services/tickets/card-images.service';
+import { CardAssigneesService } from '../../../services/tickets/card-assignees.service';
+import { CardTagsService } from '../../../services/tickets/card-tags.service';
+import { TagsService } from '../../../services/board/tags.service';
+import { EpicsService } from '../../../services/board/epics.service';
 import { AuthService } from '../../../core/auth.service';
 import { Card, CardInput, Priority } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
@@ -38,13 +38,14 @@ import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
 import { AssignmentDialog } from '../assignment-dialog/assignment-dialog';
 import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from '../../../shared/ticket-status';
+import { PRIORITY_LABELS, PRIORITY_DOT_CLASSES } from '../../../shared/priority';
 import { startAutoRefresh } from '../../../shared/auto-refresh';
 
-const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = [
-  { id: 'low', label: 'Basse', dotClass: 'bg-text-faint' },
-  { id: 'medium', label: 'Moyenne', dotClass: 'bg-amber-500' },
-  { id: 'high', label: 'Haute', dotClass: 'bg-danger' },
-];
+const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = (['low', 'medium', 'high'] as Priority[]).map((p) => ({
+  id: p,
+  label: PRIORITY_LABELS[p],
+  dotClass: PRIORITY_DOT_CLASSES[p],
+}));
 
 export interface LinkedTicket {
   linkId: number;
@@ -475,6 +476,17 @@ export class TicketDetail implements OnInit {
     return `${base} border-brand bg-brand-soft text-brand-soft-text`;
   }
 
+  // Seuls les modérateurs du kanban et les responsables (principal ou additionnel) du
+  // ticket peuvent changer son statut — reflète la règle appliquée côté backend
+  // (cards.controller.js::move/cancel/restore).
+  canChangeStatus(): boolean {
+    if (this.kanban.is_moderator) return true;
+    const ticket = this.ticket();
+    const userId = this.authService.currentUser()?.id;
+    if (!ticket || !userId) return false;
+    return ticket.assigned_user_id === userId || (ticket.assignee_ids ?? []).includes(userId);
+  }
+
   async updateStatus(value: number | null): Promise<void> {
     const ticket = this.ticket();
     if (!ticket || value === null || this.isPublished() || value === this.statusValue()) return;
@@ -493,6 +505,27 @@ export class TicketDetail implements OnInit {
       this.ticket.set(current);
     } catch {
       this.error.set('Échec du changement de statut.');
+    }
+  }
+
+  // Noms des 2 états de la colonne courante du ticket, si elle est divisée (cf
+  // columns.state_a_name/state_b_name) ; null sinon.
+  currentColumnStates(): { a: string; b: string } | null {
+    const ticket = this.ticket();
+    if (!ticket) return null;
+    const column = this.columns().find((c) => c.id === ticket.column_id);
+    if (!column?.state_a_name || !column.state_b_name) return null;
+    return { a: column.state_a_name, b: column.state_b_name };
+  }
+
+  async updateCardState(state: 'a' | 'b'): Promise<void> {
+    const ticket = this.ticket();
+    if (!ticket || this.isPublished() || this.isCancelled() || ticket.state === state) return;
+    try {
+      const current = await this.cardsService.move(this.kanbanId, ticket.id, ticket.column_id, undefined, state);
+      this.ticket.set(current);
+    } catch {
+      this.error.set("Échec du changement d'état.");
     }
   }
 

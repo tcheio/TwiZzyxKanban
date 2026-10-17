@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { Column } from '../models/column.model';
+import { Column } from '../../models/column.model';
 
 @Injectable({ providedIn: 'root' })
 export class ColumnsService {
@@ -17,6 +17,19 @@ export class ColumnsService {
 
   rename(kanbanId: number, id: number, name: string): Promise<Column> {
     return firstValueFrom(this.http.patch<Column>(`/api/kanbans/${kanbanId}/columns/${id}`, { name }));
+  }
+
+  setRestricted(kanbanId: number, id: number, restricted: boolean): Promise<Column> {
+    return firstValueFrom(this.http.patch<Column>(`/api/kanbans/${kanbanId}/columns/${id}`, { restricted }));
+  }
+
+  setStates(kanbanId: number, id: number, stateAName: string | null, stateBName: string | null): Promise<Column> {
+    return firstValueFrom(
+      this.http.patch<Column>(`/api/kanbans/${kanbanId}/columns/${id}`, {
+        state_a_name: stateAName,
+        state_b_name: stateBName,
+      })
+    );
   }
 
   remove(kanbanId: number, id: number): Promise<void> {

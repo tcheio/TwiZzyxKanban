@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { TicketSearchResult } from '../models/search-result.model';
+import { TicketSearchResult } from '../../models/search-result.model';
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {

@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AnnouncementsBanner } from './announcements-banner';
-import { AnnouncementsService } from '../../services/announcements.service';
+import { AnnouncementsService } from '../../services/platform/announcements.service';
 import { Announcement } from '../../models/announcement.model';
 
 function makeAnnouncement(overrides: Partial<Announcement>): Announcement {

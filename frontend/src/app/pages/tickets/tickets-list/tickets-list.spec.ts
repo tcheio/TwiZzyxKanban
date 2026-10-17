@@ -2,11 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TicketsList } from './tickets-list';
-import { ColumnsService } from '../../../services/columns.service';
-import { CardsService } from '../../../services/cards.service';
-import { UsersService } from '../../../services/users.service';
-import { TagsService } from '../../../services/tags.service';
-import { EpicsService } from '../../../services/epics.service';
+import { ColumnsService } from '../../../services/board/columns.service';
+import { CardsService } from '../../../services/tickets/cards.service';
+import { UsersService } from '../../../services/account/users.service';
+import { TagsService } from '../../../services/board/tags.service';
+import { EpicsService } from '../../../services/board/epics.service';
 import { Card } from '../../../models/card.model';
 
 describe('TicketsList', () => {

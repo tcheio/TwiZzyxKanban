@@ -1,11 +1,11 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ColumnsService } from '../../../services/columns.service';
-import { CardsService } from '../../../services/cards.service';
-import { UsersService } from '../../../services/users.service';
-import { TagsService } from '../../../services/tags.service';
-import { EpicsService } from '../../../services/epics.service';
+import { ColumnsService } from '../../../services/board/columns.service';
+import { CardsService } from '../../../services/tickets/cards.service';
+import { UsersService } from '../../../services/account/users.service';
+import { TagsService } from '../../../services/board/tags.service';
+import { EpicsService } from '../../../services/board/epics.service';
 import { Card, CardInput } from '../../../models/card.model';
 import { Column } from '../../../models/column.model';
 import { Kanban } from '../../../models/kanban.model';
@@ -15,16 +15,11 @@ import { Epic } from '../../../models/epic.model';
 import { NewTicketDialog } from '../new-ticket-dialog/new-ticket-dialog';
 import { epicBadgeClass } from '../../../shared/epic-colors';
 import { tagBadgeClass } from '../../../shared/tag-colors';
+import { priorityLabel, priorityDotClass } from '../../../shared/priority';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
 import { StatusChip } from '../../../shared/status-chip/status-chip';
 import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from '../../../shared/ticket-status';
 import { startAutoRefresh } from '../../../shared/auto-refresh';
-
-const PRIORITY_DOT_CLASSES: Record<string, string> = {
-  low: 'bg-text-faint',
-  medium: 'bg-amber-500',
-  high: 'bg-danger',
-};
 
 @Component({
   selector: 'app-tickets-list',
@@ -176,9 +171,8 @@ export class TicketsList implements OnInit {
     return this.epics().find((e) => e.id === epicId)?.emote_url ?? null;
   }
 
-  priorityDotClass(priority: string): string {
-    return PRIORITY_DOT_CLASSES[priority] ?? PRIORITY_DOT_CLASSES['low'];
-  }
+  readonly priorityDotClass = priorityDotClass;
+  readonly priorityLabel = priorityLabel;
 
   tagFilterOptions(): SearchSelectOption<number>[] {
     return this.tags().map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.color), iconUrl: t.emote_url }));

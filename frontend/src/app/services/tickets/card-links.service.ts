@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { CardLink, CardLinkType } from '../models/card-link.model';
+import { CardLink, CardLinkType } from '../../models/card-link.model';
 
 @Injectable({ providedIn: 'root' })
 export class CardLinksService {

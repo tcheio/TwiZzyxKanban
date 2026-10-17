@@ -1,8 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { EpicsService } from '../../../services/epics.service';
-import { CardsService } from '../../../services/cards.service';
+import { EpicsService } from '../../../services/board/epics.service';
+import { CardsService } from '../../../services/tickets/cards.service';
 import { Epic } from '../../../models/epic.model';
 import { Card } from '../../../models/card.model';
 import { Kanban } from '../../../models/kanban.model';

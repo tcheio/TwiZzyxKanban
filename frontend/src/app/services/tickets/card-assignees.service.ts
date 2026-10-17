@@ -1,9 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { Card } from '../models/card.model';
-import { AssignmentInput, CardAssignee } from '../models/card-assignee.model';
-import { CardAssignmentHistoryEntry } from '../models/card-assignment-history.model';
+import { Card } from '../../models/card.model';
+import { AssignmentInput, CardAssignee } from '../../models/card-assignee.model';
+import { CardAssignmentHistoryEntry } from '../../models/card-assignment-history.model';
 
 @Injectable({ providedIn: 'root' })
 export class CardAssigneesService {
