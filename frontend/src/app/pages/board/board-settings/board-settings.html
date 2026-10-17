@@ -68,29 +68,19 @@
             </button>
           </div>
           <div class="flex items-center gap-2 px-4 pb-3">
-            <span class="shrink-0 text-[11px] text-text-faint">Diviser en 2 états :</span>
-            <label for="state-a-{{ column.id }}" class="sr-only">Nom de l'état A</label>
-            <input
-              id="state-a-{{ column.id }}"
-              #stateAInput
-              type="text"
-              placeholder="État A (ex: Derush)"
+            <span class="shrink-0 text-[11px] text-text-faint">Imbriquer avec :</span>
+            <label for="group-with-{{ column.id }}" class="sr-only">Colonne avec laquelle imbriquer celle-ci</label>
+            <select
+              id="group-with-{{ column.id }}"
               class="min-w-0 flex-1 rounded-md border border-border-strong px-2 py-1 text-xs text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-              [value]="column.state_a_name ?? ''"
               [disabled]="saving()"
-              (change)="updateColumnStates(column, stateAInput.value, stateBInput.value)"
-            />
-            <label for="state-b-{{ column.id }}" class="sr-only">Nom de l'état B</label>
-            <input
-              id="state-b-{{ column.id }}"
-              #stateBInput
-              type="text"
-              placeholder="État B (ex: Montage)"
-              class="min-w-0 flex-1 rounded-md border border-border-strong px-2 py-1 text-xs text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-              [value]="column.state_b_name ?? ''"
-              [disabled]="saving()"
-              (change)="updateColumnStates(column, stateAInput.value, stateBInput.value)"
-            />
+              (change)="updateColumnGroup(column, $any($event.target).value ? +$any($event.target).value : null)"
+            >
+              <option value="" [selected]="!groupedWith(column)">— Aucune —</option>
+              @for (other of groupableColumns(column); track other.id) {
+                <option [value]="other.id" [selected]="groupedWith(column)?.id === other.id">{{ other.name }}</option>
+              }
+            </select>
           </div>
         </div>
       }

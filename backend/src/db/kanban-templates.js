@@ -18,14 +18,16 @@ const KANBAN_TEMPLATES = {
     ],
     epics: [],
   },
-  // Identique à 'video', sauf la colonne Montage qui est divisée en 2 états affichés
-  // comme 2 sous-listes (dérushage avant montage proprement dit).
+  // Identique à 'video', sauf qu'une colonne "🗃️Derush" (dérushage avant montage
+  // proprement dit) est ajoutée juste avant "🎬Montage" et affichée imbriquée avec elle
+  // (même group_key) — ce sont 2 vraies colonnes indépendantes, pas un simple sous-état.
   video_derush: {
     columns: [
       { name: '💡Idées', restricted: true },
       { name: '📝Préparation/Écriture' },
       { name: '🎥Tournage' },
-      { name: '🎬Montage', states: { a: 'Derush', b: 'Montage' } },
+      { name: '🗃️Derush', group: 'derush-montage' },
+      { name: '🎬Montage', group: 'derush-montage' },
       { name: '🖼️Miniature' },
       { name: '✅Publié' },
     ],

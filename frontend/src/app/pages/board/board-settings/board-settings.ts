@@ -93,25 +93,47 @@ export class BoardSettings implements OnInit {
     }
   }
 
-  // Les 2 noms d'état d'une colonne divisée sont renseignés ou absents ensemble (vide
-  // des deux côtés = colonne non divisée) — même règle que côté backend
-  // (columns.controller.js::validateStateNames).
-  async updateColumnStates(column: Column, stateAName: string, stateBName: string): Promise<void> {
-    const trimmedA = stateAName.trim();
-    const trimmedB = stateBName.trim();
-    if (!!trimmedA !== !!trimmedB) {
-      this.error.set("État A et état B doivent être renseignés ou absents ensemble.");
-      return;
-    }
-    if (trimmedA === (column.state_a_name ?? '') && trimmedB === (column.state_b_name ?? '')) return;
+  // La colonne avec laquelle `column` est actuellement imbriquée (au plus une, cf le
+  // champ `group_key` partagé) — null si `column` n'est imbriquée avec aucune autre.
+  groupedWith(column: Column): Column | null {
+    if (!column.group_key) return null;
+    return this.columns().find((c) => c.id !== column.id && c.group_key === column.group_key) ?? null;
+  }
 
+  // Les colonnes que `column` peut rejoindre (toutes les autres colonnes du kanban).
+  groupableColumns(column: Column): Column[] {
+    return this.columns().filter((c) => c.id !== column.id);
+  }
+
+  // `targetId: null` retire `column` de son groupe (l'autre colonne, si elle existe
+  // encore, reste groupée seule désormais — elle redevient visuellement une colonne
+  // normale côté tableau). Sinon, imbrique `column` avec la colonne cible : réutilise la
+  // group_key déjà présente sur l'une des deux si elle existe, sinon en génère une.
+  async updateColumnGroup(column: Column, targetId: number | null): Promise<void> {
     this.saving.set(true);
     this.error.set(null);
     try {
-      const updated = await this.columnsService.setStates(this.kanbanId, column.id, trimmedA || null, trimmedB || null);
-      this.columns.update((list) => list.map((c) => (c.id === column.id ? updated : c)));
+      if (targetId === null) {
+        const updated = await this.columnsService.setGroupKey(this.kanbanId, column.id, null);
+        this.columns.update((list) => list.map((c) => (c.id === column.id ? updated : c)));
+        return;
+      }
+      const target = this.columns().find((c) => c.id === targetId);
+      if (!target) return;
+      const groupKey = column.group_key ?? target.group_key ?? `group-${column.id}-${target.id}`;
+      const [updatedColumn, updatedTarget] = await Promise.all([
+        this.columnsService.setGroupKey(this.kanbanId, column.id, groupKey),
+        this.columnsService.setGroupKey(this.kanbanId, target.id, groupKey),
+      ]);
+      this.columns.update((list) =>
+        list.map((c) => {
+          if (c.id === updatedColumn.id) return updatedColumn;
+          if (c.id === updatedTarget.id) return updatedTarget;
+          return c;
+        })
+      );
     } catch {
-      this.error.set('Échec de la mise à jour des états de la colonne.');
+      this.error.set('Échec du regroupement des colonnes.');
     } finally {
       this.saving.set(false);
     }

@@ -53,6 +53,15 @@ describe('ColumnsService', () => {
     await promise;
   });
 
+  it('setGroupKey() effectue un PATCH avec group_key (y compris null pour dégrouper)', async () => {
+    const promise = service.setGroupKey(kanbanId, 3, 'group-3-4');
+    const req = httpMock.expectOne('/api/kanbans/1/columns/3');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ group_key: 'group-3-4' });
+    req.flush({ id: 3, name: 'Derush', position: 1, group_key: 'group-3-4' });
+    await promise;
+  });
+
   it('reorder() effectue un PATCH /api/kanbans/:kanbanId/columns/reorder avec orderedIds', async () => {
     const promise = service.reorder(kanbanId, [3, 1, 2]);
     const req = httpMock.expectOne('/api/kanbans/1/columns/reorder');

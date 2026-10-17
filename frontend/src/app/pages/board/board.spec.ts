@@ -125,7 +125,7 @@ describe('Board', () => {
     component = TestBed.createComponent(Board).componentInstance;
   });
 
-  it('reload() regroupe les cartes par colonne, triées par position (1 lane par colonne non divisée)', async () => {
+  it('reload() regroupe les cartes par colonne, triées par position (1 lane par colonne non imbriquée)', async () => {
     await component.reload();
 
     const groups = component.groups();
@@ -137,23 +137,36 @@ describe('Board', () => {
     expect(component.error()).toBeNull();
   });
 
-  it("reload() divise une colonne en 2 lanes quand elle a des états, réparties par card.state", async () => {
-    const splitColumns: Column[] = [{ id: 1, name: 'Montage', position: 0, state_a_name: 'Derush', state_b_name: 'Montage' }];
-    const splitCards: Card[] = [
-      { ...baseCards[0], id: 30, title: 'D1', column_id: 1, state: 'a', position: 0 },
-      { ...baseCards[0], id: 31, title: 'M1', column_id: 1, state: 'b', position: 0 },
+  it('reload() regroupe 2 colonnes partageant la même group_key dans un seul ColumnGroup (lanes triées par position)', async () => {
+    const groupedColumns: Column[] = [
+      { id: 1, name: '🗃️Derush', position: 0, group_key: 'g1' },
+      { id: 2, name: '🎬Montage', position: 1, group_key: 'g1' },
     ];
-    columnsService.list.mockResolvedValue(splitColumns);
-    cardsService.list.mockResolvedValue(splitCards);
+    const groupedCards: Card[] = [
+      { ...baseCards[0], id: 30, title: 'D1', column_id: 1, position: 0 },
+      { ...baseCards[0], id: 31, title: 'M1', column_id: 2, position: 0 },
+    ];
+    columnsService.list.mockResolvedValue(groupedColumns);
+    cardsService.list.mockResolvedValue(groupedCards);
 
     await component.reload();
 
     const [group] = component.groups();
     expect(group.lanes.length).toBe(2);
-    expect(group.lanes[0].state).toBe('a');
+    expect(group.lanes[0].column.name).toBe('🗃️Derush');
     expect(group.lanes[0].cards.map((c) => c.title)).toEqual(['D1']);
-    expect(group.lanes[1].state).toBe('b');
+    expect(group.lanes[1].column.name).toBe('🎬Montage');
     expect(group.lanes[1].cards.map((c) => c.title)).toEqual(['M1']);
+  });
+
+  it("une colonne dont la group_key ne correspond à aucune autre colonne reste seule dans son groupe", async () => {
+    const soloColumns: Column[] = [{ id: 1, name: 'Solo', position: 0, group_key: 'orphelin' }];
+    columnsService.list.mockResolvedValue(soloColumns);
+    cardsService.list.mockResolvedValue([]);
+
+    await component.reload();
+
+    expect(component.groups()[0].lanes.length).toBe(1);
   });
 
   it('userName() retourne le username ou un tiret', async () => {
@@ -224,7 +237,7 @@ describe('Board', () => {
 
     await component.drop(event);
 
-    expect(cardsService.move).toHaveBeenCalledWith(1, 10, 1, 1, null);
+    expect(cardsService.move).toHaveBeenCalledWith(1, 10, 1, 1);
   });
 
   it("drop() déplace vers une autre colonne et appelle move() avec le columnId cible", async () => {
@@ -240,7 +253,7 @@ describe('Board', () => {
 
     await component.drop(event);
 
-    expect(cardsService.move).toHaveBeenCalledWith(1, 10, 2, 1, null);
+    expect(cardsService.move).toHaveBeenCalledWith(1, 10, 2, 1);
   });
 
   it('drop() déplace la bonne carte quand une recherche masque des cartes intermédiaires (bug rapporté)', async () => {
@@ -267,8 +280,8 @@ describe('Board', () => {
 
     await component.drop(event);
 
-    expect(cardsService.move).toHaveBeenCalledWith(1, 13, 1, expect.any(Number), null);
-    expect(cardsService.move).not.toHaveBeenCalledWith(1, 10, expect.anything(), expect.anything(), expect.anything());
+    expect(cardsService.move).toHaveBeenCalledWith(1, 13, 1, expect.any(Number));
+    expect(cardsService.move).not.toHaveBeenCalledWith(1, 10, expect.anything(), expect.anything());
   });
 
   it('userInitial() retourne la première lettre du username ou "?"', async () => {
@@ -474,7 +487,7 @@ describe('Board', () => {
 
     await component.reload();
 
-    const publishedGroup = component.groups().find((g) => g.column.id === 3);
+    const publishedGroup = component.groups().find((g) => g.lanes[0].column.id === 3);
     expect(publishedGroup?.lanes[0].cards.map((c) => c.title)).toEqual(['Récent']);
   });
 
@@ -500,7 +513,7 @@ describe('Board', () => {
     cardsService.list.mockResolvedValue([...baseCards, publishedCard]);
     await component.reload();
 
-    const publishedLaneCards = component.groups().find((g) => g.column.id === 3)!.lanes[0].cards;
+    const publishedLaneCards = component.groups().find((g) => g.lanes[0].column.id === 3)!.lanes[0].cards;
     const targetCards = component.groups()[0].lanes[0].cards;
     const event = {
       item: { data: publishedCard },
@@ -554,37 +567,38 @@ describe('Board', () => {
     expect(component.toastMessage()).toBeNull();
   });
 
-  describe('colonne divisée en 2 états', () => {
-    const splitColumns: Column[] = [{ id: 1, name: '🎬Montage', position: 0, state_a_name: 'Derush', state_b_name: 'Montage' }];
-    const splitCards: Card[] = [
-      { ...baseCards[0], id: 30, title: 'D1', column_id: 1, state: 'a', position: 0 },
-      { ...baseCards[0], id: 31, title: 'M1', column_id: 1, state: 'b', position: 0 },
+  describe('colonnes imbriquées (group_key)', () => {
+    const groupedColumns: Column[] = [
+      { id: 1, name: '🗃️Derush', position: 0, group_key: 'g1' },
+      { id: 2, name: '🎬Montage', position: 1, group_key: 'g1' },
+    ];
+    const groupedCards: Card[] = [
+      { ...baseCards[0], id: 30, title: 'D1', column_id: 1, position: 0 },
+      { ...baseCards[0], id: 31, title: 'M1', column_id: 2, position: 0 },
     ];
 
-    it('laneContainerId() encode columnId + state, stateLabel() résout le nom', async () => {
-      columnsService.list.mockResolvedValue(splitColumns);
-      cardsService.list.mockResolvedValue(splitCards);
+    it('laneContainerId() encode le columnId de chaque colonne imbriquée', async () => {
+      columnsService.list.mockResolvedValue(groupedColumns);
+      cardsService.list.mockResolvedValue(groupedCards);
       await component.reload();
       const [group] = component.groups();
 
-      expect(component.laneContainerId(group.column, 'a')).toBe('col-1-a');
-      expect(component.laneContainerId(group.column, 'b')).toBe('col-1-b');
-      expect(component.stateLabel(group.column, 'a')).toBe('Derush');
-      expect(component.stateLabel(group.column, 'b')).toBe('Montage');
+      expect(component.laneContainerId(group.lanes[0].column)).toBe('col-1');
+      expect(component.laneContainerId(group.lanes[1].column)).toBe('col-2');
     });
 
-    it('totalVisibleCount() additionne les cartes visibles des 2 lanes', async () => {
-      columnsService.list.mockResolvedValue(splitColumns);
-      cardsService.list.mockResolvedValue(splitCards);
+    it('totalVisibleCount() additionne les cartes visibles des 2 colonnes imbriquées', async () => {
+      columnsService.list.mockResolvedValue(groupedColumns);
+      cardsService.list.mockResolvedValue(groupedCards);
       await component.reload();
       const [group] = component.groups();
 
       expect(component.totalVisibleCount(group)).toBe(2);
     });
 
-    it("drop() d'une lane vers l'autre appelle move() avec le state cible", async () => {
-      columnsService.list.mockResolvedValue(splitColumns);
-      cardsService.list.mockResolvedValue(splitCards);
+    it("drop() d'une colonne imbriquée vers l'autre appelle move() avec le columnId cible (sans state)", async () => {
+      columnsService.list.mockResolvedValue(groupedColumns);
+      cardsService.list.mockResolvedValue(groupedCards);
       await component.reload();
       const [group] = component.groups();
       const laneA = group.lanes[0];
@@ -592,15 +606,15 @@ describe('Board', () => {
 
       const event = {
         item: { data: laneA.cards[0] },
-        previousContainer: { data: laneA.cards, id: 'col-1-a' },
-        container: { data: laneB.cards, id: 'col-1-b' },
+        previousContainer: { data: laneA.cards, id: 'col-1' },
+        container: { data: laneB.cards, id: 'col-2' },
         previousIndex: 0,
         currentIndex: 0,
       } as unknown as CdkDragDrop<Card[]>;
 
       await component.drop(event);
 
-      expect(cardsService.move).toHaveBeenCalledWith(1, 30, 1, expect.any(Number), 'b');
+      expect(cardsService.move).toHaveBeenCalledWith(1, 30, 2, expect.any(Number));
     });
   });
 
