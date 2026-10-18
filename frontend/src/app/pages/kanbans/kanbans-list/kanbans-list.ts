@@ -2,8 +2,12 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { KanbansService } from '../../../services/board/kanbans.service';
+import { MeService } from '../../../services/tickets/me.service';
 import { AuthService } from '../../../core/auth.service';
 import { Kanban, KanbanTemplate } from '../../../models/kanban.model';
+import { MyTicket } from '../../../models/my-ticket.model';
+import { priorityLabel, priorityDotClass } from '../../../shared/priority';
+import { dueDateLabel, dueDateClass, formatDate } from '../../../shared/due-date';
 
 @Component({
   selector: 'app-kanbans-list',
@@ -12,10 +16,12 @@ import { Kanban, KanbanTemplate } from '../../../models/kanban.model';
 })
 export class KanbansList implements OnInit {
   private readonly kanbansService = inject(KanbansService);
+  private readonly meService = inject(MeService);
   private readonly router = inject(Router);
   protected readonly authService = inject(AuthService);
 
   readonly kanbans = signal<Kanban[]>([]);
+  readonly myTickets = signal<MyTicket[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly creating = signal(false);
@@ -23,6 +29,12 @@ export class KanbansList implements OnInit {
   readonly newName = signal('');
   readonly newCode = signal('');
   readonly newTemplate = signal<KanbanTemplate>('video');
+
+  readonly priorityLabel = priorityLabel;
+  readonly priorityDotClass = priorityDotClass;
+  readonly dueDateLabel = dueDateLabel;
+  readonly dueDateClass = dueDateClass;
+  readonly formatDate = formatDate;
 
   async ngOnInit(): Promise<void> {
     await this.reload();
@@ -32,7 +44,9 @@ export class KanbansList implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      this.kanbans.set(await this.kanbansService.list());
+      const [kanbans, myTickets] = await Promise.all([this.kanbansService.list(), this.meService.tickets()]);
+      this.kanbans.set(kanbans);
+      this.myTickets.set(myTickets);
     } catch {
       this.error.set('Impossible de charger les kanbans.');
     } finally {
@@ -42,6 +56,10 @@ export class KanbansList implements OnInit {
 
   openKanban(kanban: Kanban): void {
     this.router.navigate(['/kanbans', kanban.code]);
+  }
+
+  openTicket(ticket: MyTicket): void {
+    this.router.navigate(['/kanbans', ticket.key]);
   }
 
   async createKanban(): Promise<void> {
