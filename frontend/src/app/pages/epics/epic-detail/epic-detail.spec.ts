@@ -13,6 +13,7 @@ describe('EpicDetail', () => {
   let component: EpicDetail;
   let navigate: ReturnType<typeof vi.fn>;
   let paramMap$: Subject<{ get: (key: string) => string | null }>;
+  let cardsService: { list: ReturnType<typeof vi.fn> };
 
   const epics = [
     { id: 1, name: 'TwiZzyx', color: 'red' },
@@ -71,11 +72,12 @@ describe('EpicDetail', () => {
   function configure(id: string) {
     navigate = vi.fn();
     paramMap$ = new Subject();
+    cardsService = { list: vi.fn().mockResolvedValue(cards) };
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue(epics) } },
-        { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
+        { provide: CardsService, useValue: cardsService },
         { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
         { provide: UsersService, useValue: { liteForKanban: vi.fn().mockResolvedValue(users) } },
         { provide: Router, useValue: { navigate } },
@@ -147,6 +149,26 @@ describe('EpicDetail', () => {
 
     expect(component.statusChart()).toEqual({ labels: ['Idée', 'Publié'], data: [0, 1] });
     expect(component.priorityChart()).toEqual({ labels: ['Faible', 'Moyen', 'Élevé'], data: [1, 0, 0] });
+  });
+
+  it('userStats() calcule les stats par responsable à partir des tickets filtrés de l\'EPIC', async () => {
+    cardsService.list.mockResolvedValue([
+      { ...cards[0], assigned_user_id: 1, published_at: '2026-01-16 10:00:00', due_date: '2026-01-20' },
+      { ...cards[1], assigned_user_id: 1, published_at: null, due_date: null },
+    ]);
+    await component.reload();
+
+    expect(component.userStats()).toEqual([
+      {
+        user_id: 1,
+        username: 'alice',
+        completed_count: 1,
+        with_due_date_count: 1,
+        on_time_count: 1,
+        avg_lead_days: 4,
+        current_workload: 1,
+      },
+    ]);
   });
 
   it('columnName()/userName() résolvent les libellés', async () => {

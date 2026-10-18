@@ -36,6 +36,14 @@ export class PeriodFilter {
     this.fromChange.emit(this.toDateInputValue(from));
   }
 
+  // Année civile en cours entière (1er janvier → 31 décembre), pas "les 365 derniers
+  // jours" — contrairement aux presets 7j/30j/90j qui se terminent aujourd'hui.
+  applyCurrentYear(): void {
+    const year = new Date().getFullYear();
+    this.fromChange.emit(`${year}-01-01`);
+    this.toChange.emit(`${year}-12-31`);
+  }
+
   private toDateInputValue(date: Date): string {
     return date.toISOString().slice(0, 10);
   }

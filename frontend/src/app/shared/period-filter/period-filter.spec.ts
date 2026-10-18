@@ -52,4 +52,19 @@ describe('PeriodFilter', () => {
     expect(from).toBeNull();
     expect(to).toBeNull();
   });
+
+  it("applyCurrentYear() émet l'année civile en cours entière (1er janvier → 31 décembre), pas les 365 derniers jours", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-15T12:00:00.000Z'));
+    let from: string | null = null;
+    let to: string | null = null;
+    component.fromChange.subscribe((v) => (from = v));
+    component.toChange.subscribe((v) => (to = v));
+
+    component.applyCurrentYear();
+
+    expect(from).toBe('2026-01-01');
+    expect(to).toBe('2026-12-31');
+    vi.useRealTimers();
+  });
 });

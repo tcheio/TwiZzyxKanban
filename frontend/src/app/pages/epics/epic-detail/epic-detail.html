@@ -38,6 +38,34 @@
       </div>
     </div>
 
+    @if (userStats().length > 0) {
+      <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Stats par responsable</h2>
+      <div class="mb-6 overflow-hidden rounded-lg border border-border bg-surface">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
+              <th class="px-4 py-2.5">Membre</th>
+              <th class="px-4 py-2.5">Terminés</th>
+              <th class="px-4 py-2.5">Dans les temps</th>
+              <th class="px-4 py-2.5">Avance / retard moyen</th>
+              <th class="px-4 py-2.5">Charge actuelle</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            @for (stat of userStats(); track stat.user_id) {
+              <tr>
+                <td class="px-4 py-2.5 font-medium text-text">{{ stat.username }}</td>
+                <td class="px-4 py-2.5">{{ stat.completed_count }}</td>
+                <td class="px-4 py-2.5">{{ onTimeRateLabel(stat) }}</td>
+                <td class="px-4 py-2.5">{{ leadLabel(stat) }}</td>
+                <td class="px-4 py-2.5">{{ stat.current_workload }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
     @if (filteredTickets().length === 0) {
       <p class="text-sm text-text-muted">Aucun ticket pour cette EPIC sur cette période.</p>
     } @else {

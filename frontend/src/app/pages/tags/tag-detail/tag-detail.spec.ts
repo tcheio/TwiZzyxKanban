@@ -14,6 +14,7 @@ describe('TagDetail', () => {
   let navigate: ReturnType<typeof vi.fn>;
   let paramMap$: Subject<{ get: (key: string) => string | null }>;
   let tagsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  let cardsService: { list: ReturnType<typeof vi.fn> };
 
   const tags = [
     { id: 1, name: 'Minecraft', color: 'emerald', archived: false },
@@ -73,11 +74,12 @@ describe('TagDetail', () => {
     navigate = vi.fn();
     paramMap$ = new Subject();
     tagsService = { list: vi.fn().mockResolvedValue(tags), update: vi.fn().mockResolvedValue({}) };
+    cardsService = { list: vi.fn().mockResolvedValue(cards) };
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
         { provide: TagsService, useValue: tagsService },
-        { provide: CardsService, useValue: { list: vi.fn().mockResolvedValue(cards) } },
+        { provide: CardsService, useValue: cardsService },
         { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(columns) } },
         { provide: UsersService, useValue: { liteForKanban: vi.fn().mockResolvedValue(users) } },
         { provide: Router, useValue: { navigate } },
@@ -154,6 +156,64 @@ describe('TagDetail', () => {
 
     expect(component.statusChart()).toEqual({ labels: ['Idée', 'Publié'], data: [0, 1] });
     expect(component.priorityChart()).toEqual({ labels: ['Faible', 'Moyen', 'Élevé'], data: [1, 0, 0] });
+  });
+
+  it('excludeIdea() exclut les tickets dont la colonne est "💡Idées"', async () => {
+    const ideaColumns = [
+      { id: 1, name: '💡Idées', position: 0 },
+      { id: 2, name: 'Publié', position: 1 },
+    ];
+    cardsService.list.mockResolvedValue([
+      { ...cards[0], column_id: 1 },
+      { ...cards[1], id: 20, column_id: 2 },
+    ]);
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: TagsService, useValue: tagsService },
+        { provide: CardsService, useValue: cardsService },
+        { provide: ColumnsService, useValue: { list: vi.fn().mockResolvedValue(ideaColumns) } },
+        { provide: UsersService, useValue: { liteForKanban: vi.fn().mockResolvedValue(users) } },
+        { provide: Router, useValue: { navigate } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST', is_moderator: true } },
+              paramMap: { get: () => '1' },
+            },
+            paramMap: paramMap$.asObservable(),
+          },
+        },
+      ],
+    });
+    component = TestBed.createComponent(TagDetail).componentInstance;
+    await component.reload();
+
+    expect(component.filteredTickets().length).toBe(2);
+
+    component.excludeIdea.set(true);
+    expect(component.filteredTickets().map((t) => t.id)).toEqual([20]);
+  });
+
+  it('userStats() calcule les stats par responsable à partir des tickets filtrés du tag', async () => {
+    cardsService.list.mockResolvedValue([
+      { ...cards[0], assigned_user_id: 1, published_at: '2026-01-16 10:00:00', due_date: '2026-01-20' },
+      { ...cards[1], assigned_user_id: 1, published_at: null, due_date: null },
+    ]);
+    await component.reload();
+
+    expect(component.userStats()).toEqual([
+      {
+        user_id: 1,
+        username: 'alice',
+        completed_count: 1,
+        with_due_date_count: 1,
+        on_time_count: 1,
+        avg_lead_days: 4,
+        current_workload: 1,
+      },
+    ]);
   });
 
   it('columnName()/userName() résolvent les libellés', async () => {

@@ -18,6 +18,12 @@ import { PRIORITY_LABELS, priorityLabel, priorityDotClass } from '../../../share
 import { startAutoRefresh } from '../../../shared/auto-refresh';
 import { PeriodFilter } from '../../../shared/period-filter/period-filter';
 import { inPeriod } from '../../../shared/period';
+import { computeUserStats, onTimeRateLabel, leadLabel } from '../../../shared/user-stats';
+
+// Nom de la colonne "Idées" par défaut des templates vidéo (cf
+// backend/src/db/kanban-templates.js) — les tickets qui y sont encore peuvent être
+// exclus des stats d'un tag (ticket pas encore réellement en production).
+const IDEA_COLUMN_NAME = '💡Idées';
 
 @Component({
   selector: 'app-tag-detail',
@@ -49,13 +55,28 @@ export class TagDetail implements OnInit {
   // pas de filtre, tout l'historique.
   readonly periodFrom = signal<string | null>(null);
   readonly periodTo = signal<string | null>(null);
+  // Exclut les tickets encore dans la colonne "Idées" (pas encore réellement en
+  // production), qui peuvent fausser les stats de progression du tag.
+  readonly excludeIdea = signal(false);
 
   readonly filteredTickets = computed(() => {
     const from = this.periodFrom();
     const to = this.periodTo();
-    if (!from && !to) return this.tickets();
-    return this.tickets().filter((t) => inPeriod(t.created_at, from, to));
+    const exclude = this.excludeIdea();
+    const columns = this.columns();
+    let result = this.tickets();
+    if (from || to) {
+      result = result.filter((t) => inPeriod(t.created_at, from, to));
+    }
+    if (exclude) {
+      result = result.filter((t) => columns.find((c) => c.id === t.column_id)?.name !== IDEA_COLUMN_NAME);
+    }
+    return result;
   });
+
+  readonly userStats = computed(() => computeUserStats(this.filteredTickets(), this.users()));
+  readonly onTimeRateLabel = onTimeRateLabel;
+  readonly leadLabel = leadLabel;
 
   readonly statusChart = computed(() => {
     const columns = this.columns();

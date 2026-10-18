@@ -18,6 +18,7 @@ import { PRIORITY_LABELS, priorityLabel, priorityDotClass } from '../../../share
 import { startAutoRefresh } from '../../../shared/auto-refresh';
 import { PeriodFilter } from '../../../shared/period-filter/period-filter';
 import { inPeriod } from '../../../shared/period';
+import { computeUserStats, onTimeRateLabel, leadLabel } from '../../../shared/user-stats';
 
 @Component({
   selector: 'app-epic-detail',
@@ -73,6 +74,10 @@ export class EpicDetail implements OnInit {
       data: priorities.map((p) => tickets.filter((t) => t.priority === p).length),
     };
   });
+
+  readonly userStats = computed(() => computeUserStats(this.filteredTickets(), this.users()));
+  readonly onTimeRateLabel = onTimeRateLabel;
+  readonly leadLabel = leadLabel;
 
   private epicId = Number(this.route.snapshot.paramMap.get('id'));
 

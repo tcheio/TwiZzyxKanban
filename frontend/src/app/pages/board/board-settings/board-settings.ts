@@ -12,6 +12,7 @@ import { ColumnDuration, UserStat } from '../../../models/stats.model';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { epicBadgeClass } from '../../../shared/epic-colors';
 import { PeriodFilter } from '../../../shared/period-filter/period-filter';
+import { onTimeRateLabel, leadLabel } from '../../../shared/user-stats';
 
 @Component({
   selector: 'app-board-settings',
@@ -99,16 +100,8 @@ export class BoardSettings implements OnInit {
     return `${(hours / 24).toFixed(1)} j`;
   }
 
-  onTimeRateLabel(stat: UserStat): string {
-    if (!stat.with_due_date_count) return '—';
-    return `${Math.round((stat.on_time_count / stat.with_due_date_count) * 100)} %`;
-  }
-
-  leadLabel(stat: UserStat): string {
-    if (stat.avg_lead_days === null) return '—';
-    const rounded = Math.round(Math.abs(stat.avg_lead_days) * 10) / 10;
-    return stat.avg_lead_days >= 0 ? `+${rounded} j (avance)` : `-${rounded} j (retard)`;
-  }
+  readonly onTimeRateLabel = onTimeRateLabel;
+  readonly leadLabel = leadLabel;
 
   tagClass(tag: Tag): string {
     return tagBadgeClass(tag.color);
