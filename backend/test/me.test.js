@@ -111,6 +111,25 @@ test('regroupe les tickets de tous les kanbans dont je suis membre', async () =>
   assert.equal(mine.key, `TK-TEST-${mine.id}`);
 });
 
+test('exclut les tickets dans la dernière colonne du kanban (ex: "Fait" du template basique, sans notion de publication)', async () => {
+  const basique = await createKanban(adminToken, { name: 'Basique', code: 'TK-BASIQUE', template: 'basique' });
+  await addMember(adminToken, basique.kanban.id, aliceId, false);
+  const fait = basique.columns.find((c) => c.name === 'Fait');
+  const enCours = basique.columns.find((c) => c.name === 'En cours');
+
+  await request(app)
+    .post(`/api/kanbans/${basique.kanban.id}/cards`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'Fini', column_id: fait.id, assigned_user_id: aliceId });
+  await request(app)
+    .post(`/api/kanbans/${basique.kanban.id}/cards`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'En cours', column_id: enCours.id, assigned_user_id: aliceId });
+
+  const res = await request(app).get('/api/me/tickets').set('Authorization', `Bearer ${aliceToken}`);
+  assert.deepEqual(res.body.map((t) => t.title), ['En cours']);
+});
+
 test("retourne une colonne et un responsable d'une colonne restreinte si j'y suis assigné", async () => {
   const columns = await request(app).get(`/api/kanbans/${kanbanId}/columns`).set('Authorization', `Bearer ${adminToken}`);
   const ideaColumnId = columns.body.find((c) => c.restricted).id;

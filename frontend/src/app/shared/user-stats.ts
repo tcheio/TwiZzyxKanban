@@ -1,4 +1,5 @@
 import { Card } from '../models/card.model';
+import { Column } from '../models/column.model';
 import { UserLite } from '../models/user.model';
 import { UserStat } from '../models/stats.model';
 
@@ -11,7 +12,15 @@ import { UserStat } from '../models/stats.model';
 // tableau), qui est volontairement un instantané jamais filtré par période.
 // Seuls les membres apparaissant sur au moins une carte sont inclus (pas la liste
 // complète des membres du kanban, moins pertinente à l'échelle d'un seul tag/EPIC).
-export function computeUserStats(tickets: Card[], users: UserLite[]): UserStat[] {
+export function computeUserStats(tickets: Card[], users: UserLite[], columns: Column[]): UserStat[] {
+  // "Terminé" = soit déjà publié (published_at, colonne "✅Publié" des templates vidéo),
+  // soit dans la dernière colonne du kanban par position (ex: "Fait" du template basique,
+  // qui n'a pas de notion de publication) — même règle que
+  // backend/src/controllers/me.controller.js::myTickets et utils/stats.js::userStats.
+  const maxPosition = columns.reduce((max, c) => Math.max(max, c.position), -Infinity);
+  const isTerminalColumn = (t: Card): boolean =>
+    columns.find((c) => c.id === t.column_id)?.position === maxPosition;
+
   const involvedIds = new Set<number>();
   tickets.forEach((t) => {
     if (t.assigned_user_id) involvedIds.add(t.assigned_user_id);
@@ -28,7 +37,9 @@ export function computeUserStats(tickets: Card[], users: UserLite[]): UserStat[]
       const withDueDate = completed.filter((t) => !!t.due_date);
       const onTime = withDueDate.filter((t) => (t.published_at as string).slice(0, 10) <= (t.due_date as string));
       const leadDays = withDueDate.map((t) => daysBetween(t.published_at as string, t.due_date as string));
-      const currentWorkload = involved.filter((t) => !t.cancelled_at && !t.published_at).length;
+      const currentWorkload = involved.filter(
+        (t) => !t.cancelled_at && !t.published_at && !isTerminalColumn(t)
+      ).length;
 
       const stat: UserStat = {
         user_id: user.id,

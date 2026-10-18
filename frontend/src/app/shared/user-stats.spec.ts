@@ -25,15 +25,22 @@ const users = [
   { id: 2, username: 'bob' },
 ];
 
+// Colonne 1 = "En cours" (pas la dernière), colonne 2 = "Fait" (dernière par position,
+// sans notion de publication) — sert à tester l'exclusion de current_workload.
+const columns = [
+  { id: 1, name: 'En cours', position: 0 },
+  { id: 2, name: 'Fait', position: 1 },
+];
+
 describe('computeUserStats', () => {
   it("n'inclut que les utilisateurs apparaissant sur au moins une carte", () => {
     const tickets = [card({ id: 1, assigned_user_id: 1 })];
-    expect(computeUserStats(tickets, users).map((s) => s.user_id)).toEqual([1]);
+    expect(computeUserStats(tickets, users, columns).map((s) => s.user_id)).toEqual([1]);
   });
 
   it('inclut un responsable additionnel (assignee_ids), pas seulement le principal', () => {
     const tickets = [card({ id: 1, assigned_user_id: null, assignee_ids: [2] })];
-    expect(computeUserStats(tickets, users).map((s) => s.user_id)).toEqual([2]);
+    expect(computeUserStats(tickets, users, columns).map((s) => s.user_id)).toEqual([2]);
   });
 
   it('compte completed_count, on_time_count, with_due_date_count et avg_lead_days', () => {
@@ -41,7 +48,7 @@ describe('computeUserStats', () => {
       card({ id: 1, assigned_user_id: 1, due_date: '2026-01-10', published_at: '2026-01-08T10:00:00.000Z' }), // +2j
       card({ id: 2, assigned_user_id: 1, due_date: '2026-01-10', published_at: '2026-01-12T10:00:00.000Z' }), // -2j
     ];
-    const [stat] = computeUserStats(tickets, users);
+    const [stat] = computeUserStats(tickets, users, columns);
     expect(stat.completed_count).toBe(2);
     expect(stat.with_due_date_count).toBe(2);
     expect(stat.on_time_count).toBe(1);
@@ -54,17 +61,25 @@ describe('computeUserStats', () => {
       card({ id: 2, assigned_user_id: 1, published_at: '2026-01-08T10:00:00.000Z' }),
       card({ id: 3, assigned_user_id: 1, published_at: null, cancelled_at: '2026-01-09T10:00:00.000Z' }),
     ];
-    expect(computeUserStats(tickets, users)[0].current_workload).toBe(1);
+    expect(computeUserStats(tickets, users, columns)[0].current_workload).toBe(1);
+  });
+
+  it('current_workload exclut les cartes dans la dernière colonne par position (ex: "Fait"), même sans published_at', () => {
+    const tickets = [
+      card({ id: 1, assigned_user_id: 1, column_id: 1, published_at: null, cancelled_at: null }), // En cours
+      card({ id: 2, assigned_user_id: 1, column_id: 2, published_at: null, cancelled_at: null }), // Fait
+    ];
+    expect(computeUserStats(tickets, users, columns)[0].current_workload).toBe(1);
   });
 
   it('avg_lead_days vaut null sans aucun ticket terminé avec échéance', () => {
     const tickets = [card({ id: 1, assigned_user_id: 1 })];
-    expect(computeUserStats(tickets, users)[0].avg_lead_days).toBeNull();
+    expect(computeUserStats(tickets, users, columns)[0].avg_lead_days).toBeNull();
   });
 
   it('trie les résultats par nom', () => {
     const tickets = [card({ id: 1, assigned_user_id: 2 }), card({ id: 2, assigned_user_id: 1 })];
-    expect(computeUserStats(tickets, users).map((s) => s.username)).toEqual(['alice', 'bob']);
+    expect(computeUserStats(tickets, users, columns).map((s) => s.username)).toEqual(['alice', 'bob']);
   });
 });
 
