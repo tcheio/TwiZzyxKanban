@@ -75,7 +75,7 @@ export class EpicDetail implements OnInit {
     };
   });
 
-  readonly userStats = computed(() => computeUserStats(this.filteredTickets(), this.users()));
+  readonly userStats = computed(() => computeUserStats(this.filteredTickets(), this.users(), this.columns()));
   readonly onTimeRateLabel = onTimeRateLabel;
   readonly leadLabel = leadLabel;
 

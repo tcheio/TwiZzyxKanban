@@ -52,8 +52,11 @@ function columnDurations(kanbanId, from, to) {
 //   combien l'ont respectée (publié au plus tard le jour de l'échéance).
 // - avg_lead_days : avance moyenne sur l'échéance en jours (positif = en avance, négatif
 //   = en retard), parmi les tickets terminés avec échéance sur la période.
-// - current_workload : tickets actuellement assignés et ni publiés ni annulés — un
-//   instantané, jamais filtré par période.
+// - current_workload : tickets actuellement assignés, ni annulés ni terminés — un
+//   instantané, jamais filtré par période. "Terminé" = soit déjà publié (c.published_at),
+//   soit dans la dernière colonne du kanban par position (ex: "Fait" du template basique,
+//   qui n'a pas de notion de publication) — cf controllers/me.controller.js::myTickets,
+//   même règle.
 function userStats(kanbanId, from, to) {
   const { from: periodFrom, to: periodTo } = normalizePeriod(from, to);
   return db
@@ -79,7 +82,13 @@ function userStats(kanbanId, from, to) {
            END
          ) AS avg_lead_days,
          COALESCE(
-           SUM(CASE WHEN c.id IS NOT NULL AND c.cancelled_at IS NULL AND c.published_at IS NULL THEN 1 ELSE 0 END), 0
+           SUM(
+             CASE
+               WHEN c.id IS NOT NULL AND c.cancelled_at IS NULL AND c.published_at IS NULL
+                 AND col.position < (SELECT MAX(position) FROM columns WHERE kanban_id = @kanbanId)
+               THEN 1 ELSE 0
+             END
+           ), 0
          ) AS current_workload
        FROM kanban_members km
        JOIN users u ON u.id = km.user_id
@@ -89,6 +98,7 @@ function userStats(kanbanId, from, to) {
          SELECT ca.user_id, ca.card_id FROM card_assignees ca JOIN cards c2 ON c2.id = ca.card_id WHERE c2.kanban_id = @kanbanId
        ) involved ON involved.user_id = km.user_id
        LEFT JOIN cards c ON c.id = involved.card_id
+       LEFT JOIN columns col ON col.id = c.column_id
        WHERE km.kanban_id = @kanbanId
        GROUP BY km.user_id, u.username
        ORDER BY u.username`

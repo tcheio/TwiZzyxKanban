@@ -11,6 +11,7 @@ const searchRoutes = require('./routes/search.routes');
 const emotesRoutes = require('./routes/emotes.routes');
 const notificationsRoutes = require('./routes/notifications.routes');
 const announcementsRoutes = require('./routes/announcements.routes');
+const meRoutes = require('./routes/me.routes');
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use('/api/search', requireAuth, searchRoutes);
 app.use('/api/emotes', requireAuth, emotesRoutes);
 app.use('/api/notifications', requireAuth, notificationsRoutes);
 app.use('/api/announcements', requireAuth, announcementsRoutes);
+app.use('/api/me', requireAuth, meRoutes);
 
 // --- Service du frontend Angular buildé ---
 // Angular 17+ (et donc Angular 21 utilisé ici) génère la sortie dans un

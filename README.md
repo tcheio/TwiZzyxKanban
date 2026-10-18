@@ -61,6 +61,9 @@ Au premier démarrage, le backend crée automatiquement :
 ## Fonctionnalités
 
 - Connexion par identifiants (JWT)
+- **Page d'accueil "Mes tickets"** : tous les tickets dont on est responsable (principal ou
+  additionnel), tous kanbans confondus, triés par échéance (temps restant/retard affiché), en plus
+  de la liste des kanbans
 - **Multi-kanban** : plusieurs tableaux indépendants, chacun avec ses propres membres, colonnes,
   tags et EPICs, et un rôle modérateur dédié par kanban (en plus des rôles globaux Admin /
   Utilisateur). Création à partir d'un **template** : `video` (colonnes de production standard),

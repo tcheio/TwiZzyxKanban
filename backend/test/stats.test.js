@@ -201,6 +201,29 @@ test('GET /stats/users inclut les responsables additionnels (card_assignees), pa
   assert.equal(stat.current_workload, 1);
 });
 
+test('GET /stats/users exclut de la charge actuelle les tickets dans la dernière colonne du kanban (ex: "Fait" du template basique)', async () => {
+  const basique = await createKanban(adminToken, { name: 'Basique', code: 'TK-BASIQUE', template: 'basique' });
+  const { id: userId } = await createUser('alice');
+  await addMember(adminToken, basique.kanban.id, userId, false);
+  const fait = basique.columns.find((c) => c.name === 'Fait');
+  const enCours = basique.columns.find((c) => c.name === 'En cours');
+
+  await request(app)
+    .post(`/api/kanbans/${basique.kanban.id}/cards`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'Fini', column_id: fait.id, assigned_user_id: userId });
+  await request(app)
+    .post(`/api/kanbans/${basique.kanban.id}/cards`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'En cours', column_id: enCours.id, assigned_user_id: userId });
+
+  const res = await request(app)
+    .get(`/api/kanbans/${basique.kanban.id}/stats/users`)
+    .set('Authorization', `Bearer ${adminToken}`);
+  const stat = res.body.find((s) => s.user_id === userId);
+  assert.equal(stat.current_workload, 1);
+});
+
 test('GET /stats/users renvoie tous les membres du kanban, même sans aucun ticket', async () => {
   const { id: userId } = await createUser('bob');
   await addMember(adminToken, kanbanId, userId, false);
