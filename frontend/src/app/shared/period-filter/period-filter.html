@@ -1,0 +1,56 @@
+<div class="flex flex-wrap items-center gap-2">
+  <div class="flex items-center gap-1">
+    <button
+      type="button"
+      class="rounded-full border border-border-strong px-2.5 py-1 text-xs text-text-muted hover:bg-surface-alt"
+      (click)="applyPreset(7)"
+    >
+      7j
+    </button>
+    <button
+      type="button"
+      class="rounded-full border border-border-strong px-2.5 py-1 text-xs text-text-muted hover:bg-surface-alt"
+      (click)="applyPreset(30)"
+    >
+      30j
+    </button>
+    <button
+      type="button"
+      class="rounded-full border border-border-strong px-2.5 py-1 text-xs text-text-muted hover:bg-surface-alt"
+      (click)="applyPreset(90)"
+    >
+      90j
+    </button>
+    <button
+      type="button"
+      class="rounded-full border border-border-strong px-2.5 py-1 text-xs text-text-muted hover:bg-surface-alt"
+      (click)="applyCurrentYear()"
+    >
+      Cette année
+    </button>
+    <button
+      type="button"
+      class="rounded-full border border-border-strong px-2.5 py-1 text-xs text-text-muted hover:bg-surface-alt"
+      (click)="applyPreset(null)"
+    >
+      Tout
+    </button>
+  </div>
+  <label for="period-filter-from" class="sr-only">Depuis</label>
+  <input
+    id="period-filter-from"
+    type="date"
+    [ngModel]="from"
+    (ngModelChange)="setFrom($event)"
+    class="rounded-md border border-border-strong px-2 py-1 text-xs text-text focus:border-brand focus:outline-none"
+  />
+  <span class="text-xs text-text-faint">→</span>
+  <label for="period-filter-to" class="sr-only">Jusqu'au</label>
+  <input
+    id="period-filter-to"
+    type="date"
+    [ngModel]="to"
+    (ngModelChange)="setTo($event)"
+    class="rounded-md border border-border-strong px-2 py-1 text-xs text-text focus:border-brand focus:outline-none"
+  />
+</div>

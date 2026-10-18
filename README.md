@@ -94,6 +94,13 @@ Au premier démarrage, le backend crée automatiquement :
 - **Annonces** : bandeau d'avertissement dans la navbar, gérable sans coder (page "Annonces",
   réservée aux admins), scopé à toute l'application ou à un kanban précis
 - Pages d'administration : gestion des comptes utilisateurs et des annonces (réservées aux admins)
+- **Statistiques** analysables sur une période choisie (filtre par date, avec raccourcis 7/30/90
+  jours) : répartition par statut/priorité sur les pages Tag/EPIC, et à l'échelle du kanban
+  (page Paramètres du tableau) le temps moyen passé dans chaque colonne et, par responsable, le
+  nombre de tickets terminés, le taux de respect des échéances, l'avance/retard moyen sur
+  l'échéance et la charge actuelle. Les mouvements de colonne sont historisés à partir de leur
+  premier déplacement après l'activation de cette fonctionnalité (pas de reconstitution
+  rétroactive de l'historique déjà passé)
 
 ## Structure du projet
 
