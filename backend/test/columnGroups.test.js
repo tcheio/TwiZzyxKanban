@@ -220,6 +220,11 @@ test('migrate() convertit une colonne divisée (ancien schéma) en 2 vraies colo
   assert.equal(newDerush.group_key, montageAfter.group_key);
   assert.ok(montageAfter.group_key);
   assert.equal(newDerush.position + 1, montageAfter.position);
+  // La colonne existante (état B) est renommée d'après state_b_name : son ancien nom de
+  // colonne n'était jamais affiché tant qu'elle était divisée, et doit donc être remplacé
+  // par le libellé que les utilisateurs voyaient réellement ("Montage"), pas rester
+  // "🎬Montage" (qui créerait 2 colonnes visuellement identiques une fois imbriquées).
+  assert.equal(montageAfter.name, 'Montage');
 
   const cardAAfter = db.prepare('SELECT * FROM cards WHERE id = ?').get(cardA);
   const cardBAfter = db.prepare('SELECT * FROM cards WHERE id = ?').get(cardB);

@@ -98,8 +98,9 @@ function addColumnGroupKeyColumn() {
 // normalement, visibles dans les notifications/filtres...), simplement affichées
 // imbriquées l'une avec l'autre via group_key. Chaque colonne encore divisée (état
 // state_a_name non NULL) donne naissance à une nouvelle colonne "état A" insérée juste
-// avant elle (qui prend son ancienne position), la colonne existante devenant l'"état B"
-// et gardant son id (donc son historique/ses notifications restent cohérents). Les
+// avant elle (qui prend son ancienne position), la colonne existante étant renommée en
+// l'"état B" et gardant son id (donc son historique/ses notifications restent cohérents) —
+// son ancien nom de colonne (jamais affiché tant qu'elle était divisée) est perdu. Les
 // cartes en état 'a' (ou sans état, cf cas limite déjà géré par board.ts côté lecture)
 // migrent vers la nouvelle colonne ; celles en état 'b' restent sur place. No-op si déjà
 // migré (state_a_name n'existe plus).
@@ -115,7 +116,7 @@ function migrateSplitColumnsToGroupedColumns() {
     'INSERT INTO columns (kanban_id, name, position, restricted, group_key) VALUES (?, ?, ?, ?, ?)'
   );
   const groupExistingColumn = db.prepare(
-    'UPDATE columns SET group_key = ?, state_a_name = NULL, state_b_name = NULL WHERE id = ?'
+    'UPDATE columns SET name = ?, group_key = ?, state_a_name = NULL, state_b_name = NULL WHERE id = ?'
   );
   const moveStateACards = db.prepare(
     "UPDATE cards SET column_id = ?, state = NULL WHERE column_id = ? AND (state IS NULL OR state = 'a')"
@@ -132,7 +133,7 @@ function migrateSplitColumnsToGroupedColumns() {
       column.restricted,
       groupKey
     ).lastInsertRowid;
-    groupExistingColumn.run(groupKey, column.id);
+    groupExistingColumn.run(column.state_b_name, groupKey, column.id);
     moveStateACards.run(newColumnId, column.id);
     clearRemainingState.run(column.id);
   });
