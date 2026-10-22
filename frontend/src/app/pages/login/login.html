@@ -4,7 +4,10 @@
     [formGroup]="form"
     (ngSubmit)="submit()"
   >
-    <h1 class="m-0 text-2xl font-bold text-text">TwiZzyxKanban</h1>
+    <h1 class="m-0 flex items-baseline">
+      <span class="text-2xl font-bold text-text">TwiZzyxKanban</span>
+      <span class="text-sm font-normal text-text-faint">{{ appVersion }}</span>
+    </h1>
     <p class="mb-2 text-sm text-text-muted">Connecte-toi pour accéder au tableau</p>
 
     <label for="login-username" class="flex flex-col gap-1 text-sm text-text-soft">
