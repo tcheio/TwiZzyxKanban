@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { NotificationsService } from '../../services/platform/notifications.service';
 import { AppNotification } from '../../models/notification.model';
 import { startAutoRefresh } from '../auto-refresh';
+import { formatShortDateTime } from '../datetime';
 
 const NOTIFICATIONS_POLL_INTERVAL_MS = 30000;
 
@@ -59,12 +60,7 @@ export class NotificationsBell implements OnInit {
     }
   }
 
-  formatTime(dateStr: string): string {
-    const [datePart, timePart] = dateStr.split(' ');
-    const [year, month, day] = datePart.split('-');
-    const time = timePart ? timePart.slice(0, 5) : '';
-    return time ? `${day}/${month} à ${time}` : `${day}/${month}`;
-  }
+  readonly formatTime = formatShortDateTime;
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
