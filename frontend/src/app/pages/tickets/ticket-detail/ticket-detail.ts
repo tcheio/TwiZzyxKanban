@@ -42,6 +42,7 @@ import { AssignmentDialog } from '../assignment-dialog/assignment-dialog';
 import { CANCELLED_STATUS_ID, CANCELLED_STATUS_LABEL, cancelledTitleClass } from '../../../shared/ticket-status';
 import { PRIORITY_LABELS, PRIORITY_DOT_CLASSES } from '../../../shared/priority';
 import { startAutoRefresh } from '../../../shared/auto-refresh';
+import { formatDateTime } from '../../../shared/datetime';
 
 const PRIORITY_OPTIONS: SearchSelectOption<Priority>[] = (['low', 'medium', 'high'] as Priority[]).map((p) => ({
   id: p,
@@ -383,13 +384,7 @@ export class TicketDetail implements OnInit {
     }
   }
 
-  formatDateTime(dateStr: string): string {
-    const [datePart, timePart] = dateStr.split(' ');
-    if (!datePart) return dateStr;
-    const [year, month, day] = datePart.split('-');
-    const time = timePart ? timePart.slice(0, 5) : '';
-    return time ? `${day}-${month}-${year} à ${time}` : `${day}-${month}-${year}`;
-  }
+  readonly formatDateTime = formatDateTime;
 
   private async patch(partial: {
     title?: string;

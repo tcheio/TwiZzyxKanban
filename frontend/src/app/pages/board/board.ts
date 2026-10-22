@@ -25,6 +25,7 @@ import { epicBadgeClass } from '../../shared/epic-colors';
 import { tagBadgeClass } from '../../shared/tag-colors';
 import { priorityLabel, priorityDotClass } from '../../shared/priority';
 import { startAutoRefresh } from '../../shared/auto-refresh';
+import { parseUtcDateTime } from '../../shared/datetime';
 
 // Une colonne seule (group_key absent, ou ne correspondant à aucune autre colonne du
 // kanban) produit 1 lane ; des colonnes partageant la même group_key produisent autant
@@ -355,7 +356,7 @@ export class Board implements OnInit {
 
   private isVisibleInColumn(card: Card, column: Column): boolean {
     if (column.name !== PUBLISHED_COLUMN_NAME || !card.published_at) return true;
-    const ageDays = (Date.now() - new Date(card.published_at).getTime()) / MS_PER_DAY;
+    const ageDays = (Date.now() - parseUtcDateTime(card.published_at).getTime()) / MS_PER_DAY;
     return ageDays < PUBLISHED_RETENTION_DAYS;
   }
 
