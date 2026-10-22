@@ -11,6 +11,7 @@ import { GlobalSearch } from './shared/global-search/global-search';
 import { ThemeToggle } from './shared/theme-toggle/theme-toggle';
 import { NotificationsBell } from './shared/notifications-bell/notifications-bell';
 import { AnnouncementsBanner } from './shared/announcements-banner/announcements-banner';
+import { APP_VERSION } from './shared/version';
 
 @Component({
   selector: 'app-root',
@@ -24,6 +25,7 @@ export class App implements OnInit {
 
   readonly sidebarCollapsed = signal(false);
   readonly epicDotClass = epicDotClass;
+  readonly appVersion = APP_VERSION;
 
   readonly currentKanban = signal<Kanban | null>(null);
   readonly epics = signal<Epic[]>([]);
