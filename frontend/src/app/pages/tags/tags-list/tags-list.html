@@ -65,8 +65,12 @@
 
   @if (tags().length > 0) {
     <div class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface">
-      @for (tag of tags(); track tag.id) {
-        <div class="tag-row flex items-center gap-3 px-4 py-3 hover:bg-surface-alt" (click)="openTag(tag)">
+      @for (tag of sortedTags(); track tag.id) {
+        <div
+          class="tag-row flex items-center gap-3 px-4 py-3 hover:bg-surface-alt"
+          [class.opacity-50]="tag.archived"
+          (click)="openTag(tag)"
+        >
           @if (editingId() === tag.id) {
             <form class="edit-form flex flex-1 items-center gap-2" (ngSubmit)="saveEdit(tag)" (click)="$event.stopPropagation()">
               <label for="edit-tag-name-{{ tag.id }}" class="sr-only">Nom du tag</label>
@@ -112,11 +116,21 @@
               }
               {{ tag.name }}
             </span>
+            @if (tag.archived) {
+              <span class="rounded bg-surface-muted px-1.5 py-0.5 text-xs font-medium text-text-faint">Archivé</span>
+            }
             <span class="ticket-count ml-auto shrink-0 text-xs text-text-faint">{{ ticketCount(tag.id) }} ticket(s)</span>
             @if (canManage) {
               <div class="actions flex shrink-0 items-center gap-1" (click)="$event.stopPropagation()">
                 <button type="button" class="rounded px-2 py-1 text-xs text-text-muted hover:bg-surface-muted" (click)="startEdit(tag)">
                   Modifier
+                </button>
+                <button
+                  type="button"
+                  class="rounded px-2 py-1 text-xs text-text-muted hover:bg-surface-muted"
+                  (click)="toggleArchived(tag)"
+                >
+                  {{ tag.archived ? 'Réactiver' : 'Archiver' }}
                 </button>
                 <button type="button" class="rounded px-2 py-1 text-xs text-danger hover:bg-danger-soft" (click)="deleteTag(tag)">
                   Supprimer

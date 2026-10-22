@@ -32,6 +32,8 @@ import {
   applyRichTextCommand,
   openRichTextLinkOnClick,
   linkifyPastedUrl,
+  insertLinkAtCursor,
+  insertNodeAtCursor,
   RichTextCommand,
 } from '../../../shared/rich-text';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
@@ -97,7 +99,6 @@ export class TicketDetail implements OnInit {
   // descriptionHtml n'est modifié que par reload() (jamais par la saisie) pour que le
   // binding [innerHTML] ne réinitialise pas le curseur à chaque frappe.
   readonly descriptionHtml = signal('');
-  readonly descriptionDraftHtml = signal('');
   readonly descriptionEditing = signal(false);
   readonly newCommentDraftHtml = signal('');
   readonly cloneDialogOpen = signal(false);
@@ -131,9 +132,6 @@ export class TicketDetail implements OnInit {
       this.loading.set(true);
     }
     this.error.set(null);
-    // En rafraîchissement silencieux, si l'édition de la description est ouverte, on ne
-    // veut pas écraser la saisie de l'utilisateur.
-    const hasUnsavedDescription = options.silent && this.descriptionEditing();
     try {
       const [ticket, columns, users, tags, epics, comments, links, images, cards, assignees, assignmentHistory] =
         await Promise.all([
@@ -160,10 +158,10 @@ export class TicketDetail implements OnInit {
       this.cards.set(cards);
       this.assignees.set(assignees);
       this.assignmentHistory.set(assignmentHistory);
-      const hydratedDescription = hydrateCardImages(ticket.description ?? '', images);
-      this.descriptionHtml.set(hydratedDescription);
-      if (!hasUnsavedDescription) {
-        this.descriptionDraftHtml.set(hydratedDescription);
+      // En rafraîchissement silencieux, si l'édition de la description est ouverte, on ne
+      // veut pas écraser la saisie de l'utilisateur en cours.
+      if (!options.silent || !this.descriptionEditing()) {
+        this.descriptionHtml.set(hydrateCardImages(ticket.description ?? '', images));
       }
       this.titleService.setTitle(`${ticket.title} - TwiZzyxKanban`);
     } catch {
@@ -223,7 +221,12 @@ export class TicketDetail implements OnInit {
     const used = new Set([ticket.tag_id, ...(ticket.tag_ids ?? [])]);
     return this.tags()
       .filter((t) => !used.has(t.id))
-      .map((t) => ({ id: t.id, label: t.name, badgeClass: tagBadgeClass(t.color), iconUrl: t.emote_url }));
+      .map((t) => ({
+        id: t.id,
+        label: t.archived ? `${t.name} (archivé)` : t.name,
+        badgeClass: tagBadgeClass(t.color),
+        iconUrl: t.emote_url,
+      }));
   }
 
   // Point d'entrée unique du picker "+ Ajouter" : si le ticket n'a pas encore de tag
@@ -232,6 +235,7 @@ export class TicketDetail implements OnInit {
   // autres) alors que pour l'utilisateur il s'agit juste d'"ajouter un tag".
   async addTag(tagId: number | null): Promise<void> {
     if (tagId === null) return;
+    if (!(await this.confirmTagReactivationIfNeeded(tagId))) return;
     const ticket = this.ticket();
     if (!ticket) return;
     if (!ticket.tag_id) {
@@ -239,6 +243,23 @@ export class TicketDetail implements OnInit {
       return;
     }
     await this.addExtraTag(tagId);
+  }
+
+  // Un tag archivé reste choisissable (ex: tag d'un ticket cloné, ou choix explicite dans
+  // le groupe "archivés" du picker), mais on demande confirmation avant de le réactiver
+  // silencieusement pour tout le kanban.
+  private async confirmTagReactivationIfNeeded(tagId: number | null | undefined): Promise<boolean> {
+    const tag = tagId == null ? null : this.tags().find((t) => t.id === tagId);
+    if (!tag?.archived) return true;
+    if (!confirm(`Le tag "${tag.name}" est archivé. Le réactiver pour l'utiliser sur ce ticket ?`)) return false;
+    try {
+      await this.tagsService.update(this.kanbanId, tag.id, { archived: false });
+      this.tags.update((list) => list.map((t) => (t.id === tag.id ? { ...t, archived: false } : t)));
+      return true;
+    } catch {
+      this.error.set('Échec de la réactivation du tag.');
+      return false;
+    }
   }
 
   async addExtraTag(tagId: number | null): Promise<void> {
@@ -352,6 +373,7 @@ export class TicketDetail implements OnInit {
   }
 
   async createClone(input: CardInput): Promise<void> {
+    if (!(await this.confirmTagReactivationIfNeeded(input.tag_id))) return;
     try {
       const created = await this.cardsService.create(this.kanbanId, input);
       this.cloneDialogOpen.set(false);
@@ -508,31 +530,6 @@ export class TicketDetail implements OnInit {
     }
   }
 
-  // Noms des 2 états de la colonne courante du ticket, si elle est divisée (cf
-  // columns.state_a_name/state_b_name) ; null sinon.
-  currentColumnStates(): { a: string; b: string } | null {
-    const ticket = this.ticket();
-    if (!ticket) return null;
-    const column = this.columns().find((c) => c.id === ticket.column_id);
-    if (!column?.state_a_name || !column.state_b_name) return null;
-    return { a: column.state_a_name, b: column.state_b_name };
-  }
-
-  async updateCardState(state: 'a' | 'b'): Promise<void> {
-    const ticket = this.ticket();
-    if (!ticket || this.isPublished() || this.isCancelled() || ticket.state === state) return;
-    try {
-      const current = await this.cardsService.move(this.kanbanId, ticket.id, ticket.column_id, undefined, state);
-      this.ticket.set(current);
-    } catch {
-      this.error.set("Échec du changement d'état.");
-    }
-  }
-
-  onDescriptionInput(event: Event): void {
-    this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
-  }
-
   // Dans un `contenteditable`, un clic simple sur un lien place juste le curseur au lieu
   // de naviguer : on l'ouvre nous-mêmes dans un nouvel onglet.
   onEditableContentClick(event: MouseEvent): void {
@@ -540,15 +537,12 @@ export class TicketDetail implements OnInit {
   }
 
   async onDescriptionPaste(event: ClipboardEvent): Promise<void> {
-    const onInsert = () => this.descriptionDraftHtml.set((event.target as HTMLElement).innerHTML);
-    if (await this.handleImagePaste(event, onInsert)) return;
-    this.handleLinkPaste(event, onInsert);
+    await this.handlePaste(event);
   }
 
   // La description est en lecture seule par défaut (pour éviter toute modification
   // accidentelle) ; ces trois méthodes gèrent le bascule vers/depuis le mode édition.
   startEditingDescription(): void {
-    this.descriptionDraftHtml.set(this.descriptionHtml());
     this.descriptionEditing.set(true);
   }
 
@@ -557,7 +551,10 @@ export class TicketDetail implements OnInit {
   }
 
   async saveDescription(): Promise<void> {
-    const saved = await this.patch({ description: stripCardImageSrc(this.descriptionDraftHtml()) || null });
+    // Lit le DOM réel de l'éditeur : c'est ce qui est visiblement affiché à l'écran au
+    // moment d'enregistrer qui doit être sauvegardé, point final.
+    const html = this.descriptionEditorRef?.nativeElement.innerHTML ?? '';
+    const saved = await this.patch({ description: stripCardImageSrc(html) || null });
     if (!saved) return;
     const ticket = this.ticket();
     this.descriptionHtml.set(hydrateCardImages(ticket?.description ?? '', this.images()));
@@ -568,11 +565,15 @@ export class TicketDetail implements OnInit {
     const editor = this.descriptionEditorRef?.nativeElement;
     if (!editor) return;
     applyRichTextCommand(editor, command);
-    this.descriptionDraftHtml.set(editor.innerHTML);
   }
 
+  // Utilisé par le template (désactivation du bouton "Envoyer") : se base sur le signal,
+  // c'est le seul endroit où on en a besoin pour réagir à chaque frappe sans relire le DOM.
   hasCommentContent(): boolean {
-    const html = this.newCommentDraftHtml();
+    return this.hasCommentContentIn(this.newCommentDraftHtml());
+  }
+
+  private hasCommentContentIn(html: string): boolean {
     if (/<img[\s>]/i.test(html)) return true;
     const container = document.createElement('div');
     container.innerHTML = html;
@@ -592,8 +593,7 @@ export class TicketDetail implements OnInit {
 
   async onCommentPaste(event: ClipboardEvent): Promise<void> {
     const onInsert = () => this.newCommentDraftHtml.set((event.target as HTMLElement).innerHTML);
-    if (await this.handleImagePaste(event, onInsert)) return;
-    this.handleLinkPaste(event, onInsert);
+    await this.handlePaste(event, onInsert);
   }
 
   async onCommentImageSelected(event: Event): Promise<void> {
@@ -603,7 +603,7 @@ export class TicketDetail implements OnInit {
     if (!file) return;
     try {
       const image = await this.cardImagesService.upload(this.kanbanId, this.ticketId, file);
-      this.commentEditorRef?.nativeElement.insertAdjacentHTML('beforeend', this.imageTag(image));
+      this.commentEditorRef?.nativeElement.appendChild(this.imageNode(image));
       this.newCommentDraftHtml.set(this.commentEditorRef?.nativeElement.innerHTML ?? '');
       this.images.set(await this.cardImagesService.list(this.kanbanId, this.ticketId));
     } catch {
@@ -612,9 +612,13 @@ export class TicketDetail implements OnInit {
   }
 
   async addComment(): Promise<void> {
-    if (!this.hasCommentContent()) return;
+    // Même principe que saveDescription() : on lit le DOM réel de l'éditeur plutôt que
+    // le signal `newCommentDraftHtml`, pour ne jamais dépendre de la fraîcheur du dernier
+    // event input/paste reçu.
+    const html = this.commentEditorRef?.nativeElement.innerHTML ?? this.newCommentDraftHtml();
+    if (!this.hasCommentContentIn(html)) return;
     try {
-      await this.commentsService.create(this.kanbanId, this.ticketId, this.newCommentDraftHtml());
+      await this.commentsService.create(this.kanbanId, this.ticketId, html);
       this.newCommentDraftHtml.set('');
       // La zone de commentaire est un contenteditable "non contrôlé" : son contenu (texte
       // et images insérées) vit hors du binding Angular, donc on le vide directement dans
@@ -677,42 +681,65 @@ export class TicketDetail implements OnInit {
     }
   }
 
-  private imageTag(image: CardImage): string {
-    return `<img src="${image.data_url}" data-card-image-id="${image.id}" alt="" class="max-w-full rounded">`;
+  private imageNode(image: CardImage): HTMLImageElement {
+    const img = document.createElement('img');
+    img.src = image.data_url;
+    img.alt = '';
+    img.className = 'max-w-full rounded';
+    img.dataset['cardImageId'] = String(image.id);
+    return img;
   }
 
-  // Renvoie true si le collage a été pris en charge (image trouvée), pour que l'appelant
-  // sache qu'il ne doit pas retenter d'autres traitements (ex. auto-détection de lien).
-  private async handleImagePaste(event: ClipboardEvent, onInsert: () => void): Promise<boolean> {
+  // Pure et synchrone (aucun `await`) : juste détecter une image dans le presse-papiers,
+  // sans l'uploader. Sert à décider — et appeler event.preventDefault() — de façon
+  // synchrone dans handlePaste(), avant toute opération asynchrone. Un handler
+  // d'événement `async` ne bloque pas le navigateur : dès le premier `await` (même sur
+  // une valeur déjà résolue), la main est rendue et le collage par défaut du navigateur
+  // s'exécute si preventDefault() n'a pas déjà été appelé — ce qui, avant ce correctif,
+  // dupliquait/écrasait le contenu existant lors du collage d'un lien dans une
+  // description non vide.
+  private extractPastedImageFile(event: ClipboardEvent): File | null {
     const items = event.clipboardData?.items;
-    if (!items) return false;
+    if (!items) return null;
     const imageItem = Array.from(items).find((item) => item.type.startsWith('image/'));
-    if (!imageItem) return false;
-    const file = imageItem.getAsFile();
-    if (!file) return false;
-    event.preventDefault();
+    return imageItem?.getAsFile() ?? null;
+  }
+
+  private async uploadAndInsertImage(file: File, editor: HTMLElement, onInsert?: () => void): Promise<void> {
     try {
       const image = await this.cardImagesService.upload(this.kanbanId, this.ticketId, file);
-      document.execCommand('insertHTML', false, this.imageTag(image));
-      onInsert();
+      insertNodeAtCursor(editor, this.imageNode(image));
+      onInsert?.();
       this.images.set(await this.cardImagesService.list(this.kanbanId, this.ticketId));
     } catch {
       this.error.set("Échec de l'ajout de l'image.");
     }
-    return true;
+  }
+
+  // Décide de façon synchrone (image collée ou non) et appelle event.preventDefault()
+  // avant toute opération asynchrone (cf commentaire d'extractPastedImageFile) ; seul
+  // l'upload proprement dit, une fois la décision prise, est asynchrone.
+  private async handlePaste(event: ClipboardEvent, onInsert?: () => void): Promise<void> {
+    const imageFile = this.extractPastedImageFile(event);
+    if (imageFile) {
+      event.preventDefault();
+      await this.uploadAndInsertImage(imageFile, event.target as HTMLElement, onInsert);
+      return;
+    }
+    this.handleLinkPaste(event, onInsert);
   }
 
   // Si le texte collé est entièrement une URL, on l'insère directement comme lien cliquable
   // plutôt qu'en texte brut. Renvoie true si pris en charge (sinon le collage par défaut du
   // navigateur suit son cours, ex. pour un texte enrichi copié depuis une autre page).
-  private handleLinkPaste(event: ClipboardEvent, onInsert: () => void): boolean {
+  private handleLinkPaste(event: ClipboardEvent, onInsert?: () => void): boolean {
     const text = event.clipboardData?.getData?.('text/plain');
     if (!text) return false;
-    const linkHtml = linkifyPastedUrl(text);
-    if (!linkHtml) return false;
+    const link = linkifyPastedUrl(text);
+    if (!link) return false;
     event.preventDefault();
-    document.execCommand('insertHTML', false, linkHtml);
-    onInsert();
+    insertLinkAtCursor(event.target as HTMLElement, link);
+    onInsert?.();
     return true;
   }
 

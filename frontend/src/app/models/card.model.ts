@@ -13,7 +13,6 @@ export interface Card {
   assignee_ids?: number[];
   priority: Priority;
   column_id: number;
-  state?: 'a' | 'b' | null;
   position: number;
   due_date: string | null;
   published_at?: string | null;

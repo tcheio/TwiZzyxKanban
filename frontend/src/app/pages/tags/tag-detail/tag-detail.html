@@ -19,7 +19,32 @@
         }
         {{ t.name }}
       </span>
-      <span class="text-sm text-text-faint">{{ tickets().length }} ticket(s)</span>
+      @if (t.archived) {
+        <span class="rounded bg-surface-muted px-2 py-0.5 text-xs font-medium text-text-faint">Archivé</span>
+      }
+      <span class="text-sm text-text-faint">{{ filteredTickets().length }} ticket(s)</span>
+      @if (canManage && t.archived) {
+        <button
+          type="button"
+          class="unarchive-btn ml-auto rounded-md border border-border-strong px-3 py-1.5 text-sm text-text-soft hover:bg-surface-alt"
+          (click)="unarchiveTag()"
+        >
+          Désarchiver
+        </button>
+      }
+    </div>
+
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+      <app-period-filter [from]="periodFrom()" [to]="periodTo()" (fromChange)="periodFrom.set($event)" (toChange)="periodTo.set($event)" />
+      <label class="inline-flex cursor-pointer items-center gap-2 text-xs text-text-muted">
+        <input
+          type="checkbox"
+          class="h-4 w-4 accent-brand"
+          [checked]="excludeIdea()"
+          (change)="excludeIdea.set($any($event.target).checked)"
+        />
+        Exclure les tickets en Idée
+      </label>
     </div>
 
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -33,8 +58,36 @@
       </div>
     </div>
 
-    @if (tickets().length === 0) {
-      <p class="text-sm text-text-muted">Aucun ticket avec ce tag.</p>
+    @if (userStats().length > 0) {
+      <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Stats par responsable</h2>
+      <div class="mb-6 overflow-hidden rounded-lg border border-border bg-surface">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
+              <th class="px-4 py-2.5">Membre</th>
+              <th class="px-4 py-2.5">Terminés</th>
+              <th class="px-4 py-2.5">Dans les temps</th>
+              <th class="px-4 py-2.5">Avance / retard moyen</th>
+              <th class="px-4 py-2.5">Charge actuelle</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            @for (stat of userStats(); track stat.user_id) {
+              <tr>
+                <td class="px-4 py-2.5 font-medium text-text">{{ stat.username }}</td>
+                <td class="px-4 py-2.5">{{ stat.completed_count }}</td>
+                <td class="px-4 py-2.5">{{ onTimeRateLabel(stat) }}</td>
+                <td class="px-4 py-2.5">{{ leadLabel(stat) }}</td>
+                <td class="px-4 py-2.5">{{ stat.current_workload }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    @if (filteredTickets().length === 0) {
+      <p class="text-sm text-text-muted">Aucun ticket avec ce tag sur cette période.</p>
     } @else {
       <div class="overflow-hidden rounded-lg border border-border bg-surface">
         <table class="w-full text-sm">
@@ -47,7 +100,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            @for (ticket of tickets(); track ticket.id) {
+            @for (ticket of filteredTickets(); track ticket.id) {
               <tr class="cursor-pointer hover:bg-surface-alt" (click)="openTicket(ticket)">
                 <td class="px-4 py-2.5 font-medium" [class]="cancelledTitleClass(ticket.cancelled_at)">
                   {{ ticket.title }}

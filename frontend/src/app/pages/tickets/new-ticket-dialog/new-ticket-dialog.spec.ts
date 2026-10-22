@@ -13,8 +13,8 @@ describe('NewTicketDialog', () => {
   ];
   const users = [{ id: 1, username: 'alice' }];
   const tags = [
-    { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true },
-    { id: 2, name: 'Pokémon', color: 'red', emote_url: null, visible_in_filter: true },
+    { id: 1, name: 'Minecraft', color: 'emerald', emote_url: null, visible_in_filter: true, archived: false },
+    { id: 2, name: 'Pokémon', color: 'red', emote_url: null, visible_in_filter: true, archived: false },
   ];
   const epics = [
     { id: 1, name: 'TwiZzyx', color: 'red', emote_url: null, visible_in_filter: true },
@@ -148,5 +148,19 @@ describe('NewTicketDialog', () => {
     component.submit();
 
     expect(emitted!.cloned_from_id).toBe(7);
+  });
+
+  it('les tags archivés ne sont jamais proposés à la création (exclus du select)', () => {
+    configure();
+    component.tags = [
+      ...tags,
+      { id: 3, name: 'Fortnite', color: 'violet', emote_url: null, visible_in_filter: true, archived: true },
+    ];
+    fixture.detectChanges();
+
+    expect(component.activeTags().map((t) => t.id)).toEqual([1, 2]);
+
+    const select = (fixture.nativeElement as HTMLElement).querySelector('#new-ticket-tag')!;
+    expect(select.textContent).not.toContain('Fortnite');
   });
 });

@@ -51,6 +51,12 @@ export class NewTicketDialog implements OnInit {
     }
   }
 
+  // Les tags archivés ne sont jamais proposés à la création d'un ticket (réactivation
+  // uniquement via la page du tag, ou en le choisissant sur un ticket existant).
+  activeTags(): Tag[] {
+    return this.tags.filter((t) => !t.archived);
+  }
+
   submit(): void {
     if (this.form.invalid) return;
     const raw = this.form.getRawValue();

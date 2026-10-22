@@ -93,6 +93,79 @@ test('PATCH change visible_in_filter', async () => {
   assert.equal(refetched.body.find((t) => t.id === id).visible_in_filter, false);
 });
 
+test('POST sans archived le laisse non archivé (false) par défaut', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/tags`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'One Piece' });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.archived, false);
+});
+
+test('POST avec archived: true crée un tag archivé', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/tags`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'One Piece', archived: true });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.archived, true);
+});
+
+test('POST avec archived non booléen retourne 400', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/tags`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ name: 'One Piece', archived: 'yes' });
+  assert.equal(res.status, 400);
+});
+
+test('PATCH change archived (archive puis réactive un tag)', async () => {
+  const list = await request(app).get(`/api/kanbans/${kanbanId}/tags`).set('Authorization', `Bearer ${adminToken}`);
+  const id = list.body[0].id;
+  assert.equal(list.body[0].archived, false);
+
+  const archived = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/tags/${id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ archived: true });
+  assert.equal(archived.status, 200);
+  assert.equal(archived.body.archived, true);
+
+  const reactivated = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/tags/${id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ archived: false });
+  assert.equal(reactivated.status, 200);
+  assert.equal(reactivated.body.archived, false);
+});
+
+test('PATCH avec archived non booléen retourne 400', async () => {
+  const list = await request(app).get(`/api/kanbans/${kanbanId}/tags`).set('Authorization', `Bearer ${adminToken}`);
+  const id = list.body[0].id;
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanbanId}/tags/${id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ archived: 'yes' });
+  assert.equal(res.status, 400);
+});
+
+test("un tag archivé reste assignable à une carte (pas de blocage)", async () => {
+  const list = await request(app).get(`/api/kanbans/${kanbanId}/tags`).set('Authorization', `Bearer ${adminToken}`);
+  const tagId = list.body[0].id;
+  await request(app)
+    .patch(`/api/kanbans/${kanbanId}/tags/${tagId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ archived: true });
+  const columns = await request(app).get(`/api/kanbans/${kanbanId}/columns`).set('Authorization', `Bearer ${adminToken}`);
+
+  const card = await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ title: 'Vidéo', column_id: columns.body[0].id, tag_id: tagId });
+  assert.equal(card.status, 201);
+  assert.equal(card.body.tag_id, tagId);
+});
+
 test('POST sans couleur utilise gray par défaut', async () => {
   const res = await request(app)
     .post(`/api/kanbans/${kanbanId}/tags`)

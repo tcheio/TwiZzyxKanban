@@ -3,11 +3,11 @@ const { sanitizeRichText } = require('../utils/rich-text');
 const {
   PUBLISHED_COLUMN_NAME,
   isPublishedColumn,
-  columnStateLabel,
   withKey,
   EXTRA_RELATIONS_SUBQUERY,
   mapCardRelations,
   fetchCardWithRelations,
+  logColumnEntry,
 } = require('../utils/card-status');
 const { notifyWatchersAndTargets, notifyModerators } = require('../utils/notify');
 const { isKanbanModerator, canViewCard, canChangeCardStatus } = require('../utils/kanban-access');
@@ -48,7 +48,6 @@ function getOne(req, res) {
 function create(req, res) {
   const { title, description, assigned_user_id, priority, column_id, tag_id, epic_id, due_date, cloned_from_id } =
     req.body || {};
-  let { state } = req.body || {};
 
   if (!title || !column_id) {
     return res.status(400).json({ error: 'title et column_id requis' });
@@ -56,19 +55,11 @@ function create(req, res) {
   if (priority && !VALID_PRIORITIES.includes(priority)) {
     return res.status(400).json({ error: `priority doit être l'un de: ${VALID_PRIORITIES.join(', ')}` });
   }
-  if (state !== undefined && state !== null && !['a', 'b'].includes(state)) {
-    return res.status(400).json({ error: "state doit être 'a' ou 'b'" });
-  }
 
-  const column = db
-    .prepare('SELECT id, state_a_name FROM columns WHERE id = ? AND kanban_id = ?')
-    .get(column_id, req.kanbanId);
+  const column = db.prepare('SELECT id FROM columns WHERE id = ? AND kanban_id = ?').get(column_id, req.kanbanId);
   if (!column) {
     return res.status(400).json({ error: 'column_id invalide' });
   }
-  // L'état n'a de sens que si la colonne est divisée en 2 : on force 'a' par défaut si
-  // elle l'est et qu'aucun état n'est fourni, et on ignore toute valeur sinon.
-  state = column.state_a_name ? state || 'a' : null;
   if (tag_id) {
     const tag = db.prepare('SELECT id FROM tags WHERE id = ? AND kanban_id = ?').get(tag_id, req.kanbanId);
     if (!tag) {
@@ -89,15 +80,15 @@ function create(req, res) {
   }
 
   const maxPosition = db
-    .prepare("SELECT COALESCE(MAX(position), -1) AS maxPos FROM cards WHERE column_id = ? AND COALESCE(state,'') = COALESCE(?, '')")
-    .get(column_id, state).maxPos;
+    .prepare('SELECT COALESCE(MAX(position), -1) AS maxPos FROM cards WHERE column_id = ?')
+    .get(column_id).maxPos;
 
   const publishedAt = isPublishedColumn(column_id) ? new Date().toISOString() : null;
 
   const result = db
     .prepare(
-      `INSERT INTO cards (kanban_id, title, description, assigned_user_id, priority, column_id, tag_id, epic_id, cloned_from_id, position, state, due_date, published_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO cards (kanban_id, title, description, assigned_user_id, priority, column_id, tag_id, epic_id, cloned_from_id, position, due_date, published_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       req.kanbanId,
@@ -110,10 +101,11 @@ function create(req, res) {
       epic_id || null,
       cloned_from_id || null,
       maxPosition + 1,
-      state,
       due_date || null,
       publishedAt
     );
+
+  logColumnEntry(result.lastInsertRowid, column_id);
 
   const card = fetchCardWithRelations(result.lastInsertRowid);
   res.status(201).json(withKey(card, req.kanbanCode));
@@ -185,7 +177,7 @@ function remove(req, res) {
 function move(req, res) {
   const id = Number(req.params.id);
   const { columnId } = req.body || {};
-  let { position, state } = req.body || {};
+  let { position } = req.body || {};
 
   const card = db.prepare('SELECT * FROM cards WHERE id = ? AND kanban_id = ?').get(id, req.kanbanId);
   if (!card) {
@@ -198,13 +190,8 @@ function move(req, res) {
   if (columnId === undefined) {
     return res.status(400).json({ error: 'columnId requis' });
   }
-  if (state !== undefined && state !== null && !['a', 'b'].includes(state)) {
-    return res.status(400).json({ error: "state doit être 'a' ou 'b'" });
-  }
 
-  const targetColumn = db
-    .prepare('SELECT id, name, state_a_name, state_b_name FROM columns WHERE id = ? AND kanban_id = ?')
-    .get(columnId, req.kanbanId);
+  const targetColumn = db.prepare('SELECT id, name FROM columns WHERE id = ? AND kanban_id = ?').get(columnId, req.kanbanId);
   if (!targetColumn) {
     return res.status(400).json({ error: 'columnId invalide' });
   }
@@ -213,69 +200,61 @@ function move(req, res) {
     return res.status(400).json({ error: 'Un ticket publié ne peut plus être déplacé vers une autre colonne.' });
   }
 
-  // L'état n'a de sens que si la colonne cible est divisée en 2 : on le force à null
-  // sinon. S'il n'est pas fourni, on garde l'état courant si on reste dans la même
-  // colonne (simple réordonnancement), ou on retombe sur le premier état en arrivant
-  // d'ailleurs.
-  if (!targetColumn.state_a_name) {
-    state = null;
-  } else if (state === undefined) {
-    state = columnId === card.column_id ? card.state || 'a' : 'a';
-  }
-
-  // "Partition" = la liste au sein de laquelle les positions sont contiguës : la colonne
-  // seule si elle n'est pas divisée, la colonne + l'état sinon.
-  const samePartition = columnId === card.column_id && (card.state ?? null) === (state ?? null);
+  const samePartition = columnId === card.column_id;
 
   if (position === undefined) {
     // Pas de position explicite (ex: changement de statut hors drag&drop) : on ajoute en fin de la liste cible
-    const countInTarget = db
-      .prepare("SELECT COUNT(*) AS count FROM cards WHERE column_id = ? AND COALESCE(state,'') = COALESCE(?, '')")
-      .get(columnId, state).count;
+    const countInTarget = db.prepare('SELECT COUNT(*) AS count FROM cards WHERE column_id = ?').get(columnId).count;
     position = samePartition ? Math.max(countInTarget - 1, 0) : countInTarget;
   }
 
   const moveTx = db.transaction(() => {
     if (samePartition) {
-      // Déplacement au sein de la même liste : ne décaler que la plage traversée
+      // Déplacement au sein de la même colonne : ne décaler que la plage traversée
       if (position > card.position) {
         db.prepare(
-          "UPDATE cards SET position = position - 1 WHERE column_id = ? AND COALESCE(state,'') = COALESCE(?, '') AND position > ? AND position <= ?"
-        ).run(columnId, state, card.position, position);
+          'UPDATE cards SET position = position - 1 WHERE column_id = ? AND position > ? AND position <= ?'
+        ).run(columnId, card.position, position);
       } else if (position < card.position) {
         db.prepare(
-          "UPDATE cards SET position = position + 1 WHERE column_id = ? AND COALESCE(state,'') = COALESCE(?, '') AND position >= ? AND position < ?"
-        ).run(columnId, state, position, card.position);
+          'UPDATE cards SET position = position + 1 WHERE column_id = ? AND position >= ? AND position < ?'
+        ).run(columnId, position, card.position);
       }
     } else {
-      // Referme l'espace laissé dans la liste de départ
-      db.prepare(
-        "UPDATE cards SET position = position - 1 WHERE column_id = ? AND COALESCE(state,'') = COALESCE(?, '') AND position > ?"
-      ).run(card.column_id, card.state, card.position);
+      // Referme l'espace laissé dans la colonne de départ
+      db.prepare('UPDATE cards SET position = position - 1 WHERE column_id = ? AND position > ?').run(
+        card.column_id,
+        card.position
+      );
 
-      // Ouvre un espace dans la liste d'arrivée
-      db.prepare(
-        "UPDATE cards SET position = position + 1 WHERE column_id = ? AND COALESCE(state,'') = COALESCE(?, '') AND position >= ?"
-      ).run(columnId, state, position);
+      // Ouvre un espace dans la colonne d'arrivée
+      db.prepare('UPDATE cards SET position = position + 1 WHERE column_id = ? AND position >= ?').run(
+        columnId,
+        position
+      );
     }
 
     if (columnId !== card.column_id && targetColumn.name === PUBLISHED_COLUMN_NAME) {
       db.prepare(
-        `UPDATE cards SET column_id = ?, state = ?, position = ?, published_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`
-      ).run(columnId, state, position, id);
+        `UPDATE cards SET column_id = ?, position = ?, published_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`
+      ).run(columnId, position, id);
     } else {
-      db.prepare(
-        `UPDATE cards SET column_id = ?, state = ?, position = ?, updated_at = datetime('now') WHERE id = ?`
-      ).run(columnId, state, position, id);
+      db.prepare(`UPDATE cards SET column_id = ?, position = ?, updated_at = datetime('now') WHERE id = ?`).run(
+        columnId,
+        position,
+        id
+      );
+    }
+
+    if (columnId !== card.column_id) {
+      logColumnEntry(id, columnId);
     }
   });
   moveTx();
 
   if (!samePartition) {
-    const previousColumn = db
-      .prepare('SELECT name, state_a_name, state_b_name FROM columns WHERE id = ?')
-      .get(card.column_id);
-    const message = `${req.user.username} a déplacé le ticket « ${card.title} » de « ${columnStateLabel(previousColumn, card.state)} » vers « ${columnStateLabel(targetColumn, state)} »`;
+    const previousColumn = db.prepare('SELECT name FROM columns WHERE id = ?').get(card.column_id);
+    const message = `${req.user.username} a déplacé le ticket « ${card.title} » de « ${previousColumn?.name ?? '—'} » vers « ${targetColumn.name} »`;
     notifyWatchersAndTargets(id, {
       kanbanId: req.kanbanId,
       actorUserId: req.user.id,

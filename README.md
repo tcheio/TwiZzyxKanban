@@ -61,10 +61,13 @@ Au premier démarrage, le backend crée automatiquement :
 ## Fonctionnalités
 
 - Connexion par identifiants (JWT)
+- **Page d'accueil "Mes tickets"** : tous les tickets dont on est responsable (principal ou
+  additionnel), tous kanbans confondus, triés par échéance (temps restant/retard affiché), en plus
+  de la liste des kanbans
 - **Multi-kanban** : plusieurs tableaux indépendants, chacun avec ses propres membres, colonnes,
   tags et EPICs, et un rôle modérateur dédié par kanban (en plus des rôles globaux Admin /
   Utilisateur). Création à partir d'un **template** : `video` (colonnes de production standard),
-  `video_derush` (identique, avec la colonne Montage déjà divisée en Derush/Montage) ou `basique`
+  `video_derush` (identique, avec une colonne Derush déjà imbriquée juste avant Montage) ou `basique`
   (À faire / En cours / Fait)
 - Tableau Kanban avec colonnes personnalisables (ajout, renommage, suppression, réordonnancement)
   et glisser-déposer des cartes (Angular CDK), avec filtres combinables (responsable, tag, EPIC,
@@ -72,9 +75,9 @@ Au premier démarrage, le backend crée automatiquement :
 - **Colonnes restreintes** : une colonne peut être marquée visible uniquement par les modérateurs
   du kanban et les responsables des tickets qu'elle contient (ex: la colonne "Idées", restreinte
   par défaut dans les templates vidéo)
-- **Colonnes divisées en 2 états** : n'importe quelle colonne peut être scindée en 2 sous-listes
-  nommées (ex: "Derush" / "Montage"), affichées comme 2 mini-colonnes empilées à l'intérieur d'une
-  seule colonne, avec leur propre ordre de cartes
+- **Colonnes imbriquées** : n'importe quelles colonnes peuvent être affichées imbriquées ensemble
+  dans un seul emplacement du tableau (ex: "Derush" / "Montage"), tout en restant chacune une vraie
+  colonne indépendante (statut sélectionnable, cartes, ordre propre)
 - **Déplacement de ticket restreint** : changer le statut d'un ticket (colonne, état, annulation)
   est réservé aux modérateurs du kanban et aux responsables du ticket ; un changement fait par un
   responsable non modérateur notifie automatiquement les modérateurs
@@ -94,6 +97,13 @@ Au premier démarrage, le backend crée automatiquement :
 - **Annonces** : bandeau d'avertissement dans la navbar, gérable sans coder (page "Annonces",
   réservée aux admins), scopé à toute l'application ou à un kanban précis
 - Pages d'administration : gestion des comptes utilisateurs et des annonces (réservées aux admins)
+- **Statistiques** analysables sur une période choisie (filtre par date, avec raccourcis 7/30/90
+  jours) : répartition par statut/priorité sur les pages Tag/EPIC, et à l'échelle du kanban
+  (page Paramètres du tableau) le temps moyen passé dans chaque colonne et, par responsable, le
+  nombre de tickets terminés, le taux de respect des échéances, l'avance/retard moyen sur
+  l'échéance et la charge actuelle. Les mouvements de colonne sont historisés à partir de leur
+  premier déplacement après l'activation de cette fonctionnalité (pas de reconstitution
+  rétroactive de l'historique déjà passé)
 
 ## Structure du projet
 

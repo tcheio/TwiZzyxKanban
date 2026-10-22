@@ -16,10 +16,13 @@ import { StatusChip } from '../../../shared/status-chip/status-chip';
 import { cancelledTitleClass } from '../../../shared/ticket-status';
 import { PRIORITY_LABELS, priorityLabel, priorityDotClass } from '../../../shared/priority';
 import { startAutoRefresh } from '../../../shared/auto-refresh';
+import { PeriodFilter } from '../../../shared/period-filter/period-filter';
+import { inPeriod } from '../../../shared/period';
+import { computeUserStats, onTimeRateLabel, leadLabel } from '../../../shared/user-stats';
 
 @Component({
   selector: 'app-epic-detail',
-  imports: [RouterLink, ChartComponent, StatusChip],
+  imports: [RouterLink, ChartComponent, StatusChip, PeriodFilter],
   templateUrl: './epic-detail.html',
 })
 export class EpicDetail implements OnInit {
@@ -42,9 +45,21 @@ export class EpicDetail implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
+  // Période d'analyse (filtre sur la date de création du ticket) : null des deux côtés =
+  // pas de filtre, tout l'historique.
+  readonly periodFrom = signal<string | null>(null);
+  readonly periodTo = signal<string | null>(null);
+
+  readonly filteredTickets = computed(() => {
+    const from = this.periodFrom();
+    const to = this.periodTo();
+    if (!from && !to) return this.tickets();
+    return this.tickets().filter((t) => inPeriod(t.created_at, from, to));
+  });
+
   readonly statusChart = computed(() => {
     const columns = this.columns();
-    const tickets = this.tickets();
+    const tickets = this.filteredTickets();
     return {
       labels: columns.map((c) => c.name),
       data: columns.map((c) => tickets.filter((t) => t.column_id === c.id).length),
@@ -52,13 +67,17 @@ export class EpicDetail implements OnInit {
   });
 
   readonly priorityChart = computed(() => {
-    const tickets = this.tickets();
+    const tickets = this.filteredTickets();
     const priorities: Priority[] = ['low', 'medium', 'high'];
     return {
       labels: priorities.map((p) => PRIORITY_LABELS[p]),
       data: priorities.map((p) => tickets.filter((t) => t.priority === p).length),
     };
   });
+
+  readonly userStats = computed(() => computeUserStats(this.filteredTickets(), this.users(), this.columns()));
+  readonly onTimeRateLabel = onTimeRateLabel;
+  readonly leadLabel = leadLabel;
 
   private epicId = Number(this.route.snapshot.paramMap.get('id'));
 

@@ -26,7 +26,6 @@ function addMissingCardColumns(cardColumns) {
     ['cloned_from_id', 'INTEGER REFERENCES cards(id) ON DELETE SET NULL'],
     ['due_date', 'TEXT'],
     ['published_at', 'TEXT'],
-    ['state', "TEXT CHECK(state IN ('a','b'))"],
   ];
   const existingNames = new Set(cardColumns.map((col) => col.name));
   columnsToAdd
@@ -67,6 +66,12 @@ function addVisibleInFilterColumn(tableName) {
   db.exec(`ALTER TABLE ${tableName} ADD COLUMN visible_in_filter INTEGER NOT NULL DEFAULT 1`);
 }
 
+function addArchivedColumn() {
+  const columns = db.prepare('PRAGMA table_info(tags)').all();
+  if (columns.some((col) => col.name === 'archived')) return;
+  db.exec('ALTER TABLE tags ADD COLUMN archived INTEGER NOT NULL DEFAULT 0');
+}
+
 // Colonne ajoutée après coup : les bases déjà existantes ont une colonne "💡Idées" qui
 // n'avait jamais été restreinte. On la bascule en restreinte dès l'ajout de la colonne
 // (une seule fois, puisque l'ALTER TABLE ne se produit qu'une fois par base) pour que le
@@ -79,14 +84,69 @@ function addRestrictedColumn() {
   db.prepare("UPDATE columns SET restricted = 1 WHERE name = '💡Idées'").run();
 }
 
-// Colonnes pour diviser une colonne en 2 états affichés comme 2 sous-listes (cf
-// cards.state) — NULL par défaut, donc aucun effet sur les bases existantes.
-function addColumnStatesColumns() {
+// Colonne permettant d'imbriquer 2+ colonnes (même kanban) dans un seul emplacement du
+// tableau — NULL par défaut, donc aucun effet sur les bases existantes.
+function addColumnGroupKeyColumn() {
   const columns = db.prepare('PRAGMA table_info(columns)').all();
-  if (columns.some((col) => col.name === 'state_a_name')) return;
+  if (columns.some((col) => col.name === 'group_key')) return;
+  db.exec('ALTER TABLE columns ADD COLUMN group_key TEXT');
+}
 
-  db.exec('ALTER TABLE columns ADD COLUMN state_a_name TEXT');
-  db.exec('ALTER TABLE columns ADD COLUMN state_b_name TEXT');
+// Migration historique : l'ancien mécanisme de "colonne divisée en 2 états" (ex: la
+// colonne "🎬Montage" avec state_a_name="Derush"/state_b_name="Montage", et les cartes
+// taguées via cards.state) devient 2 VRAIES colonnes indépendantes (statut sélectionnable
+// normalement, visibles dans les notifications/filtres...), simplement affichées
+// imbriquées l'une avec l'autre via group_key. Chaque colonne encore divisée (état
+// state_a_name non NULL) donne naissance à une nouvelle colonne "état A" insérée juste
+// avant elle (qui prend son ancienne position), la colonne existante étant renommée en
+// l'"état B" et gardant son id (donc son historique/ses notifications restent cohérents) —
+// son ancien nom de colonne (jamais affiché tant qu'elle était divisée) est perdu. Les
+// cartes en état 'a' (ou sans état, cf cas limite déjà géré par board.ts côté lecture)
+// migrent vers la nouvelle colonne ; celles en état 'b' restent sur place. No-op si déjà
+// migré (state_a_name n'existe plus).
+function migrateSplitColumnsToGroupedColumns() {
+  const columns = db.prepare('PRAGMA table_info(columns)').all();
+  if (!columns.some((col) => col.name === 'state_a_name')) return;
+
+  const splitColumns = db.prepare('SELECT * FROM columns WHERE state_a_name IS NOT NULL').all();
+  const shiftPositions = db.prepare(
+    'UPDATE columns SET position = position + 1 WHERE kanban_id = ? AND position >= ?'
+  );
+  const insertColumn = db.prepare(
+    'INSERT INTO columns (kanban_id, name, position, restricted, group_key) VALUES (?, ?, ?, ?, ?)'
+  );
+  const groupExistingColumn = db.prepare(
+    'UPDATE columns SET name = ?, group_key = ?, state_a_name = NULL, state_b_name = NULL WHERE id = ?'
+  );
+  const moveStateACards = db.prepare(
+    "UPDATE cards SET column_id = ?, state = NULL WHERE column_id = ? AND (state IS NULL OR state = 'a')"
+  );
+  const clearRemainingState = db.prepare('UPDATE cards SET state = NULL WHERE column_id = ?');
+
+  const migrateColumn = db.transaction((column) => {
+    const groupKey = `split-${column.id}`;
+    shiftPositions.run(column.kanban_id, column.position);
+    const newColumnId = insertColumn.run(
+      column.kanban_id,
+      column.state_a_name,
+      column.position,
+      column.restricted,
+      groupKey
+    ).lastInsertRowid;
+    groupExistingColumn.run(column.state_b_name, groupKey, column.id);
+    moveStateACards.run(newColumnId, column.id);
+    clearRemainingState.run(column.id);
+  });
+  splitColumns.forEach(migrateColumn);
+
+  db.exec('ALTER TABLE columns DROP COLUMN state_a_name');
+  db.exec('ALTER TABLE columns DROP COLUMN state_b_name');
+}
+
+function dropCardStateColumn() {
+  const cardColumns = db.prepare('PRAGMA table_info(cards)').all();
+  if (!cardColumns.some((col) => col.name === 'state')) return;
+  db.exec('ALTER TABLE cards DROP COLUMN state');
 }
 
 function addKanbanIdColumn(tableName) {
@@ -201,10 +261,13 @@ function migrate() {
   addEmoteUrlColumn('epics');
   addVisibleInFilterColumn('tags');
   addVisibleInFilterColumn('epics');
+  addArchivedColumn();
 
   renameLegacyColumnNames();
   addRestrictedColumn();
-  addColumnStatesColumns();
+  addColumnGroupKeyColumn();
+  migrateSplitColumnsToGroupedColumns();
+  dropCardStateColumn();
   migrateChannelToEpic(cardColumns);
   adoptLegacyBoardIfNeeded();
   ensureDefaultAdmin();

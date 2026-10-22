@@ -9,26 +9,29 @@ function isPublishedColumn(columnId) {
   return column?.name === PUBLISHED_COLUMN_NAME;
 }
 
-// Nom de colonne complété par le nom de l'état (ex: "🎬Montage (Derush)") quand la
-// colonne est divisée en 2 états (cf columns.state_a_name/state_b_name) et que la carte
-// est dans l'un d'eux ; sinon simplement le nom de la colonne.
-function columnStateLabel(column, state) {
-  if (!column) return '—';
-  if (state === 'a' && column.state_a_name) return `${column.name} (${column.state_a_name})`;
-  if (state === 'b' && column.state_b_name) return `${column.name} (${column.state_b_name})`;
-  return column.name;
-}
-
 function statusLabelFor(card) {
   if (card.cancelled_at) return CANCELLED_STATUS_LABEL;
-  const column = db
-    .prepare('SELECT name, state_a_name, state_b_name FROM columns WHERE id = ?')
-    .get(card.column_id);
-  return columnStateLabel(column, card.state);
+  const column = db.prepare('SELECT name FROM columns WHERE id = ?').get(card.column_id);
+  return column?.name ?? '—';
 }
 
 function withKey(card, kanbanCode) {
   return { ...card, key: `${kanbanCode}-${card.id}` };
+}
+
+// Journalise l'entrée d'une carte dans une colonne (création, ou changement de colonne —
+// jamais un simple réordonnancement) pour les statistiques de temps passé par colonne
+// (cf utils/stats.js). `enteredAt` optionnel sert aux tests pour forcer une date précise.
+function logColumnEntry(cardId, columnId, enteredAt) {
+  if (enteredAt) {
+    db.prepare('INSERT INTO card_column_history (card_id, column_id, entered_at) VALUES (?, ?, ?)').run(
+      cardId,
+      columnId,
+      enteredAt
+    );
+  } else {
+    db.prepare('INSERT INTO card_column_history (card_id, column_id) VALUES (?, ?)').run(cardId, columnId);
+  }
 }
 
 // Les tags/responsables additionnels (card_tags / card_assignees) sont ramenés en
@@ -60,10 +63,10 @@ module.exports = {
   PUBLISHED_COLUMN_NAME,
   CANCELLED_STATUS_LABEL,
   isPublishedColumn,
-  columnStateLabel,
   statusLabelFor,
   withKey,
   EXTRA_RELATIONS_SUBQUERY,
   mapCardRelations,
   fetchCardWithRelations,
+  logColumnEntry,
 };

@@ -53,6 +53,7 @@ describe('TicketDetail', () => {
     remove: ReturnType<typeof vi.fn>;
   };
   let columnsService: { list: ReturnType<typeof vi.fn> };
+  let tagsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   let navigate: ReturnType<typeof vi.fn>;
   let currentUser: ReturnType<typeof vi.fn>;
 
@@ -122,13 +123,14 @@ describe('TicketDetail', () => {
       remove: vi.fn().mockResolvedValue(undefined),
     };
     columnsService = { list: vi.fn().mockResolvedValue(columns) };
+    tagsService = { list: vi.fn().mockResolvedValue(tags), update: vi.fn().mockResolvedValue({}) };
 
     TestBed.configureTestingModule({
       providers: [
         { provide: CardsService, useValue: cardsService },
         { provide: ColumnsService, useValue: columnsService },
         { provide: UsersService, useValue: { liteForKanban: vi.fn().mockResolvedValue(users) } },
-        { provide: TagsService, useValue: { list: vi.fn().mockResolvedValue(tags) } },
+        { provide: TagsService, useValue: tagsService },
         { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue([]) } },
         { provide: CommentsService, useValue: commentsService },
         { provide: CardLinksService, useValue: cardLinksService },
@@ -161,7 +163,6 @@ describe('TicketDetail', () => {
     expect(component.tags()).toEqual(tags);
     expect(component.comments()).toEqual(comments);
     expect(component.descriptionHtml()).toBe('Notes existantes');
-    expect(component.descriptionDraftHtml()).toBe('Notes existantes');
   });
 
   it('primaryTag() résout le tag principal depuis tag_id', async () => {
@@ -200,6 +201,36 @@ describe('TicketDetail', () => {
     cardsService.get.mockResolvedValue({ ...ticket, tag_id: 1, tag_ids: [] });
     await component.reload();
     expect(component.addableTagOptions().map((o) => o.label)).toEqual(['Pokémon']);
+  });
+
+  it('addableTagOptions() marque les tags archivés avec un suffixe "(archivé)"', async () => {
+    tagsService.list.mockResolvedValue([...tags, { id: 3, name: 'Fortnite', color: 'violet', archived: true }]);
+    cardsService.get.mockResolvedValue({ ...ticket, tag_id: 1, tag_ids: [] });
+    await component.reload();
+    expect(component.addableTagOptions().map((o) => o.label)).toEqual(['Pokémon', 'Fortnite (archivé)']);
+  });
+
+  it('addTag() avec un tag archivé demande confirmation puis le réactive avant de l\'ajouter', async () => {
+    tagsService.list.mockResolvedValue([...tags, { id: 3, name: 'Fortnite', color: 'violet', archived: true }]);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await component.reload();
+
+    await component.addTag(3);
+
+    expect(window.confirm).toHaveBeenCalled();
+    expect(tagsService.update).toHaveBeenCalledWith(5, 3, { archived: false });
+    expect(cardTagsService.add).toHaveBeenCalledWith(5, 5, 3);
+  });
+
+  it("addTag() n'ajoute pas le tag si la réactivation est annulée", async () => {
+    tagsService.list.mockResolvedValue([...tags, { id: 3, name: 'Fortnite', color: 'violet', archived: true }]);
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await component.reload();
+
+    await component.addTag(3);
+
+    expect(tagsService.update).not.toHaveBeenCalled();
+    expect(cardTagsService.add).not.toHaveBeenCalled();
   });
 
   it('addExtraTag() appelle le service et met à jour le ticket', async () => {
@@ -348,50 +379,6 @@ describe('TicketDetail', () => {
     expect(component.canChangeStatus()).toBe(true);
   });
 
-  it("currentColumnStates() vaut null si la colonne n'est pas divisée", async () => {
-    await component.reload();
-    expect(component.currentColumnStates()).toBeNull();
-  });
-
-  it('currentColumnStates() résout les noms des 2 états si la colonne est divisée', async () => {
-    columnsService.list.mockResolvedValue([
-      ...columns,
-      { id: 3, name: '🎬Montage', position: 2, state_a_name: 'Derush', state_b_name: 'Montage' },
-    ]);
-    cardsService.get.mockResolvedValue({ ...ticket, column_id: 3, state: 'a' });
-    await component.reload();
-
-    expect(component.currentColumnStates()).toEqual({ a: 'Derush', b: 'Montage' });
-  });
-
-  it("updateCardState() appelle move() avec le nouvel état et met à jour le ticket", async () => {
-    columnsService.list.mockResolvedValue([
-      ...columns,
-      { id: 3, name: '🎬Montage', position: 2, state_a_name: 'Derush', state_b_name: 'Montage' },
-    ]);
-    cardsService.get.mockResolvedValue({ ...ticket, column_id: 3, state: 'a' });
-    cardsService.move.mockResolvedValue({ ...ticket, column_id: 3, state: 'b' });
-    await component.reload();
-
-    await component.updateCardState('b');
-
-    expect(cardsService.move).toHaveBeenCalledWith(5, 5, 3, undefined, 'b');
-    expect(component.ticket()?.state).toBe('b');
-  });
-
-  it("updateCardState() ne fait rien si l'état cible est déjà l'état courant", async () => {
-    columnsService.list.mockResolvedValue([
-      ...columns,
-      { id: 3, name: '🎬Montage', position: 2, state_a_name: 'Derush', state_b_name: 'Montage' },
-    ]);
-    cardsService.get.mockResolvedValue({ ...ticket, column_id: 3, state: 'a' });
-    await component.reload();
-
-    await component.updateCardState('a');
-
-    expect(cardsService.move).not.toHaveBeenCalled();
-  });
-
   it('updateStatus() ne fait rien si le ticket est déjà publié', async () => {
     cardsService.get.mockResolvedValue({ ...ticket, column_id: 3 });
     columnsService.list.mockResolvedValue([...columns, { id: 3, name: '✅Publié', position: 2 }]);
@@ -421,6 +408,11 @@ describe('TicketDetail', () => {
     expect(component.ticket()?.column_id).toBe(2);
   });
 
+  function descriptionEditor(): HTMLElement {
+    return (component as unknown as { descriptionEditorRef?: { nativeElement: HTMLElement } }).descriptionEditorRef!
+      .nativeElement;
+  }
+
   it('la description démarre en lecture seule ; startEditingDescription() ouvre le mode édition', async () => {
     await component.reload();
     expect(component.descriptionEditing()).toBe(false);
@@ -428,13 +420,11 @@ describe('TicketDetail', () => {
     component.startEditingDescription();
 
     expect(component.descriptionEditing()).toBe(true);
-    expect(component.descriptionDraftHtml()).toBe(component.descriptionHtml());
   });
 
   it('cancelEditingDescription() referme le mode édition sans sauvegarder', async () => {
     await component.reload();
     component.startEditingDescription();
-    component.descriptionDraftHtml.set('Modif non enregistrée');
 
     component.cancelEditingDescription();
 
@@ -442,23 +432,35 @@ describe('TicketDetail', () => {
     expect(cardsService.update).not.toHaveBeenCalled();
   });
 
-  it('saveDescription() persiste le brouillon courant et referme le mode édition', async () => {
-    await component.reload();
-    component.startEditingDescription();
-    component.descriptionDraftHtml.set('Nouvelle description');
-    await component.saveDescription();
-    expect(cardsService.update).toHaveBeenCalledWith(5, 5, { description: 'Nouvelle description' });
-    expect(component.descriptionEditing()).toBe(false);
-    expect(component.descriptionHtml()).toBe('Nouvelle description');
-  });
+  it(
+    'saveDescription() sauvegarde le contenu réellement affiché dans l\'éditeur (DOM) et referme ' +
+      'le mode édition',
+    async () => {
+      await component.reload();
+      component.startEditingDescription();
+      fixture.detectChanges();
+
+      descriptionEditor().innerHTML = 'Texte complet <a href="https://exemple.com/">lien</a>';
+
+      await component.saveDescription();
+
+      expect(cardsService.update).toHaveBeenCalledWith(5, 5, {
+        description: 'Texte complet <a href="https://exemple.com/">lien</a>',
+      });
+      expect(component.descriptionEditing()).toBe(false);
+    }
+  );
 
   it('saveDescription() retire le src des images avant sauvegarde', async () => {
     await component.reload();
-    component.descriptionDraftHtml.set(
-      '<p>Texte</p><img src="data:image/jpeg;base64,AAA" data-card-image-id="1" alt="" class="max-w-full rounded">'
-    );
-    component.saveDescription();
-    await Promise.resolve();
+    component.startEditingDescription();
+    fixture.detectChanges();
+
+    descriptionEditor().innerHTML =
+      '<p>Texte</p><img src="data:image/jpeg;base64,AAA" data-card-image-id="1" alt="" class="max-w-full rounded">';
+
+    await component.saveDescription();
+
     expect(cardsService.update).toHaveBeenCalledWith(5, 5, {
       description: '<p>Texte</p><img data-card-image-id="1" alt="">',
     });
@@ -636,6 +638,44 @@ describe('TicketDetail', () => {
     expect(navigate).toHaveBeenCalledWith(['/kanbans', 'TK-TEST-99']);
   });
 
+  it('createClone() avec un tag archivé demande confirmation puis le réactive avant de créer', async () => {
+    tagsService.list.mockResolvedValue([...tags, { id: 3, name: 'Fortnite', color: 'violet', archived: true }]);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await component.reload();
+
+    await component.createClone({
+      title: 'COPIE - Mon ticket',
+      column_id: 1,
+      tag_id: 3,
+      epic_id: null,
+      cloned_from_id: 5,
+      assigned_user_id: null,
+      priority: 'medium',
+    });
+
+    expect(tagsService.update).toHaveBeenCalledWith(5, 3, { archived: false });
+    expect(cardsService.create).toHaveBeenCalled();
+  });
+
+  it("createClone() n'appelle pas create() si la réactivation du tag archivé est annulée", async () => {
+    tagsService.list.mockResolvedValue([...tags, { id: 3, name: 'Fortnite', color: 'violet', archived: true }]);
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await component.reload();
+
+    await component.createClone({
+      title: 'COPIE - Mon ticket',
+      column_id: 1,
+      tag_id: 3,
+      epic_id: null,
+      cloned_from_id: 5,
+      assigned_user_id: null,
+      priority: 'medium',
+    });
+
+    expect(tagsService.update).not.toHaveBeenCalled();
+    expect(cardsService.create).not.toHaveBeenCalled();
+  });
+
   it('linkedBefore() liste les tickets à faire avant', async () => {
     const other = { ...ticket, id: 20, title: 'Autre ticket' };
     cardsService.list.mockResolvedValue([ticket, other]);
@@ -708,26 +748,20 @@ describe('TicketDetail', () => {
     } as unknown as ClipboardEvent;
   }
 
-  it('onDescriptionPaste() uploade une image collée et l\'insère via execCommand', async () => {
+  it("onDescriptionPaste() uploade une image collée et l'insère dans l'éditeur (nœud DOM, pas execCommand)", async () => {
     await component.reload();
     const editor = document.createElement('div');
     editor.innerHTML = 'contenu';
     const file = new File(['x'], 'shot.png', { type: 'image/png' });
     const event = fakeImagePasteEvent(editor, file);
-    const execSpy = ((document as unknown as { execCommand: typeof vi.fn }).execCommand = vi
-      .fn()
-      .mockReturnValue(true));
 
     await component.onDescriptionPaste(event);
 
     expect(event.preventDefault).toHaveBeenCalled();
     expect(cardImagesService.upload).toHaveBeenCalledWith(5, 5, file);
-    expect(execSpy).toHaveBeenCalledWith(
-      'insertHTML',
-      false,
-      '<img src="data:image/jpeg;base64,AAA" data-card-image-id="1" alt="" class="max-w-full rounded">'
+    expect(editor.innerHTML).toBe(
+      'contenu<img src="data:image/jpeg;base64,AAA" alt="" class="max-w-full rounded" data-card-image-id="1">'
     );
-    expect(component.descriptionDraftHtml()).toBe('contenu');
   });
 
   it('onDescriptionPaste() laisse passer un collage de texte normal', async () => {
@@ -745,38 +779,71 @@ describe('TicketDetail', () => {
     expect(cardImagesService.upload).not.toHaveBeenCalled();
   });
 
-  it('onDescriptionPaste() transforme une URL collée seule en lien cliquable', async () => {
+  it(
+    'onDescriptionPaste() transforme une URL collée seule en lien cliquable, inséré via ' +
+      "l'API Range (pas execCommand, cf bug de corruption sur description longue)",
+    async () => {
+      await component.reload();
+      const editor = document.createElement('div');
+      const event = fakeTextPasteEvent(editor, 'https://exemple.com/doc');
+
+      await component.onDescriptionPaste(event);
+
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(editor.innerHTML).toBe(
+        '<a href="https://exemple.com/doc" target="_blank" rel="noopener noreferrer">https://exemple.com/doc</a>'
+      );
+    }
+  );
+
+  it("onDescriptionPaste() insère le lien à la position du curseur sans toucher au reste d'une description existante", async () => {
     await component.reload();
     const editor = document.createElement('div');
-    const event = fakeTextPasteEvent(editor, 'https://exemple.com/doc');
-    const execSpy = ((document as unknown as { execCommand: typeof vi.fn }).execCommand = vi
-      .fn()
-      .mockReturnValue(true));
+    editor.innerHTML = 'Avant texte après';
+    document.body.appendChild(editor);
+    // Place le curseur (collabsé, pas de sélection) juste après "texte " dans le texte existant.
+    const textNode = editor.firstChild as Text;
+    const range = document.createRange();
+    const cursorPos = (textNode.textContent ?? '').indexOf('après');
+    range.setStart(textNode, cursorPos);
+    range.collapse(true);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
 
+    const event = fakeTextPasteEvent(editor, 'https://exemple.com');
     await component.onDescriptionPaste(event);
 
-    expect(event.preventDefault).toHaveBeenCalled();
-    expect(execSpy).toHaveBeenCalledWith(
-      'insertHTML',
-      false,
-      '<a href="https://exemple.com/doc" target="_blank" rel="noopener noreferrer">https://exemple.com/doc</a>'
-    );
+    expect(editor.textContent).toBe('Avant texte https://exemple.comaprès');
+    expect(editor.querySelector('a')?.getAttribute('href')).toBe('https://exemple.com/');
+    editor.remove();
   });
+
+  it(
+    "onDescriptionPaste() appelle preventDefault() de façon synchrone (avant tout `await`) : " +
+      'sinon le collage par défaut du navigateur s\'exécute entre-temps et écrase/duplique le ' +
+      "contenu existant d'une description non vide (bug corrigé)",
+    async () => {
+      await component.reload();
+      const editor = document.createElement('div');
+      const event = fakeTextPasteEvent(editor, 'https://exemple.com/doc');
+
+      const pending = component.onDescriptionPaste(event);
+      expect(event.preventDefault).toHaveBeenCalled();
+
+      await pending;
+    }
+  );
 
   it('onCommentPaste() transforme une URL collée seule en lien cliquable', async () => {
     await component.reload();
     const editor = document.createElement('div');
     const event = fakeTextPasteEvent(editor, 'www.exemple.com');
-    const execSpy = ((document as unknown as { execCommand: typeof vi.fn }).execCommand = vi
-      .fn()
-      .mockReturnValue(true));
 
     await component.onCommentPaste(event);
 
     expect(event.preventDefault).toHaveBeenCalled();
-    expect(execSpy).toHaveBeenCalledWith(
-      'insertHTML',
-      false,
+    expect(editor.innerHTML).toBe(
       '<a href="https://www.exemple.com/" target="_blank" rel="noopener noreferrer">www.exemple.com</a>'
     );
   });
@@ -797,12 +864,14 @@ describe('TicketDetail', () => {
     editor.innerHTML = 'brouillon';
     const file = new File(['x'], 'shot.png', { type: 'image/png' });
     const event = fakeImagePasteEvent(editor, file);
-    (document as unknown as { execCommand: typeof vi.fn }).execCommand = vi.fn().mockReturnValue(true);
 
     await component.onCommentPaste(event);
 
     expect(cardImagesService.upload).toHaveBeenCalledWith(5, 5, file);
-    expect(component.newCommentDraftHtml()).toBe('brouillon');
+    expect(editor.innerHTML).toBe(
+      'brouillon<img src="data:image/jpeg;base64,AAA" alt="" class="max-w-full rounded" data-card-image-id="1">'
+    );
+    expect(component.newCommentDraftHtml()).toBe(editor.innerHTML);
   });
 
   it("onCommentImageSelected() ajoute l'image à la fin de la zone de commentaire", async () => {

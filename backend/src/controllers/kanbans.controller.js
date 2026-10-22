@@ -7,10 +7,10 @@ function seedKanbanContent(kanbanId, templateName) {
   const template = KANBAN_TEMPLATES[templateName];
 
   const insertColumn = db.prepare(
-    'INSERT INTO columns (kanban_id, name, position, restricted, state_a_name, state_b_name) VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO columns (kanban_id, name, position, restricted, group_key) VALUES (?, ?, ?, ?, ?)'
   );
-  template.columns.forEach(({ name, restricted, states }, index) =>
-    insertColumn.run(kanbanId, name, index, restricted ? 1 : 0, states?.a ?? null, states?.b ?? null)
+  template.columns.forEach(({ name, restricted, group }, index) =>
+    insertColumn.run(kanbanId, name, index, restricted ? 1 : 0, group ?? null)
   );
 
   const insertTag = db.prepare('INSERT INTO tags (kanban_id, name, color) VALUES (?, ?, ?)');

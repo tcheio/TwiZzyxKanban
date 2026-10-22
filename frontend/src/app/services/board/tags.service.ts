@@ -20,7 +20,7 @@ export class TagsService {
   update(
     kanbanId: number,
     id: number,
-    changes: { name?: string; color?: string; emote_url?: string | null; visible_in_filter?: boolean }
+    changes: { name?: string; color?: string; emote_url?: string | null; visible_in_filter?: boolean; archived?: boolean }
   ): Promise<Tag> {
     return firstValueFrom(this.http.patch<Tag>(`/api/kanbans/${kanbanId}/tags/${id}`, changes));
   }
