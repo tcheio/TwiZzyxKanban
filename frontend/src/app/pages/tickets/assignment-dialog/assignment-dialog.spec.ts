@@ -77,6 +77,24 @@ describe('AssignmentDialog (confirmation de remplacement)', () => {
     expect(captured.value).toEqual({ reason: 'X', cancel: true });
   });
 
+  it("en mode 'remove', affiche le retrait sans option de statut et n'émet que la raison", () => {
+    component.mode = 'remove';
+    component.newUser = null;
+    fixture.componentRef.changeDetectorRef.markForCheck();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('h2')!.textContent).toContain('Retirer le responsable');
+    expect(el.querySelector('.replacement-summary')!.textContent).toContain('alice sera retiré(e)');
+    expect(el.textContent).not.toContain('Changer aussi le statut');
+
+    const captured = captureSave();
+    component.toggleChangeStatus(true);
+    component.form.patchValue({ reason: 'Fin de mission', status_value: 20 });
+    component.submit();
+    expect(captured.value).toEqual({ reason: 'Fin de mission' });
+  });
+
   it('toggleChangeStatus(false) efface la valeur de statut sélectionnée', () => {
     component.toggleChangeStatus(true);
     component.form.patchValue({ status_value: 20 });

@@ -5,9 +5,9 @@ import { ReplacementDetails } from '../../../models/card-assignee.model';
 import { SearchSelect, SearchSelectOption } from '../../../shared/search-select/search-select';
 import { CANCELLED_STATUS_ID } from '../../../shared/ticket-status';
 
-// Fenêtre de confirmation d'un remplacement de responsable : seul ce cas exige une
-// raison (un ajout ou la désignation d'un premier responsable se fait directement
-// depuis la liste déroulante, sans fenêtre).
+// Fenêtre de confirmation d'un remplacement ou d'un retrait de responsable : seuls ces
+// cas exigent une raison (un ajout ou la désignation d'un premier responsable se fait
+// directement depuis la liste déroulante, sans fenêtre).
 @Component({
   selector: 'app-assignment-dialog',
   imports: [ReactiveFormsModule, SearchSelect],
@@ -16,8 +16,10 @@ import { CANCELLED_STATUS_ID } from '../../../shared/ticket-status';
 export class AssignmentDialog {
   private readonly fb = inject(FormBuilder);
 
+  @Input() mode: 'replace' | 'remove' = 'replace';
   @Input({ required: true }) previousUser!: UserLite;
-  @Input({ required: true }) newUser!: UserLite;
+  // Requis en mode 'replace' uniquement.
+  @Input() newUser: UserLite | null = null;
   @Input() isPrimary = true;
   @Input({ required: true }) statusOptions: SearchSelectOption<number>[] = [];
   @Input({ required: true }) currentStatusValue: number = CANCELLED_STATUS_ID;
@@ -48,7 +50,8 @@ export class AssignmentDialog {
 
     const details: ReplacementDetails = { reason: raw.reason!.trim() };
 
-    if (raw.changeStatus && raw.status_value !== null && raw.status_value !== this.currentStatusValue) {
+    // Le retrait ne propose pas de changement de statut (non géré par l'API de retrait).
+    if (this.mode === 'replace' && raw.changeStatus && raw.status_value !== null && raw.status_value !== this.currentStatusValue) {
       if (raw.status_value === CANCELLED_STATUS_ID) {
         details.cancel = true;
       } else {

@@ -96,6 +96,8 @@ export class TicketDetail implements OnInit {
   readonly assignmentHistory = signal<CardAssignmentHistoryEntry[]>([]);
   // Remplacement de responsable en attente de confirmation (fenêtre avec raison).
   readonly pendingReplacement = signal<{ previous: UserLite; next: UserLite; isPrimary: boolean } | null>(null);
+  // Retrait de responsable en attente de confirmation (même fenêtre, en mode retrait).
+  readonly pendingRemoval = signal<UserLite | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   // descriptionHtml n'est modifié que par reload() (jamais par la saisie) pour que le
@@ -505,17 +507,23 @@ export class TicketDetail implements OnInit {
     }
   }
 
-  async removeAssignee(userId: number): Promise<void> {
-    const reason = prompt('Raison du retrait de cette personne des responsables du ticket :')?.trim();
-    if (!reason) return;
+  // Clic sur le ✕ d'un responsable : ouvre la fenêtre de confirmation (avec raison).
+  requestRemoval(user: UserLite): void {
+    this.pendingRemoval.set(user);
+  }
+
+  async confirmRemoval(details: ReplacementDetails): Promise<void> {
+    const user = this.pendingRemoval();
+    if (!user) return;
     try {
-      await this.cardAssigneesService.remove(this.kanbanId, this.ticketId, userId, reason);
+      await this.cardAssigneesService.remove(this.kanbanId, this.ticketId, user.id, details.reason);
       const [assignees, assignmentHistory] = await Promise.all([
         this.cardAssigneesService.list(this.kanbanId, this.ticketId),
         this.cardAssigneesService.history(this.kanbanId, this.ticketId),
       ]);
       this.assignees.set(assignees);
       this.assignmentHistory.set(assignmentHistory);
+      this.pendingRemoval.set(null);
     } catch {
       this.error.set("Échec du retrait du responsable.");
     }

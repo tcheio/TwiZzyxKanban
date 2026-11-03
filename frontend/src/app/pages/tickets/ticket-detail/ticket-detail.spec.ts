@@ -404,22 +404,34 @@ describe('TicketDetail', () => {
     });
   });
 
-  it('removeAssignee() demande la raison puis retire la personne', async () => {
-    vi.spyOn(window, 'prompt').mockReturnValue('Fin de son intervention');
+  it("requestRemoval() ouvre la fenêtre de confirmation sans rien retirer", async () => {
     await component.reload();
 
-    await component.removeAssignee(2);
+    component.requestRemoval({ id: 2, username: 'bob' });
 
-    expect(cardAssigneesService.remove).toHaveBeenCalledWith(5, 5, 2, 'Fin de son intervention');
+    expect(component.pendingRemoval()).toEqual({ id: 2, username: 'bob' });
+    expect(cardAssigneesService.remove).not.toHaveBeenCalled();
   });
 
-  it("removeAssignee() ne fait rien si la raison est vide ou annulée", async () => {
-    vi.spyOn(window, 'prompt').mockReturnValue(null);
+  it('confirmRemoval() retire la personne avec la raison puis ferme la fenêtre', async () => {
     await component.reload();
+    component.requestRemoval({ id: 2, username: 'bob' });
 
-    await component.removeAssignee(2);
+    await component.confirmRemoval({ reason: 'Fin de son intervention' });
 
-    expect(cardAssigneesService.remove).not.toHaveBeenCalled();
+    expect(cardAssigneesService.remove).toHaveBeenCalledWith(5, 5, 2, 'Fin de son intervention');
+    expect(component.pendingRemoval()).toBeNull();
+  });
+
+  it("confirmRemoval() garde la fenêtre ouverte si le retrait échoue", async () => {
+    cardAssigneesService.remove.mockRejectedValue(new Error('boom'));
+    await component.reload();
+    component.requestRemoval({ id: 2, username: 'bob' });
+
+    await component.confirmRemoval({ reason: 'X' });
+
+    expect(component.pendingRemoval()).not.toBeNull();
+    expect(component.error()).toBe('Échec du retrait du responsable.');
   });
 
   it('updateTag() persiste le nouveau tag', async () => {
