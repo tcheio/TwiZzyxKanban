@@ -42,6 +42,8 @@
       </div>
     </div>
 
+    <app-discord-settings class="mb-6 block" [kanbanId]="kanbanId" />
+
     <h2 class="mb-2 text-sm font-semibold text-text-soft">Colonnes</h2>
     <div class="rounded-xl border border-border bg-surface shadow-sm">
       @for (column of columns(); track column.id; let i = $index) {

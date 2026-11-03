@@ -7,6 +7,7 @@ import { TagsService } from '../../../services/board/tags.service';
 import { EpicsService } from '../../../services/board/epics.service';
 import { StatsService } from '../../../services/board/stats.service';
 import { KanbansService } from '../../../services/board/kanbans.service';
+import { DiscordService } from '../../../services/board/discord.service';
 import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
 import { Column } from '../../../models/column.model';
@@ -64,6 +65,10 @@ describe('BoardSettings', () => {
         { provide: EpicsService, useValue: epicsService },
         { provide: StatsService, useValue: statsService },
         { provide: KanbansService, useValue: kanbansService },
+        {
+          provide: DiscordService,
+          useValue: { get: vi.fn().mockResolvedValue({ webhook_configured: false, webhook_url_hint: null, members: [] }) },
+        },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } } } },

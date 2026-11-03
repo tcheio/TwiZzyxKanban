@@ -20,11 +20,12 @@ import { ColumnDuration, UserStat } from '../../../models/stats.model';
 import { tagBadgeClass } from '../../../shared/tag-colors';
 import { epicBadgeClass } from '../../../shared/epic-colors';
 import { PeriodFilter } from '../../../shared/period-filter/period-filter';
+import { DiscordSettings } from './discord-settings/discord-settings';
 import { onTimeRateLabel, leadLabel } from '../../../shared/user-stats';
 
 @Component({
   selector: 'app-board-settings',
-  imports: [RouterLink, PeriodFilter],
+  imports: [RouterLink, PeriodFilter, DiscordSettings],
   templateUrl: './board-settings.html',
 })
 export class BoardSettings implements OnInit {

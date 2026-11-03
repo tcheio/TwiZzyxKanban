@@ -1,0 +1,162 @@
+<h2 class="mb-2 mt-6 text-sm font-semibold text-text-soft">Notifications Discord</h2>
+<p class="mb-3 text-xs text-text-muted">
+  Nouveaux tickets, assignations, ajouts de responsable, commentaires et changements d'état sont envoyés à chaque
+  responsable du ticket dans son salon Discord. Le responsable principal est mentionné (sauf pour un commentaire) ;
+  un responsable secondaire n'est mentionné qu'au moment où le ticket lui est assigné.
+</p>
+
+<div class="discord-settings rounded-xl border border-border bg-surface shadow-sm">
+  @if (loading()) {
+    <p class="px-4 py-3 text-sm text-text-muted">Chargement...</p>
+  } @else {
+    @if (error()) {
+      <p class="discord-error mx-4 mt-3 rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">{{ error() }}</p>
+    }
+    @if (info()) {
+      <p class="discord-info mx-4 mt-3 rounded-md bg-surface-alt px-3 py-2 text-sm text-text-soft">{{ info() }}</p>
+    }
+
+    <div class="flex flex-col gap-2 border-b border-border px-4 py-3">
+      <span class="text-xs font-semibold uppercase tracking-wide text-text-muted">Webhook du tableau (par défaut)</span>
+      <p class="text-xs text-text-faint">
+        Facultatif : utilisé pour les membres qui n'ont pas leur propre webhook.
+        Discord : Paramètres du salon › Intégrations › Webhooks › Nouveau webhook › Copier l'URL du webhook.
+      </p>
+      @if (webhookConfigured()) {
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="webhook-hint min-w-0 flex-1 truncate font-mono text-xs text-text-soft">{{ webhookHint() }}</span>
+          <button
+            type="button"
+            class="rounded-md border border-border-strong px-2.5 py-1 text-xs text-text-soft hover:bg-surface-alt disabled:opacity-50"
+            [disabled]="saving()"
+            (click)="sendTest()"
+          >
+            Envoyer un test
+          </button>
+          <button
+            type="button"
+            class="rounded-md border border-border-strong px-2.5 py-1 text-xs text-danger hover:bg-surface-alt disabled:opacity-50"
+            [disabled]="saving()"
+            (click)="removeWebhook()"
+          >
+            Retirer
+          </button>
+        </div>
+      }
+      <div class="flex gap-2">
+        <label for="discord-webhook-url" class="sr-only">URL du webhook Discord du tableau</label>
+        <input
+          id="discord-webhook-url"
+          type="password"
+          autocomplete="off"
+          class="min-w-0 flex-1 rounded-md border border-border-strong px-2.5 py-1.5 text-sm text-text focus:border-brand focus:outline-none"
+          [placeholder]="webhookConfigured() ? 'Remplacer par une autre URL de webhook...' : 'https://discord.com/api/webhooks/...'"
+          [ngModel]="webhookInput()"
+          (ngModelChange)="webhookInput.set($event)"
+        />
+        <button
+          type="button"
+          class="shrink-0 rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+          [disabled]="!isDiscordWebhookUrl(webhookInput()) || saving()"
+          (click)="saveWebhook()"
+        >
+          Enregistrer
+        </button>
+      </div>
+    </div>
+
+    <div class="px-4 py-3">
+      <span class="text-xs font-semibold uppercase tracking-wide text-text-muted">Membres</span>
+      <p class="mb-2 mt-1 text-xs text-text-faint">
+        Pour chaque personne : créez un webhook dans son salon Discord et collez son URL. Pour la mentionner, ajoutez son
+        ID Discord (mode développeur activé dans Paramètres › Avancés, puis clic droit sur son profil › « Copier
+        l'identifiant de l'utilisateur »).
+      </p>
+      <div class="flex flex-col divide-y divide-border">
+        @for (member of members(); track member.user_id) {
+          <div class="discord-member flex flex-col gap-2 py-3">
+            <div class="flex items-center gap-2">
+              <span class="min-w-0 flex-1 truncate text-sm font-medium text-text">{{ member.username }}</span>
+              @if (member.webhook_configured) {
+                <span class="member-webhook-status rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                  Son salon
+                </span>
+              } @else if (webhookConfigured()) {
+                <span class="member-webhook-status rounded-full bg-surface-alt px-2 py-0.5 text-[11px] text-text-muted">
+                  Salon du tableau
+                </span>
+              } @else {
+                <span class="member-webhook-status rounded-full bg-surface-alt px-2 py-0.5 text-[11px] text-text-faint">
+                  Aucun envoi
+                </span>
+              }
+              <button
+                type="button"
+                class="rounded-md border border-border-strong px-2 py-1 text-xs text-text-soft hover:bg-surface-alt disabled:opacity-50"
+                title="Envoyer un message de test à cette personne"
+                [disabled]="!canReceive(member) || saving()"
+                (click)="sendTest(member)"
+              >
+                Test
+              </button>
+            </div>
+
+            <div class="flex flex-wrap items-end gap-2">
+              <div class="flex min-w-[14rem] flex-[2] flex-col gap-0.5 text-[11px] text-text-muted">
+                <label [for]="'member-webhook-' + member.user_id">Webhook de son salon</label>
+                @if (member.webhook_configured) {
+                  <div class="flex items-center gap-2">
+                    <span class="member-webhook-hint min-w-0 flex-1 truncate font-mono text-xs text-text-soft">
+                      {{ member.webhook_url_hint }}
+                    </span>
+                    <button
+                      type="button"
+                      class="text-xs text-danger hover:underline disabled:opacity-50"
+                      [disabled]="saving()"
+                      (click)="removeMemberWebhook(member)"
+                    >
+                      Retirer
+                    </button>
+                  </div>
+                }
+                <div class="flex gap-1.5">
+                  <input
+                    [id]="'member-webhook-' + member.user_id"
+                    type="password"
+                    autocomplete="off"
+                    class="member-webhook-input min-w-0 flex-1 rounded-md border border-border-strong px-2 py-1 text-xs text-text focus:border-brand focus:outline-none"
+                    [placeholder]="member.webhook_configured ? 'Remplacer par une autre URL...' : 'https://discord.com/api/webhooks/...'"
+                    [ngModel]="memberWebhookInput(member)"
+                    (ngModelChange)="setMemberWebhookInput(member, $event)"
+                  />
+                  <button
+                    type="button"
+                    class="shrink-0 rounded-md bg-brand px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+                    [disabled]="!isDiscordWebhookUrl(memberWebhookInput(member)) || saving()"
+                    (click)="saveMemberWebhook(member)"
+                  >
+                    Enregistrer
+                  </button>
+                </div>
+              </div>
+
+              <label class="flex min-w-[9rem] flex-1 flex-col gap-0.5 text-[11px] text-text-muted">
+                ID Discord (mention)
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  class="discord-user-input rounded-md border border-border-strong px-2 py-1 font-mono text-xs text-text focus:border-brand focus:outline-none"
+                  placeholder="Pas de mention"
+                  #userInput
+                  [value]="member.discord_user_id ?? ''"
+                  [disabled]="saving()"
+                  (change)="updateDiscordUserId(member, userInput.value)"
+                />
+              </label>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

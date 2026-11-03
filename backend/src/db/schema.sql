@@ -20,8 +20,20 @@ CREATE TABLE IF NOT EXISTS kanban_members (
   kanban_id INTEGER NOT NULL REFERENCES kanbans(id) ON DELETE CASCADE,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   is_moderator INTEGER NOT NULL DEFAULT 0,
+  -- Intégration Discord (cf utils/discord.js) : webhook du salon Discord de ce membre
+  -- (secret, jamais renvoyé tel quel) et son ID Discord pour le mentionner.
+  discord_webhook_url TEXT,
+  discord_user_id TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (kanban_id, user_id)
+);
+
+-- Webhook Discord par défaut d'un kanban (membres sans webhook perso). Table à part (et non une colonne de `kanbans`) car l'URL
+-- contient un secret : elle ne doit jamais sortir via les `SELECT kanbans.*` envoyés à
+-- tous les membres.
+CREATE TABLE IF NOT EXISTS kanban_discord (
+  kanban_id INTEGER PRIMARY KEY REFERENCES kanbans(id) ON DELETE CASCADE,
+  webhook_url TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_kanban_members_user ON kanban_members(user_id);
