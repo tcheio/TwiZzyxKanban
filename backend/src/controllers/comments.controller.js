@@ -1,6 +1,7 @@
 const db = require('../db/connection');
 const { sanitizeRichText } = require('../utils/rich-text');
 const { notifyWatchersAndTargets } = require('../utils/notify');
+const { notifyDiscord, richTextExcerpt } = require('../utils/discord');
 
 function list(req, res) {
   const cardId = Number(req.params.id);
@@ -34,15 +35,24 @@ function create(req, res) {
     return res.status(400).json({ error: 'body requis' });
   }
 
+  const sanitizedBody = sanitizeRichText(body.trim());
   const result = db
     .prepare('INSERT INTO comments (card_id, user_id, body) VALUES (?, ?, ?)')
-    .run(cardId, req.user.id, sanitizeRichText(body.trim()));
+    .run(cardId, req.user.id, sanitizedBody);
 
   notifyWatchersAndTargets(cardId, {
     kanbanId: req.kanbanId,
     actorUserId: req.user.id,
     type: 'comment',
     watcherMessage: `${req.user.username} a commenté le ticket « ${card.title} »`,
+  });
+  // Un commentaire est envoyé sur Discord sans mentionner personne.
+  const excerpt = richTextExcerpt(sanitizedBody);
+  notifyDiscord(cardId, {
+    kanbanId: req.kanbanId,
+    actorUserId: req.user.id,
+    message: `💬 ${req.user.username} a commenté${excerpt ? ` :\n> ${excerpt.replace(/\n/g, '\n> ')}` : ''}`,
+    mentionPrimary: false,
   });
 
   const comment = db

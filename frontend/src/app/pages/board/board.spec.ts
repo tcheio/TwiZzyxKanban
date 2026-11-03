@@ -474,6 +474,16 @@ describe('Board', () => {
     expect(component.isDueSoon(null)).toBe(false);
   });
 
+  it("dueDateClass() n'affiche plus l'échéance en rouge une fois le ticket publié", () => {
+    const overdueDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const unpublished: Card = { ...baseCards[0], due_date: overdueDate, published_at: null };
+    const published: Card = { ...baseCards[0], column_id: 3, due_date: overdueDate, published_at: new Date().toISOString() };
+    component.columns.set([...columns, { id: 3, name: '✅Publié', position: 2 }]);
+
+    expect(component.dueDateClass(unpublished)).toBe('font-semibold text-danger');
+    expect(component.dueDateClass(published)).toBe('text-text-muted');
+  });
+
   it('reload() masque un ticket publié depuis plus de 14 jours', async () => {
     const publishedColumns: Column[] = [...columns, { id: 3, name: '✅Publié', position: 2 }];
     const oldPublishedAt = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();

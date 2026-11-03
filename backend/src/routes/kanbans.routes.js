@@ -6,6 +6,7 @@ const {
   list,
   create,
   rename,
+  setColor,
   remove,
   membersList,
   membersLite,
@@ -18,12 +19,14 @@ const tagsRoutes = require('./tags.routes');
 const epicsRoutes = require('./epics.routes');
 const cardsRoutes = require('./cards.routes');
 const statsRoutes = require('./stats.routes');
+const discordRoutes = require('./discord.routes');
 
 const router = express.Router();
 
 router.get('/', list);
 router.post('/', requireAdmin, create);
 router.patch('/:kanbanId', requireAdmin, rename);
+router.patch('/:kanbanId/color', requireKanbanModerator, setColor);
 router.delete('/:kanbanId', requireAdmin, remove);
 
 router.get('/:kanbanId/members', requireKanbanAccess, membersList);
@@ -37,5 +40,6 @@ router.use('/:kanbanId/tags', requireKanbanAccess, tagsRoutes);
 router.use('/:kanbanId/epics', requireKanbanAccess, epicsRoutes);
 router.use('/:kanbanId/cards', requireKanbanAccess, cardsRoutes);
 router.use('/:kanbanId/stats', requireKanbanAccess, statsRoutes);
+router.use('/:kanbanId/discord', requireKanbanModerator, discordRoutes);
 
 module.exports = router;

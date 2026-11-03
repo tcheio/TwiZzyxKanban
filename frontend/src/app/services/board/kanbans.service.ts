@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Subject, firstValueFrom } from 'rxjs';
 import { Kanban, KanbanInput, KanbanMember } from '../../models/kanban.model';
 import { UserLite } from '../../models/user.model';
 
@@ -18,6 +18,16 @@ export class KanbansService {
 
   rename(id: number, name: string): Promise<Kanban> {
     return firstValueFrom(this.http.patch<Kanban>(`/api/kanbans/${id}`, { name }));
+  }
+
+  // Notifie les composants qui affichent un kanban (ex. le logo de la barre latérale)
+  // qu'il vient d'être modifié, pour qu'ils se mettent à jour sans recharger la page.
+  readonly kanbanUpdated = new Subject<Kanban>();
+
+  async setColor(id: number, color: string): Promise<Kanban> {
+    const updated = await firstValueFrom(this.http.patch<Kanban>(`/api/kanbans/${id}/color`, { color }));
+    this.kanbanUpdated.next(updated);
+    return updated;
   }
 
   remove(id: number): Promise<void> {

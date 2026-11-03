@@ -10,6 +10,7 @@ const {
   logColumnEntry,
 } = require('../utils/card-status');
 const { notifyWatchersAndTargets, notifyModerators } = require('../utils/notify');
+const { notifyDiscord } = require('../utils/discord');
 const { isKanbanModerator, canViewCard, canChangeCardStatus } = require('../utils/kanban-access');
 
 const VALID_PRIORITIES = ['low', 'medium', 'high'];
@@ -108,6 +109,14 @@ function create(req, res) {
   logColumnEntry(result.lastInsertRowid, column_id);
 
   const card = fetchCardWithRelations(result.lastInsertRowid);
+  if (card.assigned_user_id) {
+    const assignee = db.prepare('SELECT username FROM users WHERE id = ?').get(card.assigned_user_id);
+    notifyDiscord(card.id, {
+      kanbanId: req.kanbanId,
+      actorUserId: req.user.id,
+      message: `🆕 Nouveau ticket créé par ${req.user.username} — responsable : ${assignee?.username ?? '?'}`,
+    });
+  }
   res.status(201).json(withKey(card, req.kanbanCode));
 }
 
@@ -156,6 +165,16 @@ function update(req, res) {
       ? `${req.user.username} a mis le tag « ${nextTag.name} » sur le ticket « ${card.title} »`
       : `${req.user.username} a retiré le tag « ${previousTag?.name ?? '?'} » du ticket « ${card.title} »`;
     notifyWatchersAndTargets(id, { kanbanId: req.kanbanId, actorUserId: req.user.id, type: 'tag', watcherMessage: message });
+  }
+
+  if (assigned_user_id !== undefined && assigned_user_id && assigned_user_id !== card.assigned_user_id) {
+    const assignee = db.prepare('SELECT username FROM users WHERE id = ?').get(assigned_user_id);
+    notifyDiscord(id, {
+      kanbanId: req.kanbanId,
+      actorUserId: req.user.id,
+      message: `👤 ${req.user.username} a désigné ${assignee?.username ?? '?'} responsable principal`,
+      extraUserIds: card.assigned_user_id ? [card.assigned_user_id] : [],
+    });
   }
 
   const updated = fetchCardWithRelations(id);
@@ -264,6 +283,11 @@ function move(req, res) {
     if (!moderator) {
       notifyModerators(id, { kanbanId: req.kanbanId, actorUserId: req.user.id, type: 'status', message });
     }
+    notifyDiscord(id, {
+      kanbanId: req.kanbanId,
+      actorUserId: req.user.id,
+      message: `🔄 Statut : « ${previousColumn?.name ?? '—'} » → « ${targetColumn.name} » (par ${req.user.username})`,
+    });
   }
 
   const moved = fetchCardWithRelations(id);
@@ -296,6 +320,13 @@ function setCancelled(req, res, isCancelled) {
   if (!moderator) {
     notifyModerators(id, { kanbanId: req.kanbanId, actorUserId: req.user.id, type: 'status', message });
   }
+  notifyDiscord(id, {
+    kanbanId: req.kanbanId,
+    actorUserId: req.user.id,
+    message: isCancelled
+      ? `🚫 Ticket annulé par ${req.user.username}`
+      : `♻️ Ticket restauré par ${req.user.username}`,
+  });
 
   res.json(withKey(fetchCardWithRelations(id), req.kanbanCode));
 }

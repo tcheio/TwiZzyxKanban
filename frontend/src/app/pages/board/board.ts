@@ -25,6 +25,7 @@ import { epicBadgeClass } from '../../shared/epic-colors';
 import { tagBadgeClass } from '../../shared/tag-colors';
 import { priorityLabel, priorityDotClass } from '../../shared/priority';
 import { startAutoRefresh } from '../../shared/auto-refresh';
+import { parseUtcDateTime } from '../../shared/datetime';
 
 // Une colonne seule (group_key absent, ou ne correspondant à aucune autre colonne du
 // kanban) produit 1 lane ; des colonnes partageant la même group_key produisent autant
@@ -318,6 +319,12 @@ export class Board implements OnInit {
     return diffDays <= DUE_SOON_DAYS;
   }
 
+  // Un ticket publié n'a plus besoin d'alerter sur son échéance : il est terminé, la
+  // date passée n'indique plus un retard à traiter.
+  dueDateClass(card: Card): string {
+    return !this.isPublished(card) && this.isDueSoon(card.due_date) ? 'font-semibold text-danger' : 'text-text-muted';
+  }
+
   // Regroupe les colonnes partageant la même group_key (triées par position) dans un
   // seul ColumnGroup ; une colonne sans group_key, ou dont la group_key ne correspond à
   // aucune autre colonne du kanban, se retrouve seule dans le sien.
@@ -355,7 +362,7 @@ export class Board implements OnInit {
 
   private isVisibleInColumn(card: Card, column: Column): boolean {
     if (column.name !== PUBLISHED_COLUMN_NAME || !card.published_at) return true;
-    const ageDays = (Date.now() - new Date(card.published_at).getTime()) / MS_PER_DAY;
+    const ageDays = (Date.now() - parseUtcDateTime(card.published_at).getTime()) / MS_PER_DAY;
     return ageDays < PUBLISHED_RETENTION_DAYS;
   }
 

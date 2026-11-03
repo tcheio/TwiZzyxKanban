@@ -231,7 +231,7 @@
               @if (card.due_date) {
                 <div
                   class="mt-1.5 text-xs"
-                  [class]="isDueSoon(card.due_date) ? 'font-semibold text-danger' : 'text-text-muted'"
+                  [class]="dueDateClass(card)"
                 >
                   Échéance : {{ formatDate(card.due_date) }}
                 </div>

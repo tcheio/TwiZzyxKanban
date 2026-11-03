@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { KanbansService } from '../../../services/board/kanbans.service';
@@ -8,10 +9,12 @@ import { Kanban, KanbanTemplate } from '../../../models/kanban.model';
 import { MyTicket } from '../../../models/my-ticket.model';
 import { priorityLabel, priorityDotClass } from '../../../shared/priority';
 import { dueDateLabel, dueDateClass, formatDate } from '../../../shared/due-date';
+import { kanbanInitials } from '../../../shared/kanban-initials';
+import { kanbanLogoClass } from '../../../shared/kanban-colors';
 
 @Component({
   selector: 'app-kanbans-list',
-  imports: [FormsModule],
+  imports: [FormsModule, NgTemplateOutlet],
   templateUrl: './kanbans-list.html',
 })
 export class KanbansList implements OnInit {
@@ -22,6 +25,8 @@ export class KanbansList implements OnInit {
 
   readonly kanbans = signal<Kanban[]>([]);
   readonly myTickets = signal<MyTicket[]>([]);
+  readonly myTicketsWithDueDate = computed(() => this.myTickets().filter((t) => !!t.due_date));
+  readonly myTicketsWithoutDueDate = computed(() => this.myTickets().filter((t) => !t.due_date));
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly creating = signal(false);
@@ -35,6 +40,8 @@ export class KanbansList implements OnInit {
   readonly dueDateLabel = dueDateLabel;
   readonly dueDateClass = dueDateClass;
   readonly formatDate = formatDate;
+  readonly kanbanInitials = kanbanInitials;
+  readonly kanbanLogoClass = kanbanLogoClass;
 
   async ngOnInit(): Promise<void> {
     await this.reload();

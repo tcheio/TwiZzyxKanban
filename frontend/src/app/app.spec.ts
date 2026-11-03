@@ -8,12 +8,15 @@ import { App } from './app';
 import { AuthService } from './core/auth.service';
 import { KanbansService } from './services/board/kanbans.service';
 import { EpicsService } from './services/board/epics.service';
+import { Kanban } from './models/kanban.model';
+import { Subject } from 'rxjs';
 
 @Component({ selector: 'app-stub', template: '' })
 class StubComponent {}
 
 const kanbans = [{ id: 3, name: 'Chaîne Test', code: 'TK-TEST', is_moderator: true }];
 const epics = [{ id: 1, name: 'TwiZzyx', color: 'red' }];
+let kanbanUpdated: Subject<Kanban>;
 
 function configure(authValue: {
   isLoggedIn: () => boolean;
@@ -21,6 +24,7 @@ function configure(authValue: {
   currentUser: () => unknown;
   logout: () => void;
 }) {
+  kanbanUpdated = new Subject<Kanban>();
   TestBed.configureTestingModule({
     imports: [App],
     providers: [
@@ -31,7 +35,7 @@ function configure(authValue: {
         { path: 'kanbans', component: StubComponent },
       ]),
       { provide: AuthService, useValue: authValue },
-      { provide: KanbansService, useValue: { list: vi.fn().mockResolvedValue(kanbans) } },
+      { provide: KanbansService, useValue: { list: vi.fn().mockResolvedValue(kanbans), kanbanUpdated } },
       { provide: EpicsService, useValue: { list: vi.fn().mockResolvedValue(epics) } },
     ],
   });
@@ -123,5 +127,30 @@ describe('App', () => {
     expect(compiled.querySelector('a[href="/kanbans/TK-TEST/tags"]')?.textContent).toContain('Tags');
     expect(compiled.querySelector('a[href="/kanbans/TK-TEST/epics"]')?.textContent).toContain('EPICs');
     expect(compiled.textContent).toContain('TwiZzyx');
+  });
+
+  it('colore le logo selon la couleur du kanban et le met à jour quand elle change', async () => {
+    configure({
+      isLoggedIn: () => true,
+      isAdmin: () => false,
+      currentUser: () => ({ id: 2, username: 'alice', role: 'user' }),
+      logout: () => {},
+    });
+
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    await TestBed.inject(Router).navigateByUrl('/kanbans/TK-TEST');
+    fixture.detectChanges();
+
+    const logo = () => (fixture.nativeElement as HTMLElement).querySelector('button[title="Mes Kanbans"] > span')!;
+    // Pas de couleur renseignée : indigo par défaut.
+    expect(logo().className).toContain('bg-indigo-600');
+    expect(logo().textContent?.trim()).toBe('CT');
+
+    kanbanUpdated.next({ ...kanbans[0], color: 'emerald' });
+    fixture.detectChanges();
+
+    expect(logo().className).toContain('bg-emerald-600');
+    expect(logo().className).not.toContain('bg-indigo-600');
   });
 });

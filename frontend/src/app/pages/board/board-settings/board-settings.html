@@ -12,6 +12,39 @@
   @if (loading()) {
     <p class="text-sm text-text-muted">Chargement...</p>
   } @else {
+    <h2 class="mb-2 text-sm font-semibold text-text-soft">Apparence</h2>
+    <div class="kanban-appearance mb-6 flex items-center gap-4 rounded-xl border border-border bg-surface px-4 py-3 shadow-sm">
+      <span
+        class="kanban-logo-preview flex h-12 w-12 shrink-0 items-center justify-center rounded-md text-lg font-bold text-white"
+        [class]="kanbanLogoClass(color())"
+      >
+        {{ initials }}
+      </span>
+      <div class="flex flex-col gap-2">
+        <span class="text-xs text-text-muted">Couleur du logo</span>
+        <div class="flex flex-wrap gap-2">
+          @for (c of kanbanColors; track c) {
+            <button
+              type="button"
+              class="kanban-color-swatch h-6 w-6 rounded-full disabled:cursor-not-allowed"
+              [class]="kanbanLogoClass(c)"
+              [class.ring-2]="color() === c"
+              [class.ring-offset-2]="color() === c"
+              [class.ring-text]="color() === c"
+              [title]="kanbanColorLabels[c]"
+              [attr.aria-label]="kanbanColorLabels[c]"
+              [attr.aria-pressed]="color() === c"
+              [disabled]="saving()"
+              (click)="setColor(c)"
+            ></button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <app-discord-settings class="mb-6 block" [kanbanId]="kanbanId" />
+
+    <h2 class="mb-2 text-sm font-semibold text-text-soft">Colonnes</h2>
     <div class="rounded-xl border border-border bg-surface shadow-sm">
       @for (column of columns(); track column.id; let i = $index) {
         <div class="border-b border-border last:border-b-0">

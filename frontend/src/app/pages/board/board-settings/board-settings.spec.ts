@@ -6,6 +6,8 @@ import { ColumnsService } from '../../../services/board/columns.service';
 import { TagsService } from '../../../services/board/tags.service';
 import { EpicsService } from '../../../services/board/epics.service';
 import { StatsService } from '../../../services/board/stats.service';
+import { KanbansService } from '../../../services/board/kanbans.service';
+import { DiscordService } from '../../../services/board/discord.service';
 import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
 import { Column } from '../../../models/column.model';
@@ -21,6 +23,7 @@ describe('BoardSettings', () => {
   let tagsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   let epicsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   let statsService: { columnDurations: ReturnType<typeof vi.fn>; userStats: ReturnType<typeof vi.fn> };
+  let kanbansService: { setColor: ReturnType<typeof vi.fn> };
 
   const columns: Column[] = [{ id: 1, name: '💡Idées', position: 0, restricted: true }];
   const tags: Tag[] = [
@@ -50,6 +53,9 @@ describe('BoardSettings', () => {
       columnDurations: vi.fn().mockResolvedValue(columnDurations),
       userStats: vi.fn().mockResolvedValue(userStats),
     };
+    kanbansService = {
+      setColor: vi.fn().mockImplementation((id, color) => Promise.resolve({ id, color })),
+    };
 
     TestBed.configureTestingModule({
       imports: [BoardSettings],
@@ -58,6 +64,11 @@ describe('BoardSettings', () => {
         { provide: TagsService, useValue: tagsService },
         { provide: EpicsService, useValue: epicsService },
         { provide: StatsService, useValue: statsService },
+        { provide: KanbansService, useValue: kanbansService },
+        {
+          provide: DiscordService,
+          useValue: { get: vi.fn().mockResolvedValue({ webhook_configured: false, webhook_url_hint: null, members: [] }) },
+        },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { data: { kanban: { id: 1, name: 'Kanban Test', code: 'TK-TEST' } } } },
@@ -65,6 +76,29 @@ describe('BoardSettings', () => {
       ],
     });
     component = TestBed.createComponent(BoardSettings).componentInstance;
+  });
+
+  it("color() part de la couleur du kanban, ou 'indigo' par défaut", () => {
+    expect(component.color()).toBe('indigo');
+  });
+
+  it('setColor() enregistre la nouvelle couleur du logo', async () => {
+    await component.setColor('rose');
+    expect(kanbansService.setColor).toHaveBeenCalledWith(1, 'rose');
+    expect(component.color()).toBe('rose');
+    expect(component.saving()).toBe(false);
+  });
+
+  it("setColor() revient à l'ancienne couleur si l'enregistrement échoue", async () => {
+    kanbansService.setColor.mockRejectedValue(new Error('boom'));
+    await component.setColor('rose');
+    expect(component.color()).toBe('indigo');
+    expect(component.error()).toBe('Échec du changement de couleur.');
+  });
+
+  it("setColor() ne fait rien si la couleur est déjà sélectionnée", async () => {
+    await component.setColor('indigo');
+    expect(kanbansService.setColor).not.toHaveBeenCalled();
   });
 
   it('reload() charge les colonnes, tags et EPICs', async () => {
