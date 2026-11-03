@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { KanbansService } from '../../../services/board/kanbans.service';
@@ -11,7 +12,7 @@ import { dueDateLabel, dueDateClass, formatDate } from '../../../shared/due-date
 
 @Component({
   selector: 'app-kanbans-list',
-  imports: [FormsModule],
+  imports: [FormsModule, NgTemplateOutlet],
   templateUrl: './kanbans-list.html',
 })
 export class KanbansList implements OnInit {
@@ -22,6 +23,8 @@ export class KanbansList implements OnInit {
 
   readonly kanbans = signal<Kanban[]>([]);
   readonly myTickets = signal<MyTicket[]>([]);
+  readonly myTicketsWithDueDate = computed(() => this.myTickets().filter((t) => !!t.due_date));
+  readonly myTicketsWithoutDueDate = computed(() => this.myTickets().filter((t) => !t.due_date));
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly creating = signal(false);

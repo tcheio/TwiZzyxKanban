@@ -122,6 +122,34 @@ describe('KanbansList', () => {
     expect(rows[0].textContent).toContain('Corriger le bug');
   });
 
+  it('sépare "Mes tickets" en deux tableaux : avec échéance et sans échéance', async () => {
+    meService.tickets.mockResolvedValue([
+      myTickets[0],
+      { ...myTickets[0], id: 11, key: 'DEV-CO-11', title: 'Sans date', due_date: null },
+    ]);
+    fixture.detectChanges();
+    await component.reload();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const due = el.querySelectorAll('.my-tickets-due .my-ticket-row');
+    const noDue = el.querySelectorAll('.my-tickets-no-due .my-ticket-row');
+    expect(due.length).toBe(1);
+    expect(due[0].textContent).toContain('Corriger le bug');
+    expect(noDue.length).toBe(1);
+    expect(noDue[0].textContent).toContain('Sans date');
+  });
+
+  it("n'affiche pas le tableau \"Sans échéance\" quand tous les tickets ont une date", async () => {
+    fixture.detectChanges();
+    await component.reload();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.my-tickets-due')).toBeTruthy();
+    expect(el.querySelector('.my-tickets-no-due')).toBeNull();
+  });
+
   it("affiche un message quand aucun ticket ne m'est assigné", async () => {
     meService.tickets.mockResolvedValue([]);
     fixture.detectChanges();
