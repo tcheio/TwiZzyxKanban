@@ -19,6 +19,7 @@ const tagsRoutes = require('./tags.routes');
 const epicsRoutes = require('./epics.routes');
 const cardsRoutes = require('./cards.routes');
 const statsRoutes = require('./stats.routes');
+const discordRoutes = require('./discord.routes');
 
 const router = express.Router();
 
@@ -39,5 +40,6 @@ router.use('/:kanbanId/tags', requireKanbanAccess, tagsRoutes);
 router.use('/:kanbanId/epics', requireKanbanAccess, epicsRoutes);
 router.use('/:kanbanId/cards', requireKanbanAccess, cardsRoutes);
 router.use('/:kanbanId/stats', requireKanbanAccess, statsRoutes);
+router.use('/:kanbanId/discord', requireKanbanModerator, discordRoutes);
 
 module.exports = router;

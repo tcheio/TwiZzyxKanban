@@ -61,6 +61,22 @@ function addKanbanColorColumn() {
   db.exec("ALTER TABLE kanbans ADD COLUMN color TEXT NOT NULL DEFAULT 'indigo'");
 }
 
+// Une première version stockait un ID de fil Discord par membre (discord_thread_id) ;
+// elle est remplacée par un webhook par membre (un salon chacun). Les ID de fil ne sont
+// pas convertibles en webhook : la colonne est simplement supprimée.
+function addMemberDiscordColumns() {
+  const columns = db.prepare('PRAGMA table_info(kanban_members)').all();
+  if (!columns.some((col) => col.name === 'discord_webhook_url')) {
+    db.exec('ALTER TABLE kanban_members ADD COLUMN discord_webhook_url TEXT');
+  }
+  if (!columns.some((col) => col.name === 'discord_user_id')) {
+    db.exec('ALTER TABLE kanban_members ADD COLUMN discord_user_id TEXT');
+  }
+  if (columns.some((col) => col.name === 'discord_thread_id')) {
+    db.exec('ALTER TABLE kanban_members DROP COLUMN discord_thread_id');
+  }
+}
+
 function addEmoteUrlColumn(tableName) {
   const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
   if (columns.some((col) => col.name === 'emote_url')) return;
@@ -265,6 +281,7 @@ function migrate() {
   addKanbanIdColumn('epics');
   addTagColorColumn();
   addKanbanColorColumn();
+  addMemberDiscordColumns();
   addEmoteUrlColumn('tags');
   addEmoteUrlColumn('epics');
   addVisibleInFilterColumn('tags');

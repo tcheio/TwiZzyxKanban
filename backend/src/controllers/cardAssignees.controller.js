@@ -1,6 +1,7 @@
 const db = require('../db/connection');
 const { PUBLISHED_COLUMN_NAME, isPublishedColumn, statusLabelFor, withKey, fetchCardWithRelations } = require('../utils/card-status');
 const { notifyWatchersAndTargets } = require('../utils/notify');
+const { notifyDiscord } = require('../utils/discord');
 
 const VALID_ACTIONS = ['add', 'replace'];
 
@@ -269,6 +270,29 @@ function upsertAssignment(req, res) {
       watcherMessage: `Le ticket « ${card.title} » est passé de « ${previousStatus} » à « ${newStatus} »`,
     });
   }
+
+  // Discord : un seul message par événement, qui reprend l'éventuel changement de statut.
+  // La personne remplacée le reçoit aussi (elle n'est plus responsable, mais doit savoir).
+  let discordMessage;
+  if (action === 'add') {
+    discordMessage = `👤 ${req.user.username} a ajouté ${user.username} comme responsable`;
+  } else if (replacesCoAssignee) {
+    const replacedUser = db.prepare('SELECT username FROM users WHERE id = ?').get(previousUserId);
+    discordMessage = `🔁 ${req.user.username} a remplacé ${replacedUser?.username ?? '?'} par ${user.username} parmi les responsables`;
+  } else if (previousUserId) {
+    const replacedUser = db.prepare('SELECT username FROM users WHERE id = ?').get(previousUserId);
+    discordMessage = `🔁 ${req.user.username} a désigné ${user.username} responsable principal à la place de ${replacedUser?.username ?? '?'}`;
+  } else {
+    discordMessage = `👤 ${req.user.username} a désigné ${user.username} responsable principal`;
+  }
+  if (trimmedReason) discordMessage += `\nRaison : ${trimmedReason}`;
+  if (statusChanged) discordMessage += `\n🔄 Statut : « ${previousStatus} » → « ${newStatus} »`;
+  notifyDiscord(card.id, {
+    kanbanId: req.kanbanId,
+    actorUserId: req.user.id,
+    message: discordMessage,
+    extraUserIds: previousUserId ? [previousUserId] : [],
+  });
 
   const updated = fetchCardWithRelations(card.id);
   res.status(201).json(withKey(updated, req.kanbanCode));
