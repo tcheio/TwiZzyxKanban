@@ -3,6 +3,8 @@ export interface Kanban {
   name: string;
   code: string;
   is_moderator: boolean;
+  // Couleur du logo (cf shared/kanban-colors.ts) — 'indigo' par défaut côté backend.
+  color?: string;
   created_at?: string;
 }
 

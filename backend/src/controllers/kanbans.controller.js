@@ -1,5 +1,6 @@
 const db = require('../db/connection');
 const { KANBAN_TEMPLATES, DEFAULT_TEMPLATE, isValidTemplate } = require('../db/kanban-templates');
+const { ALLOWED_COLORS } = require('../constants/colors');
 
 const CODE_PATTERN = /^[A-Z0-9-]{2,20}$/;
 
@@ -84,6 +85,18 @@ function rename(req, res) {
 
   db.prepare('UPDATE kanbans SET name = ? WHERE id = ?').run(name.trim(), kanbanId);
   const updated = db.prepare('SELECT * FROM kanbans WHERE id = ?').get(kanbanId);
+  res.json(updated);
+}
+
+// Couleur du logo du kanban — modifiable par ses modérateurs (paramètres du tableau).
+function setColor(req, res) {
+  const { color } = req.body || {};
+  if (!ALLOWED_COLORS.includes(color)) {
+    return res.status(400).json({ error: `color doit être l'une de: ${ALLOWED_COLORS.join(', ')}` });
+  }
+
+  db.prepare('UPDATE kanbans SET color = ? WHERE id = ?').run(color, req.kanbanId);
+  const updated = db.prepare('SELECT * FROM kanbans WHERE id = ?').get(req.kanbanId);
   res.json(updated);
 }
 
@@ -201,6 +214,7 @@ module.exports = {
   list,
   create,
   rename,
+  setColor,
   remove,
   membersList,
   membersLite,

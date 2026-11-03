@@ -4,6 +4,14 @@ import { ColumnsService } from '../../../services/board/columns.service';
 import { TagsService } from '../../../services/board/tags.service';
 import { EpicsService } from '../../../services/board/epics.service';
 import { StatsService } from '../../../services/board/stats.service';
+import { KanbansService } from '../../../services/board/kanbans.service';
+import {
+  DEFAULT_KANBAN_COLOR,
+  KANBAN_COLORS,
+  KANBAN_COLOR_LABELS,
+  kanbanLogoClass,
+} from '../../../shared/kanban-colors';
+import { kanbanInitials } from '../../../shared/kanban-initials';
 import { Column } from '../../../models/column.model';
 import { Kanban } from '../../../models/kanban.model';
 import { Tag } from '../../../models/tag.model';
@@ -24,10 +32,17 @@ export class BoardSettings implements OnInit {
   private readonly tagsService = inject(TagsService);
   private readonly epicsService = inject(EpicsService);
   private readonly statsService = inject(StatsService);
+  private readonly kanbansService = inject(KanbansService);
   private readonly route = inject(ActivatedRoute);
   private readonly kanban = this.route.snapshot.data['kanban'] as Kanban;
   readonly kanbanId = this.kanban.id;
   readonly kanbanCode = this.kanban.code;
+  readonly initials = kanbanInitials(this.kanban.name);
+
+  readonly color = signal(this.kanban.color ?? DEFAULT_KANBAN_COLOR);
+  readonly kanbanColors = KANBAN_COLORS;
+  readonly kanbanColorLabels = KANBAN_COLOR_LABELS;
+  readonly kanbanLogoClass = kanbanLogoClass;
 
   readonly columns = signal<Column[]>([]);
   readonly tags = signal<Tag[]>([]);
@@ -66,6 +81,22 @@ export class BoardSettings implements OnInit {
       this.loading.set(false);
     }
     await this.reloadStats();
+  }
+
+  async setColor(color: string): Promise<void> {
+    if (color === this.color()) return;
+    const previous = this.color();
+    this.color.set(color);
+    this.saving.set(true);
+    this.error.set(null);
+    try {
+      await this.kanbansService.setColor(this.kanbanId, color);
+    } catch {
+      this.color.set(previous);
+      this.error.set('Échec du changement de couleur.');
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   async reloadStats(): Promise<void> {

@@ -9,6 +9,8 @@ import { Kanban, KanbanTemplate } from '../../../models/kanban.model';
 import { MyTicket } from '../../../models/my-ticket.model';
 import { priorityLabel, priorityDotClass } from '../../../shared/priority';
 import { dueDateLabel, dueDateClass, formatDate } from '../../../shared/due-date';
+import { kanbanInitials } from '../../../shared/kanban-initials';
+import { kanbanLogoClass } from '../../../shared/kanban-colors';
 
 @Component({
   selector: 'app-kanbans-list',
@@ -38,6 +40,8 @@ export class KanbansList implements OnInit {
   readonly dueDateLabel = dueDateLabel;
   readonly dueDateClass = dueDateClass;
   readonly formatDate = formatDate;
+  readonly kanbanInitials = kanbanInitials;
+  readonly kanbanLogoClass = kanbanLogoClass;
 
   async ngOnInit(): Promise<void> {
     await this.reload();

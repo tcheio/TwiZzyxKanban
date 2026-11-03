@@ -139,6 +139,48 @@ test('PATCH /api/kanbans/:id renomme le kanban (admin)', async () => {
   assert.equal(res.body.name, 'Nouveau nom');
 });
 
+test("un nouveau kanban a la couleur 'indigo' par défaut", async () => {
+  const { kanban } = await createKanban(adminToken, { code: 'TK-A' });
+  assert.equal(kanban.color, 'indigo');
+});
+
+test('PATCH /api/kanbans/:id/color change la couleur (modérateur non-admin)', async () => {
+  const { kanban } = await createKanban(adminToken, { code: 'TK-A' });
+  const { id, token } = await createUser('alice');
+  await addMember(adminToken, kanban.id, id, true);
+
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanban.id}/color`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ color: 'emerald' });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.color, 'emerald');
+
+  const list = await request(app).get('/api/kanbans').set('Authorization', `Bearer ${token}`);
+  assert.equal(list.body.find((k) => k.id === kanban.id).color, 'emerald');
+});
+
+test('PATCH /api/kanbans/:id/color avec une couleur inconnue retourne 400', async () => {
+  const { kanban } = await createKanban(adminToken, { code: 'TK-A' });
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanban.id}/color`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ color: 'fuchsia' });
+  assert.equal(res.status, 400);
+});
+
+test('PATCH /api/kanbans/:id/color par un membre simple retourne 403', async () => {
+  const { kanban } = await createKanban(adminToken, { code: 'TK-A' });
+  const { id, token } = await createUser('bob');
+  await addMember(adminToken, kanban.id, id, false);
+
+  const res = await request(app)
+    .patch(`/api/kanbans/${kanban.id}/color`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ color: 'rose' });
+  assert.equal(res.status, 403);
+});
+
 test('PATCH /api/kanbans/:id par un modérateur (non-admin) retourne 403', async () => {
   const { kanban } = await createKanban(adminToken, { code: 'TK-A' });
   const { id, token } = await createUser('alice');

@@ -53,7 +53,10 @@
           title="Mes Kanbans"
           (click)="goToKanbansList()"
         >
-          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-sm font-bold text-white">
+          <span
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm font-bold text-white"
+            [class]="kanbanLogoClass(currentKanban()?.color)"
+          >
             {{ kanbanInitials(currentKanban()?.name ?? 'TwiZzyxKanban') }}
           </span>
           <div class="min-w-0 text-left">
