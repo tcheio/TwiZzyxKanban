@@ -6,9 +6,12 @@
     [class.cursor-not-allowed]="disabled"
     [class.opacity-60]="disabled"
     [disabled]="disabled"
+    [attr.title]="triggerTitle"
     (click)="toggle()"
   >
-    @if (selected?.avatarUrl || selected?.avatarInitial) {
+    @if (customTrigger) {
+      <ng-content />
+    } @else if (selected?.avatarUrl || selected?.avatarInitial) {
       <span
         class="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-[10px] font-semibold text-white"
       >
@@ -32,7 +35,7 @@
       }
       <span class="truncate" [class.text-text-faint]="!selected">{{ selected?.label ?? nullLabel }}</span>
     }
-    @if (!disabled) {
+    @if (!disabled && !customTrigger) {
       <svg viewBox="0 0 20 20" class="h-3.5 w-3.5 shrink-0 fill-text-faint">
         <path d="M5.5 7.5l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
       </svg>

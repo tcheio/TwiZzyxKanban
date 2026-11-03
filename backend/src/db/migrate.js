@@ -54,6 +54,13 @@ function addTagColorColumn() {
   existingTags.forEach(({ id }, index) => setColor.run(rotatingPalette[index % rotatingPalette.length], id));
 }
 
+// Les kanbans existants gardent l'indigo historique de leur logo.
+function addKanbanColorColumn() {
+  const columns = db.prepare('PRAGMA table_info(kanbans)').all();
+  if (columns.some((col) => col.name === 'color')) return;
+  db.exec("ALTER TABLE kanbans ADD COLUMN color TEXT NOT NULL DEFAULT 'indigo'");
+}
+
 function addEmoteUrlColumn(tableName) {
   const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
   if (columns.some((col) => col.name === 'emote_url')) return;
@@ -257,6 +264,7 @@ function migrate() {
   addKanbanIdColumn('tags');
   addKanbanIdColumn('epics');
   addTagColorColumn();
+  addKanbanColorColumn();
   addEmoteUrlColumn('tags');
   addEmoteUrlColumn('epics');
   addVisibleInFilterColumn('tags');

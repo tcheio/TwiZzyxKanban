@@ -7,6 +7,9 @@ import { EpicsService } from './services/board/epics.service';
 import { Kanban } from './models/kanban.model';
 import { Epic } from './models/epic.model';
 import { epicDotClass } from './shared/epic-colors';
+import { kanbanInitials } from './shared/kanban-initials';
+import { kanbanLogoClass } from './shared/kanban-colors';
+import { KanbansService } from './services/board/kanbans.service';
 import { GlobalSearch } from './shared/global-search/global-search';
 import { ThemeToggle } from './shared/theme-toggle/theme-toggle';
 import { NotificationsBell } from './shared/notifications-bell/notifications-bell';
@@ -22,9 +25,12 @@ export class App implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly epicsService = inject(EpicsService);
+  private readonly kanbansService = inject(KanbansService);
 
   readonly sidebarCollapsed = signal(false);
   readonly epicDotClass = epicDotClass;
+  readonly kanbanInitials = kanbanInitials;
+  readonly kanbanLogoClass = kanbanLogoClass;
   readonly appVersion = APP_VERSION;
 
   readonly currentKanban = signal<Kanban | null>(null);
@@ -43,6 +49,17 @@ export class App implements OnInit {
       )
       .subscribe(() => this.syncKanbanContext());
     this.syncKanbanContext();
+
+    // Changement fait depuis les paramètres du tableau (ex. couleur du logo) : on met à
+    // jour la barre latérale tout de suite, sans attendre une navigation.
+    this.kanbansService.kanbanUpdated
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((updated) => {
+        const current = this.currentKanban();
+        if (current?.id === updated.id) {
+          this.currentKanban.set({ ...current, ...updated, is_moderator: current.is_moderator });
+        }
+      });
   }
 
   private syncKanbanContext(): void {
@@ -52,8 +69,9 @@ export class App implements OnInit {
     }
     const kanban = (route.snapshot.data['kanban'] as Kanban | undefined) ?? null;
 
-    if (kanban?.id === this.currentKanban()?.id) return;
+    const sameKanban = kanban?.id === this.currentKanban()?.id;
     this.currentKanban.set(kanban);
+    if (sameKanban) return;
 
     if (kanban === null) {
       this.epics.set([]);

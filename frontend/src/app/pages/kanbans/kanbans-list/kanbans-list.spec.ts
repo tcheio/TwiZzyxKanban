@@ -150,6 +150,15 @@ describe('KanbansList', () => {
     expect(el.querySelector('.my-tickets-no-due')).toBeNull();
   });
 
+  it('affiche le logo (initiales du nom) sur chaque bouton de kanban', async () => {
+    fixture.detectChanges();
+    await component.reload();
+    fixture.detectChanges();
+
+    const logos = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.kanban-card .kanban-logo'));
+    expect(logos.map((l) => l.textContent?.trim())).toEqual(['DC', 'TK']);
+  });
+
   it("affiche un message quand aucun ticket ne m'est assigné", async () => {
     meService.tickets.mockResolvedValue([]);
     fixture.detectChanges();

@@ -1,114 +1,98 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { AssignmentDialog } from './assignment-dialog';
-import { AssignmentInput } from '../../../models/card-assignee.model';
+import { ReplacementDetails } from '../../../models/card-assignee.model';
 import { CANCELLED_STATUS_ID } from '../../../shared/ticket-status';
 
-describe('AssignmentDialog', () => {
+describe('AssignmentDialog (confirmation de remplacement)', () => {
   let fixture: ReturnType<typeof TestBed.createComponent<AssignmentDialog>>;
   let component: AssignmentDialog;
 
-  const users = [
-    { id: 1, username: 'alice' },
-    { id: 2, username: 'bob' },
-    { id: 3, username: 'carol' },
-  ];
   const statusOptions = [
     { id: 10, label: 'Idée' },
     { id: 20, label: 'Script' },
     { id: CANCELLED_STATUS_ID, label: '🚫 Annulé' },
   ];
 
-  function configure(): void {
+  beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({ imports: [AssignmentDialog] });
     fixture = TestBed.createComponent(AssignmentDialog);
     component = fixture.componentInstance;
-    component.users = users;
-    component.currentAssignedUserId = 1;
-    component.currentAssigneeIds = [2];
+    component.previousUser = { id: 1, username: 'alice' };
+    component.newUser = { id: 3, username: 'carol' };
     component.statusOptions = statusOptions;
     component.currentStatusValue = 10;
-  }
-
-  beforeEach(() => {
-    configure();
     fixture.detectChanges();
   });
 
-  it('le formulaire est invalide tant que la personne et la raison ne sont pas renseignées', () => {
-    expect(component.form.invalid).toBe(true);
-  });
+  function captureSave(): { value: ReplacementDetails | null } {
+    const captured: { value: ReplacementDetails | null } = { value: null };
+    component.save.subscribe((v) => (captured.value = v));
+    return captured;
+  }
 
-  it("userOptions() exclut le responsable principal et les additionnels en mode 'add'", () => {
-    expect(component.userOptions().map((o) => o.id)).toEqual([3]);
-  });
-
-  it("userOptions() n'exclut que le responsable principal en mode 'replace'", () => {
-    component.setAction('replace');
-    expect(component.userOptions().map((o) => o.id)).toEqual([2, 3]);
-  });
-
-  it('setAction() réinitialise la personne sélectionnée', () => {
-    component.form.patchValue({ user_id: 3 });
-    component.setAction('replace');
-    expect(component.form.value.user_id).toBeNull();
+  it('affiche qui remplace qui', () => {
+    const summary = (fixture.nativeElement as HTMLElement).querySelector('.replacement-summary')!;
+    expect(summary.textContent).toContain('alice');
+    expect(summary.textContent).toContain('carol');
+    expect(summary.textContent).toContain('responsable principal');
   });
 
   it("submit() n'émet rien si la raison est vide ou blanche", () => {
-    let called = false;
-    component.save.subscribe(() => (called = true));
-
-    component.form.patchValue({ user_id: 3, reason: '   ' });
+    const captured = captureSave();
+    component.form.patchValue({ reason: '   ' });
     component.submit();
-
-    expect(called).toBe(false);
+    expect(captured.value).toBeNull();
   });
 
-  it('submit() émet action/user_id/reason sans changement de statut par défaut', () => {
-    let emitted: AssignmentInput | null = null;
-    component.save.subscribe((value) => (emitted = value));
-
-    component.form.patchValue({ user_id: 3, reason: 'Renfort ponctuel' });
+  it('submit() émet la raison sans changement de statut par défaut', () => {
+    const captured = captureSave();
+    component.form.patchValue({ reason: '  Alice est en congés ' });
     component.submit();
-
-    expect(emitted).toEqual({ action: 'add', user_id: 3, reason: 'Renfort ponctuel' });
+    expect(captured.value).toEqual({ reason: 'Alice est en congés' });
   });
 
   it("submit() n'inclut pas de changement de statut si la valeur choisie est la même qu'actuellement", () => {
-    let emitted: AssignmentInput | null = null;
-    component.save.subscribe((value) => (emitted = value));
-
+    const captured = captureSave();
     component.toggleChangeStatus(true);
-    component.form.patchValue({ user_id: 3, reason: 'X', status_value: 10 });
+    component.form.patchValue({ reason: 'X', status_value: 10 });
     component.submit();
-
-    expect(emitted!.new_column_id).toBeUndefined();
-    expect(emitted!.cancel).toBeUndefined();
+    expect(captured.value).toEqual({ reason: 'X' });
   });
 
   it('submit() inclut new_column_id quand le statut change vers une colonne', () => {
-    let emitted: AssignmentInput | null = null;
-    component.save.subscribe((value) => (emitted = value));
-
+    const captured = captureSave();
     component.toggleChangeStatus(true);
-    component.form.patchValue({ user_id: 3, reason: 'X', status_value: 20 });
+    component.form.patchValue({ reason: 'X', status_value: 20 });
     component.submit();
-
-    expect(emitted!.new_column_id).toBe(20);
-    expect(emitted!.cancel).toBeUndefined();
+    expect(captured.value).toEqual({ reason: 'X', new_column_id: 20 });
   });
 
   it('submit() inclut cancel:true quand le statut annulé est choisi', () => {
-    let emitted: AssignmentInput | null = null;
-    component.save.subscribe((value) => (emitted = value));
-
+    const captured = captureSave();
     component.toggleChangeStatus(true);
-    component.form.patchValue({ user_id: 3, reason: 'X', status_value: CANCELLED_STATUS_ID });
+    component.form.patchValue({ reason: 'X', status_value: CANCELLED_STATUS_ID });
     component.submit();
+    expect(captured.value).toEqual({ reason: 'X', cancel: true });
+  });
 
-    expect(emitted!.cancel).toBe(true);
-    expect(emitted!.new_column_id).toBeUndefined();
+  it("en mode 'remove', affiche le retrait sans option de statut et n'émet que la raison", () => {
+    component.mode = 'remove';
+    component.newUser = null;
+    fixture.componentRef.changeDetectorRef.markForCheck();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('h2')!.textContent).toContain('Retirer le responsable');
+    expect(el.querySelector('.replacement-summary')!.textContent).toContain('alice sera retiré(e)');
+    expect(el.textContent).not.toContain('Changer aussi le statut');
+
+    const captured = captureSave();
+    component.toggleChangeStatus(true);
+    component.form.patchValue({ reason: 'Fin de mission', status_value: 20 });
+    component.submit();
+    expect(captured.value).toEqual({ reason: 'Fin de mission' });
   });
 
   it('toggleChangeStatus(false) efface la valeur de statut sélectionnée', () => {

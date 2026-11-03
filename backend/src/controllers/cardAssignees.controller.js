@@ -94,14 +94,17 @@ function removeAssignee(req, res) {
   res.status(204).send();
 }
 
-// Ajoute une personne en plus du responsable principal ("add"), ou remplace le
-// responsable principal ("replace"), en un seul appel transactionnel qui peut aussi
-// changer le statut du ticket dans la foulée — le tout tracé dans un même historique.
+// Ajoute une personne en plus du responsable principal ("add"), ou remplace un
+// responsable existant ("replace") — le principal par défaut, ou un additionnel via
+// `replaced_user_id` — en un seul appel transactionnel qui peut aussi changer le statut
+// du ticket dans la foulée, le tout tracé dans un même historique.
+// Seul un vrai remplacement (quelqu'un perd sa place) exige une raison : un ajout, ou la
+// désignation d'un premier responsable sur un ticket non assigné, n'en demande pas.
 function upsertAssignment(req, res) {
   const card = getCardOr404(req, res);
   if (!card) return;
 
-  const { action, user_id, reason, new_column_id, cancel } = req.body || {};
+  const { action, user_id, reason, new_column_id, cancel, replaced_user_id } = req.body || {};
 
   if (!VALID_ACTIONS.includes(action)) {
     return res.status(400).json({ error: `action doit être l'un de : ${VALID_ACTIONS.join(', ')}` });
@@ -109,13 +112,32 @@ function upsertAssignment(req, res) {
   if (!user_id) {
     return res.status(400).json({ error: 'user_id requis' });
   }
-  if (!reason || !String(reason).trim()) {
-    return res.status(400).json({ error: 'reason requis' });
-  }
 
   const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(user_id);
   if (!user) {
     return res.status(400).json({ error: 'user_id invalide' });
+  }
+
+  // Remplacement d'un responsable additionnel (et non du principal).
+  const replacesCoAssignee =
+    action === 'replace' &&
+    replaced_user_id !== undefined &&
+    replaced_user_id !== null &&
+    Number(replaced_user_id) !== card.assigned_user_id;
+  if (replacesCoAssignee) {
+    const isCoAssignee = db
+      .prepare('SELECT 1 FROM card_assignees WHERE card_id = ? AND user_id = ?')
+      .get(card.id, replaced_user_id);
+    if (!isCoAssignee) {
+      return res.status(400).json({ error: 'replaced_user_id ne fait pas partie des responsables de ce ticket' });
+    }
+  }
+
+  const previousUserId =
+    action !== 'replace' ? null : replacesCoAssignee ? Number(replaced_user_id) : card.assigned_user_id;
+  const trimmedReason = reason ? String(reason).trim() : '';
+  if (previousUserId && !trimmedReason) {
+    return res.status(400).json({ error: 'reason requis pour remplacer un responsable' });
   }
 
   const wantsStatusChange = new_column_id !== undefined || cancel === true;
@@ -133,7 +155,7 @@ function upsertAssignment(req, res) {
     }
   }
 
-  if (action === 'add') {
+  if (action === 'add' || replacesCoAssignee) {
     const alreadyPrimary = card.assigned_user_id === Number(user_id);
     const alreadyCoAssignee = db
       .prepare('SELECT 1 FROM card_assignees WHERE card_id = ? AND user_id = ?')
@@ -146,13 +168,18 @@ function upsertAssignment(req, res) {
   }
 
   const previousStatus = statusLabelFor(card);
-  const previousUserId = action === 'replace' ? card.assigned_user_id : null;
   let statusChanged = false;
   let newStatus = previousStatus;
 
   const tx = db.transaction(() => {
     if (action === 'add') {
       db.prepare('INSERT INTO card_assignees (card_id, user_id) VALUES (?, ?)').run(card.id, user_id);
+    } else if (replacesCoAssignee) {
+      db.prepare('UPDATE card_assignees SET user_id = ? WHERE card_id = ? AND user_id = ?').run(
+        user_id,
+        card.id,
+        previousUserId
+      );
     } else {
       // La personne qui devient responsable principal ne doit pas rester listée comme
       // responsable additionnel par ailleurs.
@@ -195,7 +222,7 @@ function upsertAssignment(req, res) {
       action,
       previousUserId,
       user_id,
-      String(reason).trim(),
+      trimmedReason || null,
       statusChanged ? previousStatus : null,
       statusChanged ? newStatus : null,
       req.user.id
@@ -204,28 +231,34 @@ function upsertAssignment(req, res) {
   tx();
 
   const targets = [];
-  if (action === 'add') {
+  if (action === 'add' || replacesCoAssignee) {
     targets.push({ userId: user_id, message: `Vous avez été ajouté(e) comme responsable du ticket « ${card.title} »` });
   } else {
     targets.push({
       userId: user_id,
       message: `Vous êtes désormais responsable principal du ticket « ${card.title} »`,
     });
-    if (previousUserId && previousUserId !== Number(user_id)) {
-      targets.push({
-        userId: previousUserId,
-        message: `Vous n'êtes plus responsable du ticket « ${card.title} » — Raison : ${String(reason).trim()}`,
-      });
-    }
+  }
+  if (previousUserId && previousUserId !== Number(user_id)) {
+    targets.push({
+      userId: previousUserId,
+      message: `Vous n'êtes plus responsable du ticket « ${card.title} » — Raison : ${trimmedReason}`,
+    });
+  }
+  let watcherMessage;
+  if (action === 'add') {
+    watcherMessage = `${req.user.username} a ajouté ${user.username} comme responsable du ticket « ${card.title} »`;
+  } else if (replacesCoAssignee) {
+    const replacedUser = db.prepare('SELECT username FROM users WHERE id = ?').get(previousUserId);
+    watcherMessage = `${req.user.username} a remplacé ${replacedUser?.username ?? '?'} par ${user.username} parmi les responsables du ticket « ${card.title} »`;
+  } else {
+    watcherMessage = `${req.user.username} a désigné ${user.username} responsable principal du ticket « ${card.title} »`;
   }
   notifyWatchersAndTargets(card.id, {
     kanbanId: req.kanbanId,
     actorUserId: req.user.id,
     type: 'assignee',
-    watcherMessage:
-      action === 'add'
-        ? `${req.user.username} a ajouté ${user.username} comme responsable du ticket « ${card.title} »`
-        : `${req.user.username} a désigné ${user.username} responsable principal du ticket « ${card.title} »`,
+    watcherMessage,
     targets,
   });
   if (statusChanged) {

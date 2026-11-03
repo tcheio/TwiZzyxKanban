@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS kanbans (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   code TEXT NOT NULL UNIQUE,
+  -- Couleur du logo du kanban (palette de constants/colors.js).
+  color TEXT NOT NULL DEFAULT 'indigo',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

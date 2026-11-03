@@ -6,6 +6,7 @@ const {
   list,
   create,
   rename,
+  setColor,
   remove,
   membersList,
   membersLite,
@@ -24,6 +25,7 @@ const router = express.Router();
 router.get('/', list);
 router.post('/', requireAdmin, create);
 router.patch('/:kanbanId', requireAdmin, rename);
+router.patch('/:kanbanId/color', requireKanbanModerator, setColor);
 router.delete('/:kanbanId', requireAdmin, remove);
 
 router.get('/:kanbanId/members', requireKanbanAccess, membersList);

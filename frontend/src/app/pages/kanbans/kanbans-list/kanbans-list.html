@@ -103,16 +103,25 @@
           @for (kanban of kanbans(); track kanban.id) {
             <button
               type="button"
-              class="kanban-card flex flex-col items-start gap-1 rounded-lg border border-border bg-surface p-4 text-left hover:bg-surface-alt"
+              class="kanban-card flex items-stretch overflow-hidden rounded-lg border border-border bg-surface text-left hover:bg-surface-alt"
               (click)="openKanban(kanban)"
             >
-              <span class="text-xs font-semibold tracking-wide text-text-faint uppercase">{{ kanban.code }}</span>
-              <span class="font-medium text-text">{{ kanban.name }}</span>
-              @if (kanban.is_moderator) {
-                <span class="mt-1 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                  Modérateur
-                </span>
-              }
+              <span
+                class="kanban-logo flex w-20 shrink-0 items-center justify-center text-xl font-bold text-white"
+                [class]="kanbanLogoClass(kanban.color)"
+              >
+                {{ kanbanInitials(kanban.name) }}
+              </span>
+              <div class="kanban-card-divider w-px shrink-0 bg-border"></div>
+              <span class="flex min-w-0 flex-1 flex-col items-start justify-center gap-1 p-4">
+                <span class="text-xs font-semibold tracking-wide text-text-faint uppercase">{{ kanban.code }}</span>
+                <span class="font-medium text-text">{{ kanban.name }}</span>
+                @if (kanban.is_moderator) {
+                  <span class="mt-1 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                    Modérateur
+                  </span>
+                }
+              </span>
             </button>
           }
         </div>
