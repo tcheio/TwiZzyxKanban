@@ -122,8 +122,8 @@ async function sendTest(req, res) {
 
   try {
     await send(webhookUrl, {
-      content: `${mentionUserId ? `<@${mentionUserId}> ` : ''}✅ Message de test de TwiZzyxKanban, envoyé dans ${target} par ${req.user.username}.`,
-      mentionUserId,
+      content: `✅ Message de test de TwiZzyxKanban, envoyé dans ${target} par ${req.user.username}.`,
+      mentionUserIds: mentionUserId ? [mentionUserId] : [],
     });
     res.status(204).send();
   } catch (err) {

@@ -210,7 +210,7 @@ test('nouveau ticket assigné : message dans le salon du responsable principal, 
   assert.deepEqual(msg.allowed_mentions, { parse: [], users: [ALICE_DISCORD] });
 });
 
-test("ajout d'un responsable : chaque responsable reçoit le message, seul le principal est mentionné", async () => {
+test("ajout d'un responsable secondaire : il est mentionné à ce moment-là, comme le principal", async () => {
   await configureDiscord();
   const cardId = await createCard({ assigned_user_id: aliceId });
   sent = [];
@@ -219,13 +219,59 @@ test("ajout d'un responsable : chaque responsable reçoit le message, seul le pr
 
   const msgs = byDestination();
   assert.equal(sent.length, 2);
-  // Alice (principale) dans son fil, mentionnée.
+  // Alice (principale) dans son salon, mentionnée.
   assert.ok(msgs.alice.content.startsWith(`<@${ALICE_DISCORD}>`));
   assert.deepEqual(msgs.alice.allowed_mentions.users, [ALICE_DISCORD]);
-  // Bob (additionnel, sans fil) dans le salon principal, sans mention.
-  assert.ok(!msgs.main.content.includes('<@'));
-  assert.deepEqual(msgs.main.allowed_mentions, { parse: [], users: [] });
+  // Bob (secondaire qu'on vient d'ajouter, salon du tableau) : mentionné cette fois-ci.
+  assert.ok(msgs.main.content.startsWith(`<@${BOB_DISCORD}>`));
+  assert.deepEqual(msgs.main.allowed_mentions, { parse: [], users: [BOB_DISCORD] });
   assert.match(msgs.main.content, /admin a ajouté bob comme responsable/);
+});
+
+test('un responsable secondaire reçoit ensuite tous les messages, sans jamais être mentionné', async () => {
+  await configureDiscord();
+  const cardId = await createCard({ assigned_user_id: aliceId });
+  await api('post', `/cards/${cardId}/assignees`).send({ action: 'add', user_id: bobId });
+  sent = [];
+
+  await api('patch', `/cards/${cardId}/move`).send({ columnId: columns[1].id });
+  await api('patch', `/cards/${cardId}/cancel`);
+  await api('patch', `/cards/${cardId}`).send({ assigned_user_id: aliceId, title: 'Vidéo A bis' });
+
+  const toBob = sent.filter(({ url }) => url === WEBHOOK);
+  const toAlice = sent.filter(({ url }) => url === ALICE_WEBHOOK);
+  assert.equal(toBob.length, 2); // déplacement + annulation
+  toBob.forEach(({ payload }) => {
+    assert.ok(!payload.content.includes('<@'));
+    assert.deepEqual(payload.allowed_mentions.users, []);
+  });
+  // Alice, principale, reste mentionnée.
+  assert.equal(toAlice.length, 2);
+  toAlice.forEach(({ payload }) => assert.deepEqual(payload.allowed_mentions.users, [ALICE_DISCORD]));
+});
+
+test("remplacement d'un secondaire : le nouveau secondaire est mentionné, le remplacé prévenu sans mention", async () => {
+  await configureDiscord();
+  const cardId = await createCard({ assigned_user_id: bobId });
+  await api('post', `/cards/${cardId}/assignees`).send({ action: 'add', user_id: aliceId });
+  const carol = await createUser('carol');
+  await addMember(adminToken, kanbanId, carol.id, false);
+  const CAROL_WEBHOOK = 'https://discord.com/api/webhooks/444444444444444444/carolcarolcarolcarolcarol_-0123456789';
+  const CAROL_DISCORD = '555555555555555555';
+  await api('patch', `/discord/members/${carol.id}`).send({ discord_webhook_url: CAROL_WEBHOOK, discord_user_id: CAROL_DISCORD });
+  sent = [];
+
+  await api('post', `/cards/${cardId}/assignees`).send({
+    action: 'replace',
+    user_id: carol.id,
+    replaced_user_id: aliceId,
+    reason: 'Alice change de projet',
+  });
+
+  const find = (url) => sent.find((s) => s.url === url).payload;
+  assert.deepEqual(find(CAROL_WEBHOOK).allowed_mentions.users, [CAROL_DISCORD]); // nouvelle secondaire
+  assert.deepEqual(find(ALICE_WEBHOOK).allowed_mentions.users, []); // remplacée
+  assert.deepEqual(find(WEBHOOK).allowed_mentions.users, [BOB_DISCORD]); // principal
 });
 
 test("remplacement du principal : le nouveau principal est mentionné, l'ancien est prévenu sans mention", async () => {

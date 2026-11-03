@@ -291,6 +291,10 @@ function upsertAssignment(req, res) {
     kanbanId: req.kanbanId,
     actorUserId: req.user.id,
     message: discordMessage,
+    // Un responsable additionnel n'est mentionné qu'au moment où le ticket lui est
+    // assigné (ajout, ou remplacement d'un autre additionnel) ; le nouveau principal
+    // l'est déjà en tant que principal.
+    extraMentionUserIds: action === 'add' || replacesCoAssignee ? [Number(user_id)] : [],
     extraUserIds: previousUserId ? [previousUserId] : [],
   });
 

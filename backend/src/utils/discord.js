@@ -7,8 +7,12 @@ const { getCardWatchers } = require('./notify');
 // webhook (le salon Discord où lui écrire). Un membre sans webhook perso reçoit le message
 // via le webhook par défaut du kanban, s'il y en a un ; sinon il ne reçoit rien.
 // Chaque responsable courant du ticket (principal ou additionnel, hors auteur de l'action)
-// reçoit le message, mais seul le responsable principal est mentionné — et seulement dans
-// le message qui lui est destiné, pour ne pas le notifier plusieurs fois.
+// reçoit le message. Mentions :
+//   - le responsable principal est mentionné (sauf événements sans mention, ex. commentaire) ;
+//   - un responsable additionnel n'est JAMAIS mentionné, sauf dans l'événement qui vient de
+//     l'ajouter comme responsable (cf `extraMentionUserIds`).
+// Une mention n'apparaît que dans le message destiné à la personne concernée (son salon),
+// pour qu'elle ne soit pas notifiée plusieurs fois.
 
 // Restreint aux URL de webhook Discord : le serveur fait un POST vers cette URL, on ne
 // doit pas pouvoir lui faire appeler n'importe quelle adresse.
@@ -56,13 +60,16 @@ function getWebhookUrl(kanbanId) {
   return db.prepare('SELECT webhook_url FROM kanban_discord WHERE kanban_id = ?').get(kanbanId)?.webhook_url ?? null;
 }
 
-function send(webhookUrl, { content, mentionUserId = null }) {
+// `mentionUserIds` : IDs Discord à mentionner, placés en tête du message.
+function send(webhookUrl, { content, mentionUserIds = [] }) {
+  const mentions = mentionUserIds.map((id) => `<@${id}>`).join(' ');
+  const fullContent = mentions ? `${mentions} ${content}` : content;
   return transport(webhookUrl, {
     username: 'TwiZzyxKanban',
-    content: content.length > MAX_CONTENT_LENGTH ? `${content.slice(0, MAX_CONTENT_LENGTH - 1)}…` : content,
-    // Jamais de @everyone/@here/rôles venant d'un titre ou d'un commentaire : seule la
-    // mention explicite du responsable principal peut notifier quelqu'un.
-    allowed_mentions: { parse: [], users: mentionUserId ? [mentionUserId] : [] },
+    content: fullContent.length > MAX_CONTENT_LENGTH ? `${fullContent.slice(0, MAX_CONTENT_LENGTH - 1)}…` : fullContent,
+    // Jamais de @everyone/@here/rôles venant d'un titre ou d'un commentaire : seules les
+    // mentions explicitement demandées peuvent notifier quelqu'un.
+    allowed_mentions: { parse: [], users: mentionUserIds },
   });
 }
 
@@ -94,7 +101,15 @@ function ticketHeader(card, kanbanCode) {
 // Envoie un événement de ticket sur Discord à ses responsables. Ne lève jamais : un
 // souci côté Discord ne doit pas faire échouer l'action de l'utilisateur. Renvoie une
 // promesse (utile aux tests) qu'il n'est pas nécessaire d'attendre.
-async function notifyDiscord(cardId, { kanbanId, actorUserId, message, mentionPrimary = true, extraUserIds = [] }) {
+// - mentionPrimary : mentionner le responsable principal (false pour un commentaire) ;
+// - extraMentionUserIds : autres personnes à mentionner (ex. le responsable additionnel
+//   qu'on vient d'ajouter) ;
+// - extraUserIds : destinataires en plus des responsables courants (ex. la personne
+//   remplacée, qui n'est plus responsable mais doit être prévenue — sans mention).
+async function notifyDiscord(
+  cardId,
+  { kanbanId, actorUserId, message, mentionPrimary = true, extraMentionUserIds = [], extraUserIds = [] }
+) {
   try {
     const card = db.prepare('SELECT id, title, assigned_user_id FROM cards WHERE id = ?').get(cardId);
     const kanban = db.prepare('SELECT code FROM kanbans WHERE id = ?').get(kanbanId);
@@ -125,14 +140,15 @@ async function notifyDiscord(cardId, { kanbanId, actorUserId, message, mentionPr
     if (destinations.size === 0) return;
 
     const header = ticketHeader(card, kanban.code);
-    const primaryId = card.assigned_user_id;
-    const primaryDiscordId = memberSettings.get(primaryId)?.discord_user_id || null;
+    const mentioned = new Set(extraMentionUserIds);
+    if (mentionPrimary && card.assigned_user_id) mentioned.add(card.assigned_user_id);
 
     const sends = [...destinations.entries()].map(([webhookUrl, userIds]) => {
-      const mentionUserId =
-        mentionPrimary && primaryDiscordId && userIds.includes(primaryId) ? primaryDiscordId : null;
-      const content = `${mentionUserId ? `<@${mentionUserId}> ` : ''}${header}\n${message}`;
-      return send(webhookUrl, { content, mentionUserId });
+      const mentionUserIds = userIds
+        .filter((id) => mentioned.has(id))
+        .map((id) => memberSettings.get(id)?.discord_user_id)
+        .filter(Boolean);
+      return send(webhookUrl, { content: `${header}\n${message}`, mentionUserIds });
     });
 
     const results = await Promise.allSettled(sends);
