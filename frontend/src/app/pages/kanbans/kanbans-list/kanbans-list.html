@@ -127,8 +127,35 @@
       } @else if (myTickets().length === 0) {
         <p class="text-sm text-text-muted">Aucun ticket en cours ne vous est assigné.</p>
       } @else {
+        <div class="flex flex-col gap-6">
+          @if (myTicketsWithDueDate().length > 0) {
+            <section class="my-tickets-due">
+              <h3 class="mb-2 text-sm font-semibold text-text-soft">
+                Avec échéance ({{ myTicketsWithDueDate().length }})
+              </h3>
+              <ng-container
+                [ngTemplateOutlet]="ticketList"
+                [ngTemplateOutletContext]="{ $implicit: myTicketsWithDueDate() }"
+              />
+            </section>
+          }
+          @if (myTicketsWithoutDueDate().length > 0) {
+            <section class="my-tickets-no-due">
+              <h3 class="mb-2 text-sm font-semibold text-text-soft">
+                Sans échéance ({{ myTicketsWithoutDueDate().length }})
+              </h3>
+              <ng-container
+                [ngTemplateOutlet]="ticketList"
+                [ngTemplateOutletContext]="{ $implicit: myTicketsWithoutDueDate() }"
+              />
+            </section>
+          }
+        </div>
+      }
+
+      <ng-template #ticketList let-tickets>
         <div class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface">
-          @for (ticket of myTickets(); track ticket.key) {
+          @for (ticket of tickets; track ticket.key) {
             <button
               type="button"
               class="my-ticket-row flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface-alt"
@@ -156,7 +183,7 @@
             </button>
           }
         </div>
-      }
+      </ng-template>
     </div>
   </div>
 </div>
