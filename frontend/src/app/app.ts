@@ -7,6 +7,7 @@ import { EpicsService } from './services/board/epics.service';
 import { Kanban } from './models/kanban.model';
 import { Epic } from './models/epic.model';
 import { epicDotClass } from './shared/epic-colors';
+import { kanbanInitials } from './shared/kanban-initials';
 import { GlobalSearch } from './shared/global-search/global-search';
 import { ThemeToggle } from './shared/theme-toggle/theme-toggle';
 import { NotificationsBell } from './shared/notifications-bell/notifications-bell';
@@ -25,6 +26,7 @@ export class App implements OnInit {
 
   readonly sidebarCollapsed = signal(false);
   readonly epicDotClass = epicDotClass;
+  readonly kanbanInitials = kanbanInitials;
   readonly appVersion = APP_VERSION;
 
   readonly currentKanban = signal<Kanban | null>(null);

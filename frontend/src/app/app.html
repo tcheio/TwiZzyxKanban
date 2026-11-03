@@ -54,7 +54,7 @@
           (click)="goToKanbansList()"
         >
           <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-sm font-bold text-white">
-            TK
+            {{ kanbanInitials(currentKanban()?.name ?? 'TwiZzyxKanban') }}
           </span>
           <div class="min-w-0 text-left">
             <div class="truncate text-sm font-semibold text-text">{{ currentKanban()?.name ?? 'TwiZzyxKanban' }}</div>
