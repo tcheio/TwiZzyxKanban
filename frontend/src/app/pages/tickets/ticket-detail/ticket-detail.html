@@ -572,32 +572,60 @@
               <dt class="text-text-muted">Assigné</dt>
               <dd class="flex flex-wrap items-center justify-end gap-1">
                 @if (primaryAssignee(); as primary) {
-                  <span
-                    class="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-[10px] font-semibold text-white ring-2 ring-brand/30"
-                    [title]="primary.username + ' — responsable principal'"
+                  <app-search-select
+                    class="primary-assignee"
+                    [customTrigger]="true"
+                    triggerClass="rounded-full hover:ring-2 hover:ring-brand/60"
+                    [triggerTitle]="primary.username + ' — responsable principal (cliquer pour remplacer)'"
+                    [options]="replaceAssigneeOptions(primary.id)"
+                    [value]="null"
+                    [allowNull]="false"
+                    searchPlaceholder="Remplacer par..."
+                    (valueChange)="requestReplacement(primary, $event)"
                   >
-                    @if (primary.avatar_url; as avatar) {
-                      <img [src]="avatar" class="h-full w-full object-cover" alt="" />
-                    } @else {
-                      {{ primary.username.charAt(0).toUpperCase() }}
-                    }
-                  </span>
+                    <span
+                      class="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-[10px] font-semibold text-white ring-2 ring-brand/30"
+                    >
+                      @if (primary.avatar_url; as avatar) {
+                        <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                      } @else {
+                        {{ primary.username.charAt(0).toUpperCase() }}
+                      }
+                    </span>
+                  </app-search-select>
                 } @else {
                   <span class="text-xs text-text-faint">— Non assigné —</span>
                 }
                 @for (assignee of assignees(); track assignee.id) {
-                  <span
-                    class="group relative flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-text-faint text-[10px] font-semibold text-white"
-                    [title]="assignee.username"
-                  >
-                    @if (assignee.avatar_url; as avatar) {
-                      <img [src]="avatar" class="h-full w-full object-cover" alt="" />
-                    } @else {
-                      {{ assignee.username.charAt(0).toUpperCase() }}
-                    }
+                  <span class="co-assignee group relative">
+                    <app-search-select
+                      [customTrigger]="true"
+                      triggerClass="rounded-full hover:ring-2 hover:ring-brand/60"
+                      [triggerTitle]="assignee.username + ' (cliquer pour remplacer)'"
+                      [options]="replaceAssigneeOptions(assignee.user_id)"
+                      [value]="null"
+                      [allowNull]="false"
+                      searchPlaceholder="Remplacer par..."
+                      (valueChange)="
+                        requestReplacement(
+                          { id: assignee.user_id, username: assignee.username, avatar_url: assignee.avatar_url },
+                          $event
+                        )
+                      "
+                    >
+                      <span
+                        class="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-text-faint text-[10px] font-semibold text-white"
+                      >
+                        @if (assignee.avatar_url; as avatar) {
+                          <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                        } @else {
+                          {{ assignee.username.charAt(0).toUpperCase() }}
+                        }
+                      </span>
+                    </app-search-select>
                     <button
                       type="button"
-                      class="absolute inset-0 hidden items-center justify-center bg-black/50 text-[10px] text-white group-hover:flex"
+                      class="absolute -top-1 -right-1 z-10 hidden h-3.5 w-3.5 items-center justify-center rounded-full bg-danger text-[8px] leading-none text-white group-hover:flex"
                       title="Retirer des responsables"
                       (click)="removeAssignee(assignee.user_id)"
                     >
@@ -605,14 +633,23 @@
                     </button>
                   </span>
                 }
-                <button
-                  type="button"
-                  class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-border-strong text-xs text-text-faint hover:border-border-strong hover:text-text-muted"
-                  title="Gérer les responsables"
-                  (click)="openAssignmentDialog()"
+                <app-search-select
+                  class="add-assignee"
+                  [customTrigger]="true"
+                  triggerClass="rounded-full"
+                  [triggerTitle]="primaryAssignee() ? 'Ajouter un responsable' : 'Assigner un responsable'"
+                  [options]="addAssigneeOptions()"
+                  [value]="null"
+                  [allowNull]="false"
+                  searchPlaceholder="Rechercher une personne..."
+                  (valueChange)="addAssignee($event)"
                 >
-                  +
-                </button>
+                  <span
+                    class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-border-strong text-xs text-text-faint hover:text-text-muted"
+                  >
+                    +
+                  </span>
+                </app-search-select>
               </dd>
             </div>
 
@@ -781,16 +818,16 @@
   />
 }
 
-@if (assignmentDialogOpen()) {
+@if (pendingReplacement(); as pending) {
   <app-assignment-dialog
-    [users]="users()"
-    [currentAssignedUserId]="ticket()?.assigned_user_id ?? null"
-    [currentAssigneeIds]="assigneeUserIds()"
+    [previousUser]="pending.previous"
+    [newUser]="pending.next"
+    [isPrimary]="pending.isPrimary"
     [statusOptions]="statusOptions()"
     [currentStatusValue]="statusValue()"
     [statusLocked]="isPublished()"
-    (save)="saveAssignment($event)"
-    (cancelled)="assignmentDialogOpen.set(false)"
+    (save)="confirmReplacement($event)"
+    (cancelled)="pendingReplacement.set(null)"
   />
 }
 

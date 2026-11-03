@@ -286,12 +286,12 @@ describe('TicketDetail', () => {
     expect(cardsService.update).toHaveBeenCalledWith(5, 5, { priority: 'high' });
   });
 
-  it('saveAssignment() appelle le service, recharge assignees/historique et ferme le dialog', async () => {
+  it('saveAssignment() appelle le service et recharge assignees/historique', async () => {
     await component.reload();
-    component.assignmentDialogOpen.set(true);
 
-    await component.saveAssignment({ action: 'replace', user_id: 2, reason: 'Bob est en congés' });
+    const ok = await component.saveAssignment({ action: 'replace', user_id: 2, reason: 'Bob est en congés' });
 
+    expect(ok).toBe(true);
     expect(cardAssigneesService.upsert).toHaveBeenCalledWith(5, 5, {
       action: 'replace',
       user_id: 2,
@@ -300,7 +300,108 @@ describe('TicketDetail', () => {
     expect(component.ticket()?.assigned_user_id).toBe(2);
     expect(cardAssigneesService.list).toHaveBeenCalledWith(5, 5);
     expect(cardAssigneesService.history).toHaveBeenCalledWith(5, 5);
-    expect(component.assignmentDialogOpen()).toBe(false);
+  });
+
+  describe('responsables : ajout direct / remplacement confirmé', () => {
+    const kanbanUsers = [
+      { id: 1, username: 'alice' },
+      { id: 2, username: 'bob' },
+      { id: 3, username: 'carol' },
+    ];
+
+    it('addAssignee() ajoute directement un responsable additionnel, sans raison ni fenêtre', async () => {
+      await component.reload();
+
+      await component.addAssignee(3);
+
+      expect(cardAssigneesService.upsert).toHaveBeenCalledWith(5, 5, { action: 'add', user_id: 3 });
+      expect(component.pendingReplacement()).toBeNull();
+    });
+
+    it("addAssignee() sur un ticket non assigné désigne directement le responsable principal, sans raison", async () => {
+      cardsService.get.mockResolvedValue({ ...ticket, assigned_user_id: null });
+      await component.reload();
+
+      await component.addAssignee(3);
+
+      expect(cardAssigneesService.upsert).toHaveBeenCalledWith(5, 5, { action: 'replace', user_id: 3 });
+    });
+
+    it('addAssigneeOptions() exclut le principal et les additionnels', async () => {
+      cardAssigneesService.list.mockResolvedValue([
+        { id: 1, card_id: 5, user_id: 2, username: 'bob', avatar_url: null, created_at: '' },
+      ]);
+      await component.reload();
+      component.users.set(kanbanUsers);
+
+      expect(component.addAssigneeOptions().map((o) => o.id)).toEqual([3]);
+    });
+
+    it('replaceAssigneeOptions() : le principal peut être remplacé par un additionnel, un additionnel non', async () => {
+      cardAssigneesService.list.mockResolvedValue([
+        { id: 1, card_id: 5, user_id: 2, username: 'bob', avatar_url: null, created_at: '' },
+      ]);
+      await component.reload();
+      component.users.set(kanbanUsers);
+
+      expect(component.replaceAssigneeOptions(1).map((o) => o.id)).toEqual([2, 3]);
+      expect(component.replaceAssigneeOptions(2).map((o) => o.id)).toEqual([3]);
+    });
+
+    it("requestReplacement() ouvre la confirmation sans rien enregistrer", async () => {
+      await component.reload();
+      component.users.set(kanbanUsers);
+
+      component.requestReplacement(kanbanUsers[0], 3);
+
+      expect(component.pendingReplacement()).toEqual({ previous: kanbanUsers[0], next: kanbanUsers[2], isPrimary: true });
+      expect(cardAssigneesService.upsert).not.toHaveBeenCalled();
+    });
+
+    it('confirmReplacement() remplace le principal avec la raison et ferme la confirmation', async () => {
+      await component.reload();
+      component.users.set(kanbanUsers);
+      component.requestReplacement(kanbanUsers[0], 3);
+
+      await component.confirmReplacement({ reason: 'Alice est en congés' });
+
+      expect(cardAssigneesService.upsert).toHaveBeenCalledWith(5, 5, {
+        action: 'replace',
+        user_id: 3,
+        reason: 'Alice est en congés',
+      });
+      expect(component.pendingReplacement()).toBeNull();
+    });
+
+    it("confirmReplacement() d'un additionnel transmet replaced_user_id", async () => {
+      cardAssigneesService.list.mockResolvedValue([
+        { id: 1, card_id: 5, user_id: 2, username: 'bob', avatar_url: null, created_at: '' },
+      ]);
+      await component.reload();
+      component.users.set(kanbanUsers);
+      component.requestReplacement(kanbanUsers[1], 3);
+
+      await component.confirmReplacement({ reason: 'Bob change de projet' });
+
+      expect(cardAssigneesService.upsert).toHaveBeenCalledWith(5, 5, {
+        action: 'replace',
+        user_id: 3,
+        replaced_user_id: 2,
+        reason: 'Bob change de projet',
+      });
+    });
+
+    it("confirmReplacement() garde la fenêtre ouverte si l'enregistrement échoue", async () => {
+      cardAssigneesService.upsert.mockRejectedValue(new Error('boom'));
+      await component.reload();
+      component.users.set(kanbanUsers);
+      component.requestReplacement(kanbanUsers[0], 3);
+
+      await component.confirmReplacement({ reason: 'X' });
+
+      expect(component.pendingReplacement()).not.toBeNull();
+      expect(component.error()).toBe('Échec de la mise à jour des responsables.');
+    });
   });
 
   it('removeAssignee() demande la raison puis retire la personne', async () => {

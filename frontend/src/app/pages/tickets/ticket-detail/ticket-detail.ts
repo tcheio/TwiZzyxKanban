@@ -20,7 +20,7 @@ import { UserLite } from '../../../models/user.model';
 import { Comment } from '../../../models/comment.model';
 import { CardLink, CardLinkType } from '../../../models/card-link.model';
 import { CardImage } from '../../../models/card-image.model';
-import { AssignmentInput, CardAssignee } from '../../../models/card-assignee.model';
+import { AssignmentInput, CardAssignee, ReplacementDetails } from '../../../models/card-assignee.model';
 import { CardAssignmentHistoryEntry } from '../../../models/card-assignment-history.model';
 import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
@@ -94,7 +94,8 @@ export class TicketDetail implements OnInit {
   readonly cards = signal<Card[]>([]);
   readonly assignees = signal<CardAssignee[]>([]);
   readonly assignmentHistory = signal<CardAssignmentHistoryEntry[]>([]);
-  readonly assignmentDialogOpen = signal(false);
+  // Remplacement de responsable en attente de confirmation (fenêtre avec raison).
+  readonly pendingReplacement = signal<{ previous: UserLite; next: UserLite; isPrimary: boolean } | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   // descriptionHtml n'est modifié que par reload() (jamais par la saisie) pour que le
@@ -429,11 +430,65 @@ export class TicketDetail implements OnInit {
     this.patch({ due_date: value || null });
   }
 
-  openAssignmentDialog(): void {
-    this.assignmentDialogOpen.set(true);
+  private toUserOption(u: UserLite): SearchSelectOption<number> {
+    return {
+      id: u.id,
+      label: u.username,
+      avatarUrl: u.avatar_url ?? null,
+      avatarInitial: u.username.charAt(0).toUpperCase(),
+    };
   }
 
-  async saveAssignment(input: AssignmentInput): Promise<void> {
+  // Liste du bouton "+" : tous les membres du kanban qui ne sont pas déjà responsables.
+  addAssigneeOptions(): SearchSelectOption<number>[] {
+    const excluded = new Set<number | null>([this.ticket()?.assigned_user_id ?? null, ...this.assigneeUserIds()]);
+    return this.users()
+      .filter((u) => !excluded.has(u.id))
+      .map((u) => this.toUserOption(u));
+  }
+
+  // Liste ouverte en cliquant sur un responsable existant. Remplacer le principal peut
+  // promouvoir un additionnel (le backend le retire alors des additionnels) ; remplacer
+  // un additionnel ne peut se faire que par quelqu'un qui n'est pas déjà responsable.
+  replaceAssigneeOptions(userId: number): SearchSelectOption<number>[] {
+    const primaryId = this.ticket()?.assigned_user_id ?? null;
+    const excluded = new Set<number | null>(
+      userId === primaryId ? [primaryId] : [primaryId, ...this.assigneeUserIds()]
+    );
+    return this.users()
+      .filter((u) => !excluded.has(u.id))
+      .map((u) => this.toUserOption(u));
+  }
+
+  // "+" = simple ajout, sans fenêtre ni commentaire. Sur un ticket non assigné, la
+  // personne choisie devient directement le responsable principal.
+  async addAssignee(userId: number | null): Promise<void> {
+    if (userId === null) return;
+    const action = this.ticket()?.assigned_user_id ? 'add' : 'replace';
+    await this.saveAssignment({ action, user_id: userId });
+  }
+
+  // Clic sur un responsable existant puis choix d'une autre personne : on demande
+  // confirmation et une raison avant de remplacer.
+  requestReplacement(previous: UserLite, newUserId: number | null): void {
+    if (newUserId === null || newUserId === previous.id) return;
+    const next = this.users().find((u) => u.id === newUserId);
+    if (!next) return;
+    const isPrimary = this.ticket()?.assigned_user_id === previous.id;
+    this.pendingReplacement.set({ previous, next, isPrimary });
+  }
+
+  async confirmReplacement(details: ReplacementDetails): Promise<void> {
+    const pending = this.pendingReplacement();
+    if (!pending) return;
+    const input: AssignmentInput = { action: 'replace', user_id: pending.next.id, ...details };
+    if (!pending.isPrimary) input.replaced_user_id = pending.previous.id;
+    if (await this.saveAssignment(input)) {
+      this.pendingReplacement.set(null);
+    }
+  }
+
+  async saveAssignment(input: AssignmentInput): Promise<boolean> {
     try {
       const updated = await this.cardAssigneesService.upsert(this.kanbanId, this.ticketId, input);
       this.ticket.set(updated);
@@ -443,9 +498,10 @@ export class TicketDetail implements OnInit {
       ]);
       this.assignees.set(assignees);
       this.assignmentHistory.set(assignmentHistory);
-      this.assignmentDialogOpen.set(false);
+      return true;
     } catch {
       this.error.set("Échec de la mise à jour des responsables.");
+      return false;
     }
   }
 

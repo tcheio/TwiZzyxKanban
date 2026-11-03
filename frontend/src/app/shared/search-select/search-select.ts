@@ -51,6 +51,10 @@ export class SearchSelect<T extends string | number> {
   @Input() searchPlaceholder = 'Rechercher...';
   @Input() triggerClass?: string;
   @Input() panelClass = 'w-56';
+  // true : le bouton déclencheur affiche le contenu projeté (<ng-content>) au lieu de
+  // l'option sélectionnée — ex. un avatar cliquable qui ouvre la liste.
+  @Input() customTrigger = false;
+  @Input() triggerTitle: string | null = null;
   @Output() valueChange = new EventEmitter<T | null>();
 
   readonly defaultTriggerClass = 'max-w-full rounded px-1.5 py-1 text-text-soft hover:bg-surface-muted';

@@ -72,11 +72,76 @@ test('POST /assignees avec action invalide retourne 400', async () => {
   assert.equal(res.status, 400);
 });
 
-test('POST /assignees sans reason retourne 400', async () => {
+test('POST /assignees (add) sans reason réussit et trace une raison vide', async () => {
   const res = await request(app)
     .post(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees`)
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ action: 'add', user_id: aliceId });
+  assert.equal(res.status, 201);
+
+  const history = await request(app)
+    .get(`/api/kanbans/${kanbanId}/cards/${cardId}/assignment-history`)
+    .set('Authorization', `Bearer ${adminToken}`);
+  assert.equal(history.body[0].action, 'add');
+  assert.equal(history.body[0].reason, null);
+});
+
+test('POST /assignees (replace) sans reason sur un ticket non assigné réussit (premier responsable)', async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ action: 'replace', user_id: aliceId });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.assigned_user_id, aliceId);
+});
+
+test('POST /assignees (replace) sans reason quand un responsable principal existe retourne 400', async () => {
+  await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ action: 'replace', user_id: aliceId });
+
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ action: 'replace', user_id: bobId, reason: '   ' });
+  assert.equal(res.status, 400);
+});
+
+test('POST /assignees (replace + replaced_user_id) remplace un responsable additionnel', async () => {
+  await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ action: 'add', user_id: aliceId });
+
+  const withoutReason = await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ action: 'replace', user_id: bobId, replaced_user_id: aliceId });
+  assert.equal(withoutReason.status, 400);
+
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ action: 'replace', user_id: bobId, replaced_user_id: aliceId, reason: 'Alice change de projet' });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.assigned_user_id, null);
+  assert.deepEqual(res.body.assignee_ids, [bobId]);
+
+  const history = await request(app)
+    .get(`/api/kanbans/${kanbanId}/cards/${cardId}/assignment-history`)
+    .set('Authorization', `Bearer ${adminToken}`);
+  assert.equal(history.body[0].action, 'replace');
+  assert.equal(history.body[0].previous_user_id, aliceId);
+  assert.equal(history.body[0].new_user_id, bobId);
+  assert.equal(history.body[0].reason, 'Alice change de projet');
+});
+
+test("POST /assignees (replace + replaced_user_id) refuse une personne qui n'est pas responsable", async () => {
+  const res = await request(app)
+    .post(`/api/kanbans/${kanbanId}/cards/${cardId}/assignees`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ action: 'replace', user_id: bobId, replaced_user_id: aliceId, reason: 'X' });
   assert.equal(res.status, 400);
 });
 

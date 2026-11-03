@@ -9,10 +9,16 @@ export interface CardAssignee {
 
 export type AssignmentAction = 'add' | 'replace';
 
-export interface AssignmentInput {
-  action: AssignmentAction;
-  user_id: number;
+// Détails saisis dans la fenêtre de confirmation d'un remplacement de responsable.
+export interface ReplacementDetails {
   reason: string;
   new_column_id?: number;
   cancel?: boolean;
+}
+
+export interface AssignmentInput extends Partial<ReplacementDetails> {
+  action: AssignmentAction;
+  user_id: number;
+  // En 'replace' : responsable additionnel remplacé. Absent = le responsable principal.
+  replaced_user_id?: number;
 }
