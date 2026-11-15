@@ -228,6 +228,20 @@
                   }
                 </div>
               }
+              @if (card.tasks_total) {
+                <div
+                  class="card-tasks-progress mt-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium"
+                  [class]="card.tasks_done === card.tasks_total ? 'bg-success-soft text-success' : 'bg-surface-muted text-text-muted'"
+                  [title]="card.tasks_done + ' tâche(s) terminée(s) sur ' + card.tasks_total"
+                >
+                  <svg viewBox="0 0 20 20" class="h-3 w-3 fill-current" aria-hidden="true">
+                    <path
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    />
+                  </svg>
+                  {{ card.tasks_done }}/{{ card.tasks_total }}
+                </div>
+              }
               @if (card.due_date) {
                 <div
                   class="mt-1.5 text-xs"

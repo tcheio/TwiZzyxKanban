@@ -12,6 +12,7 @@ const {
 const { notifyWatchersAndTargets, notifyModerators } = require('../utils/notify');
 const { notifyDiscord } = require('../utils/discord');
 const { isKanbanModerator, canViewCard, canChangeCardStatus } = require('../utils/kanban-access');
+const { transferTaskAssignments, releaseOrphanTaskAssignments } = require('../utils/card-tasks');
 
 const VALID_PRIORITIES = ['low', 'medium', 'high'];
 
@@ -157,6 +158,11 @@ function update(req, res) {
     due_date !== undefined ? due_date : card.due_date,
     id
   );
+
+  if (assigned_user_id !== undefined && assigned_user_id !== card.assigned_user_id) {
+    transferTaskAssignments(id, card.assigned_user_id, assigned_user_id);
+    releaseOrphanTaskAssignments(id);
+  }
 
   if (tag_id !== undefined && tag_id !== card.tag_id) {
     const previousTag = card.tag_id ? db.prepare('SELECT name FROM tags WHERE id = ?').get(card.tag_id) : null;

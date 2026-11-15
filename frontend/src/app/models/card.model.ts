@@ -11,6 +11,9 @@ export interface Card {
   cloned_from_id: number | null;
   assigned_user_id: number | null;
   assignee_ids?: number[];
+  // Avancement de la checklist de tâches du ticket.
+  tasks_done?: number;
+  tasks_total?: number;
   priority: Priority;
   column_id: number;
   position: number;

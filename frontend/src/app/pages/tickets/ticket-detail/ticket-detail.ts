@@ -10,6 +10,7 @@ import { CardLinksService } from '../../../services/tickets/card-links.service';
 import { CardImagesService } from '../../../services/tickets/card-images.service';
 import { CardAssigneesService } from '../../../services/tickets/card-assignees.service';
 import { CardTagsService } from '../../../services/tickets/card-tags.service';
+import { CardTasksService } from '../../../services/tickets/card-tasks.service';
 import { TagsService } from '../../../services/board/tags.service';
 import { EpicsService } from '../../../services/board/epics.service';
 import { AuthService } from '../../../core/auth.service';
@@ -22,6 +23,7 @@ import { CardLink, CardLinkType } from '../../../models/card-link.model';
 import { CardImage } from '../../../models/card-image.model';
 import { AssignmentInput, CardAssignee, ReplacementDetails } from '../../../models/card-assignee.model';
 import { CardAssignmentHistoryEntry } from '../../../models/card-assignment-history.model';
+import { CardTask } from '../../../models/card-task.model';
 import { Tag } from '../../../models/tag.model';
 import { Epic } from '../../../models/epic.model';
 import { epicBadgeClass, epicDotClass } from '../../../shared/epic-colors';
@@ -72,6 +74,7 @@ export class TicketDetail implements OnInit {
   private readonly cardImagesService = inject(CardImagesService);
   private readonly cardAssigneesService = inject(CardAssigneesService);
   private readonly cardTagsService = inject(CardTagsService);
+  private readonly cardTasksService = inject(CardTasksService);
   private readonly tagsService = inject(TagsService);
   private readonly epicsService = inject(EpicsService);
   private readonly destroyRef = inject(DestroyRef);
@@ -80,6 +83,8 @@ export class TicketDetail implements OnInit {
   @ViewChild('commentEditor') private commentEditorRef?: ElementRef<HTMLDivElement>;
   @ViewChild('descriptionEditor') private descriptionEditorRef?: ElementRef<HTMLDivElement>;
   @ViewChild('galleryFileInput') private galleryFileInputRef?: ElementRef<HTMLInputElement>;
+  @ViewChild('taskTitleInput') private taskTitleInputRef?: ElementRef<HTMLInputElement>;
+  @ViewChild('newTaskInput') private newTaskInputRef?: ElementRef<HTMLInputElement>;
 
   readonly richTextColors = RICH_TEXT_COLORS;
 
@@ -94,6 +99,13 @@ export class TicketDetail implements OnInit {
   readonly cards = signal<Card[]>([]);
   readonly assignees = signal<CardAssignee[]>([]);
   readonly assignmentHistory = signal<CardAssignmentHistoryEntry[]>([]);
+  readonly tasks = signal<CardTask[]>([]);
+  // Ligne d'ajout de tâche ouverte (saisie en cours) ou repliée en "+ Ajouter une tâche".
+  readonly addingTask = signal(false);
+  readonly newTaskTitle = signal('');
+  readonly newTaskAssigneeId = signal<number | null>(null);
+  // Tâche dont le titre est en cours d'édition (une seule à la fois).
+  readonly editingTaskId = signal<number | null>(null);
   // Remplacement de responsable en attente de confirmation (fenêtre avec raison).
   readonly pendingReplacement = signal<{ previous: UserLite; next: UserLite; isPrimary: boolean } | null>(null);
   // Retrait de responsable en attente de confirmation (même fenêtre, en mode retrait).
@@ -137,7 +149,7 @@ export class TicketDetail implements OnInit {
     }
     this.error.set(null);
     try {
-      const [ticket, columns, users, tags, epics, comments, links, images, cards, assignees, assignmentHistory] =
+      const [ticket, columns, users, tags, epics, comments, links, images, cards, assignees, assignmentHistory, tasks] =
         await Promise.all([
           this.cardsService.get(this.kanbanId, this.ticketId),
           this.columnsService.list(this.kanbanId),
@@ -150,6 +162,7 @@ export class TicketDetail implements OnInit {
           this.cardsService.list(this.kanbanId),
           this.cardAssigneesService.list(this.kanbanId, this.ticketId),
           this.cardAssigneesService.history(this.kanbanId, this.ticketId),
+          this.cardTasksService.list(this.kanbanId, this.ticketId),
         ]);
       this.ticket.set(ticket);
       this.columns.set(columns);
@@ -162,6 +175,7 @@ export class TicketDetail implements OnInit {
       this.cards.set(cards);
       this.assignees.set(assignees);
       this.assignmentHistory.set(assignmentHistory);
+      this.tasks.set(tasks);
       // En rafraîchissement silencieux, si l'édition de la description est ouverte, on ne
       // veut pas écraser la saisie de l'utilisateur en cours.
       if (!options.silent || !this.descriptionEditing()) {
@@ -494,12 +508,7 @@ export class TicketDetail implements OnInit {
     try {
       const updated = await this.cardAssigneesService.upsert(this.kanbanId, this.ticketId, input);
       this.ticket.set(updated);
-      const [assignees, assignmentHistory] = await Promise.all([
-        this.cardAssigneesService.list(this.kanbanId, this.ticketId),
-        this.cardAssigneesService.history(this.kanbanId, this.ticketId),
-      ]);
-      this.assignees.set(assignees);
-      this.assignmentHistory.set(assignmentHistory);
+      await this.refreshAssigneesAndTasks();
       return true;
     } catch {
       this.error.set("Échec de la mise à jour des responsables.");
@@ -517,15 +526,141 @@ export class TicketDetail implements OnInit {
     if (!user) return;
     try {
       await this.cardAssigneesService.remove(this.kanbanId, this.ticketId, user.id, details.reason);
-      const [assignees, assignmentHistory] = await Promise.all([
-        this.cardAssigneesService.list(this.kanbanId, this.ticketId),
-        this.cardAssigneesService.history(this.kanbanId, this.ticketId),
-      ]);
-      this.assignees.set(assignees);
-      this.assignmentHistory.set(assignmentHistory);
+      await this.refreshAssigneesAndTasks();
       this.pendingRemoval.set(null);
     } catch {
       this.error.set("Échec du retrait du responsable.");
+    }
+  }
+
+  // Un changement de responsable peut transférer ou désassigner des tâches côté backend :
+  // on les recharge en même temps que la liste des responsables et l'historique.
+  private async refreshAssigneesAndTasks(): Promise<void> {
+    const [assignees, assignmentHistory, tasks] = await Promise.all([
+      this.cardAssigneesService.list(this.kanbanId, this.ticketId),
+      this.cardAssigneesService.history(this.kanbanId, this.ticketId),
+      this.cardTasksService.list(this.kanbanId, this.ticketId),
+    ]);
+    this.assignees.set(assignees);
+    this.assignmentHistory.set(assignmentHistory);
+    this.tasks.set(tasks);
+  }
+
+  // --- Tâches ---------------------------------------------------------------------
+
+  tasksDoneCount(): number {
+    return this.tasks().filter((t) => !!t.done_at).length;
+  }
+
+  tasksProgressPercent(): number {
+    const total = this.tasks().length;
+    return total ? Math.round((this.tasksDoneCount() / total) * 100) : 0;
+  }
+
+  // Une tâche ne peut être assignée qu'aux personnes reliées au ticket (responsable
+  // principal + additionnels) — même règle que côté backend.
+  taskAssigneeOptions(): SearchSelectOption<number>[] {
+    const primary = this.primaryAssignee();
+    const people: UserLite[] = primary ? [primary] : [];
+    for (const a of this.assignees()) {
+      if (!people.some((p) => p.id === a.user_id)) {
+        people.push({ id: a.user_id, username: a.username, avatar_url: a.avatar_url });
+      }
+    }
+    return people.map((u) => this.toUserOption(u));
+  }
+
+  newTaskAssignee(): UserLite | null {
+    const id = this.newTaskAssigneeId();
+    if (id === null) return null;
+    const option = this.taskAssigneeOptions().find((o) => o.id === id);
+    return option ? { id, username: option.label, avatar_url: option.avatarUrl ?? null } : null;
+  }
+
+  openTaskComposer(): void {
+    this.addingTask.set(true);
+    this.focusNewTaskInput();
+  }
+
+  closeTaskComposer(): void {
+    this.addingTask.set(false);
+    this.newTaskTitle.set('');
+    this.newTaskAssigneeId.set(null);
+  }
+
+  // Le champ n'existe qu'après le prochain rendu (ouverture) ou a perdu le focus au profit
+  // du sélecteur de personne : on le refocalise pour pouvoir continuer à taper.
+  focusNewTaskInput(): void {
+    setTimeout(() => this.newTaskInputRef?.nativeElement.focus());
+  }
+
+  // La ligne d'ajout reste ouverte après un ajout, avec la même personne assignée, pour
+  // enchaîner plusieurs tâches au clavier ; seul le titre est vidé.
+  async addTask(): Promise<void> {
+    const title = this.newTaskTitle().trim();
+    if (!title) return;
+    try {
+      const created = await this.cardTasksService.create(this.kanbanId, this.ticketId, {
+        title,
+        assigned_user_id: this.newTaskAssigneeId(),
+      });
+      this.tasks.update((list) => [...list, created]);
+      this.newTaskTitle.set('');
+      if (this.newTaskInputRef) this.newTaskInputRef.nativeElement.value = '';
+      this.focusNewTaskInput();
+    } catch {
+      this.error.set("Échec de l'ajout de la tâche.");
+    }
+  }
+
+  private async updateTask(task: CardTask, changes: Parameters<CardTasksService['update']>[3]): Promise<void> {
+    try {
+      const updated = await this.cardTasksService.update(this.kanbanId, this.ticketId, task.id, changes);
+      this.tasks.update((list) => list.map((t) => (t.id === updated.id ? updated : t)));
+    } catch {
+      this.error.set('Échec de la mise à jour de la tâche.');
+    }
+  }
+
+  async toggleTask(task: CardTask): Promise<void> {
+    await this.updateTask(task, { done: !task.done_at });
+  }
+
+  async assignTask(task: CardTask, userId: number | null): Promise<void> {
+    if (userId === task.assigned_user_id) return;
+    await this.updateTask(task, { assigned_user_id: userId });
+  }
+
+  startEditingTask(task: CardTask): void {
+    this.editingTaskId.set(task.id);
+    // Le champ n'existe qu'après le prochain rendu.
+    setTimeout(() => {
+      const input = this.taskTitleInputRef?.nativeElement;
+      input?.focus();
+      input?.select();
+    });
+  }
+
+  cancelEditingTask(): void {
+    this.editingTaskId.set(null);
+  }
+
+  async saveTaskTitle(task: CardTask, value: string): Promise<void> {
+    // Le blur suit souvent un Entrée/Échap qui a déjà clos l'édition : on ignore alors.
+    if (this.editingTaskId() !== task.id) return;
+    this.editingTaskId.set(null);
+    const title = value.trim();
+    if (!title || title === task.title) return;
+    await this.updateTask(task, { title });
+  }
+
+  async removeTask(task: CardTask): Promise<void> {
+    if (!confirm(`Supprimer la tâche "${task.title}" ?`)) return;
+    try {
+      await this.cardTasksService.remove(this.kanbanId, this.ticketId, task.id);
+      this.tasks.update((list) => list.filter((t) => t.id !== task.id));
+    } catch {
+      this.error.set('Échec de la suppression de la tâche.');
     }
   }
 

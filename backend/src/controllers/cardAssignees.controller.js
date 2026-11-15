@@ -2,6 +2,7 @@ const db = require('../db/connection');
 const { PUBLISHED_COLUMN_NAME, isPublishedColumn, statusLabelFor, withKey, fetchCardWithRelations } = require('../utils/card-status');
 const { notifyWatchersAndTargets } = require('../utils/notify');
 const { notifyDiscord } = require('../utils/discord');
+const { transferTaskAssignments, releaseOrphanTaskAssignments } = require('../utils/card-tasks');
 
 const VALID_ACTIONS = ['add', 'replace'];
 
@@ -71,6 +72,7 @@ function removeAssignee(req, res) {
   const trimmedReason = String(reason).trim();
   const tx = db.transaction(() => {
     db.prepare('DELETE FROM card_assignees WHERE card_id = ? AND user_id = ?').run(card.id, userId);
+    releaseOrphanTaskAssignments(card.id);
     db.prepare(
       `INSERT INTO card_assignment_history (card_id, action, previous_user_id, reason, performed_by_user_id)
        VALUES (?, 'remove', ?, ?, ?)`
@@ -187,6 +189,8 @@ function upsertAssignment(req, res) {
       db.prepare('DELETE FROM card_assignees WHERE card_id = ? AND user_id = ?').run(card.id, user_id);
       db.prepare('UPDATE cards SET assigned_user_id = ? WHERE id = ?').run(user_id, card.id);
     }
+    // Les tâches de la personne remplacée passent à son remplaçant.
+    transferTaskAssignments(card.id, previousUserId, Number(user_id));
 
     if (cancel === true) {
       db.prepare("UPDATE cards SET cancelled_at = datetime('now') WHERE id = ?").run(card.id);

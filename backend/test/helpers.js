@@ -15,7 +15,7 @@ function resetDb() {
   db.exec(
     `DELETE FROM notifications; DELETE FROM announcements;
      DELETE FROM comments; DELETE FROM card_links; DELETE FROM card_images;
-     DELETE FROM card_assignment_history; DELETE FROM card_assignees; DELETE FROM card_tags; DELETE FROM cards;
+     DELETE FROM card_tasks; DELETE FROM card_assignment_history; DELETE FROM card_assignees; DELETE FROM card_tags; DELETE FROM cards;
      DELETE FROM epics; DELETE FROM tags; DELETE FROM columns;
      DELETE FROM kanban_discord; DELETE FROM kanban_members; DELETE FROM kanbans; DELETE FROM users;`
   );

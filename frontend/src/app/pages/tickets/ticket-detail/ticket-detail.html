@@ -165,6 +165,206 @@
           }
         </section>
 
+        <section class="tasks-section mt-4 rounded-lg border border-border bg-surface p-4">
+          <div class="mb-2 flex items-center justify-between gap-3">
+            <h2 class="text-sm font-semibold text-text-soft">
+              Tâches
+              @if (tasks().length > 0) {
+                <span class="tasks-counter ml-1 font-normal text-text-muted">({{ tasksDoneCount() }}/{{ tasks().length }})</span>
+              }
+            </h2>
+            @if (tasks().length > 0) {
+              <div class="flex w-32 items-center gap-2">
+                <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-muted">
+                  <div
+                    class="h-full rounded-full transition-all duration-300"
+                    [class]="tasksDoneCount() === tasks().length ? 'bg-success' : 'bg-brand'"
+                    [style.width.%]="tasksProgressPercent()"
+                  ></div>
+                </div>
+                <span class="text-xs text-text-muted">{{ tasksProgressPercent() }}%</span>
+              </div>
+            }
+          </div>
+
+          <ul class="-mx-2 flex flex-col">
+            @for (task of tasks(); track task.id) {
+              <li class="task-item group flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-surface-alt">
+                <!-- Case à cocher custom : un bouton role="checkbox" plutôt qu'un <input> natif,
+                     impossible à styler proprement d'un navigateur à l'autre. -->
+                <button
+                  type="button"
+                  role="checkbox"
+                  class="task-checkbox flex h-[18px] w-[18px] shrink-0 cursor-pointer items-center justify-center rounded-[5px] border-2 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 active:scale-90"
+                  [class]="
+                    task.done_at
+                      ? 'border-success bg-success text-white'
+                      : 'border-border-strong bg-surface text-transparent hover:border-brand hover:text-brand/40'
+                  "
+                  [attr.aria-checked]="!!task.done_at"
+                  [attr.aria-label]="task.title"
+                  [title]="
+                    task.done_at
+                      ? 'Terminée par ' + (task.done_by_username ?? '?') + ' le ' + formatDateTime(task.done_at) + ' — cliquer pour rouvrir'
+                      : 'Marquer comme terminée'
+                  "
+                  (click)="toggleTask(task)"
+                >
+                  <svg viewBox="0 0 16 16" class="h-3 w-3" fill="none" aria-hidden="true">
+                    <path
+                      d="M3.5 8.5l3 3 6-7"
+                      stroke="currentColor"
+                      stroke-width="2.25"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </button>
+
+                @if (editingTaskId() === task.id) {
+                  <input
+                    #taskTitleInput
+                    type="text"
+                    class="min-w-0 flex-1 rounded border border-brand bg-surface px-1.5 py-0.5 text-sm text-text focus:outline-none"
+                    [value]="task.title"
+                    maxlength="500"
+                    aria-label="Titre de la tâche"
+                    (keydown.enter)="saveTaskTitle(task, taskTitleInput.value)"
+                    (keydown.escape)="cancelEditingTask()"
+                    (blur)="saveTaskTitle(task, taskTitleInput.value)"
+                  />
+                } @else {
+                  <span
+                    class="min-w-0 flex-1 cursor-text break-words transition-colors"
+                    [class]="task.done_at ? 'text-text-faint line-through' : 'text-text'"
+                    title="Double-cliquer pour modifier"
+                    (dblclick)="startEditingTask(task)"
+                  >
+                    {{ task.title }}
+                  </span>
+                }
+
+                <app-search-select
+                  class="task-assignee shrink-0"
+                  [customTrigger]="true"
+                  triggerClass="rounded-full hover:ring-2 hover:ring-brand/60"
+                  [triggerTitle]="task.assigned_username ? 'Assignée à ' + task.assigned_username + ' (cliquer pour changer)' : 'Assigner la tâche'"
+                  [options]="taskAssigneeOptions()"
+                  [value]="task.assigned_user_id"
+                  nullLabel="— Personne —"
+                  searchPlaceholder="Assigner à..."
+                  (valueChange)="assignTask(task, $event)"
+                >
+                  @if (task.assigned_user_id) {
+                    <span
+                      class="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-brand text-[10px] font-semibold text-white"
+                    >
+                      @if (task.assigned_avatar_url; as avatar) {
+                        <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                      } @else {
+                        {{ (task.assigned_username ?? '?').charAt(0).toUpperCase() }}
+                      }
+                    </span>
+                  } @else {
+                    <span
+                      class="flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-border-strong text-text-faint opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <svg viewBox="0 0 20 20" class="h-3.5 w-3.5 fill-current" aria-hidden="true">
+                        <path d="M10 10a3 3 0 100-6 3 3 0 000 6zM3.5 16a6.5 6.5 0 0113 0 .75.75 0 01-.75.75H4.25A.75.75 0 013.5 16z" />
+                      </svg>
+                    </span>
+                  }
+                </app-search-select>
+
+                <button
+                  type="button"
+                  class="shrink-0 rounded p-0.5 text-text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:text-danger focus:opacity-100"
+                  title="Supprimer la tâche"
+                  (click)="removeTask(task)"
+                >
+                  <svg viewBox="0 0 20 20" class="h-4 w-4 fill-current" aria-hidden="true">
+                    <path
+                      d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4z"
+                    />
+                  </svg>
+                </button>
+              </li>
+            }
+
+            <!-- Ajout d'une tâche : une ligne "fantôme" qui se transforme en tâche éditable,
+                 pour saisir plusieurs tâches d'affilée au clavier (Entrée = ajouter et continuer). -->
+            @if (addingTask()) {
+              <li class="task-composer flex items-center gap-2.5 rounded-md bg-surface-alt px-2 py-1.5 text-sm">
+                <span class="h-[18px] w-[18px] shrink-0 rounded-[5px] border-2 border-dashed border-brand/50"></span>
+                <input
+                  #newTaskInput
+                  type="text"
+                  class="min-w-0 flex-1 bg-transparent text-sm text-text placeholder:text-text-faint focus:outline-none"
+                  placeholder="Que faut-il faire ?"
+                  maxlength="500"
+                  aria-label="Nouvelle tâche"
+                  [value]="newTaskTitle()"
+                  (input)="newTaskTitle.set(newTaskInput.value)"
+                  (keydown.enter)="addTask()"
+                  (keydown.escape)="closeTaskComposer()"
+                />
+                <app-search-select
+                  class="new-task-assignee shrink-0"
+                  [customTrigger]="true"
+                  triggerClass="rounded-full hover:ring-2 hover:ring-brand/60"
+                  [triggerTitle]="newTaskAssignee() ? 'Assignée à ' + newTaskAssignee()!.username : 'Assigner la tâche (optionnel)'"
+                  [options]="taskAssigneeOptions()"
+                  [value]="newTaskAssigneeId()"
+                  nullLabel="— Personne —"
+                  searchPlaceholder="Assigner à..."
+                  (valueChange)="newTaskAssigneeId.set($event); focusNewTaskInput()"
+                >
+                  @if (newTaskAssignee(); as assignee) {
+                    <span
+                      class="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-brand text-[10px] font-semibold text-white"
+                    >
+                      @if (assignee.avatar_url; as avatar) {
+                        <img [src]="avatar" class="h-full w-full object-cover" alt="" />
+                      } @else {
+                        {{ assignee.username.charAt(0).toUpperCase() }}
+                      }
+                    </span>
+                  } @else {
+                    <span
+                      class="flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-border-strong text-text-faint"
+                    >
+                      <svg viewBox="0 0 20 20" class="h-3.5 w-3.5 fill-current" aria-hidden="true">
+                        <path d="M10 10a3 3 0 100-6 3 3 0 000 6zM3.5 16a6.5 6.5 0 0113 0 .75.75 0 01-.75.75H4.25A.75.75 0 013.5 16z" />
+                      </svg>
+                    </span>
+                  }
+                </app-search-select>
+              </li>
+              <li class="px-2 pt-1 text-[11px] text-text-faint">
+                <kbd class="rounded border border-border px-1 font-sans">Entrée</kbd> pour ajouter ·
+                <kbd class="rounded border border-border px-1 font-sans">Échap</kbd> pour fermer
+              </li>
+            } @else {
+              <li>
+                <button
+                  type="button"
+                  class="open-task-composer flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm text-text-muted transition-colors hover:bg-surface-alt hover:text-brand"
+                  (click)="openTaskComposer()"
+                >
+                  <span
+                    class="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border-2 border-dashed border-current"
+                  >
+                    <svg viewBox="0 0 16 16" class="h-2.5 w-2.5" fill="none" aria-hidden="true">
+                      <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                    </svg>
+                  </span>
+                  Ajouter une tâche
+                </button>
+              </li>
+            }
+          </ul>
+        </section>
+
         @if (clonedFrom() || clones().length > 0) {
           <section class="mt-4 rounded-lg border border-border bg-surface p-4">
             <h2 class="mb-2 text-sm font-semibold text-text-soft">Clonage</h2>
