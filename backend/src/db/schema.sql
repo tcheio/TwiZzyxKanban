@@ -182,6 +182,24 @@ CREATE TABLE IF NOT EXISTS card_assignment_history (
 
 CREATE INDEX IF NOT EXISTS idx_card_assignment_history_card ON card_assignment_history(card_id);
 
+-- Tâches (checklist) d'un ticket. Une tâche peut être assignée à l'une des personnes
+-- reliées au ticket (responsable principal ou additionnel) ; si cette personne perd sa
+-- place sur le ticket, la tâche est transférée à son remplaçant ou désassignée
+-- (cf utils/card-tasks.js). done_at NULL = tâche non terminée.
+CREATE TABLE IF NOT EXISTS card_tasks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  assigned_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  done_at TEXT,
+  done_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_tasks_card ON card_tasks(card_id);
+
 -- Notifications adressées aux responsables (principal + additionnels) d'un ticket, à
 -- chaque changement de tag, de responsable, de statut ou nouveau commentaire.
 CREATE TABLE IF NOT EXISTS notifications (

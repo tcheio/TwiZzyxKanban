@@ -7,6 +7,7 @@ const cardLinksRoutes = require('./cardLinks.routes');
 const cardImagesRoutes = require('./cardImages.routes');
 const cardAssigneesRoutes = require('./cardAssignees.routes');
 const cardTagsRoutes = require('./cardTags.routes');
+const cardTasksRoutes = require('./cardTasks.routes');
 
 const router = express.Router({ mergeParams: true });
 
@@ -25,5 +26,6 @@ router.use('/:id/links', cardLinksRoutes);
 router.use('/:id/images', cardImagesRoutes);
 router.use('/:id/assignees', cardAssigneesRoutes);
 router.use('/:id/tags', cardTagsRoutes);
+router.use('/:id/tasks', cardTasksRoutes);
 
 module.exports = router;

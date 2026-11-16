@@ -10,11 +10,13 @@ import { CardLinksService } from '../../../services/tickets/card-links.service';
 import { CardImagesService } from '../../../services/tickets/card-images.service';
 import { CardAssigneesService } from '../../../services/tickets/card-assignees.service';
 import { CardTagsService } from '../../../services/tickets/card-tags.service';
+import { CardTasksService } from '../../../services/tickets/card-tasks.service';
 import { TagsService } from '../../../services/board/tags.service';
 import { EpicsService } from '../../../services/board/epics.service';
 import { AuthService } from '../../../core/auth.service';
 import { Card } from '../../../models/card.model';
 import { Comment } from '../../../models/comment.model';
+import { CardTask } from '../../../models/card-task.model';
 
 describe('TicketDetail', () => {
   let component: TicketDetail;
@@ -52,6 +54,12 @@ describe('TicketDetail', () => {
     add: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
   };
+  let cardTasksService: {
+    list: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
+  };
   let columnsService: { list: ReturnType<typeof vi.fn> };
   let tagsService: { list: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   let navigate: ReturnType<typeof vi.fn>;
@@ -85,6 +93,24 @@ describe('TicketDetail', () => {
   ];
   let kanbanData: { id: number; name: string; code: string; is_moderator: boolean };
 
+  function makeTask(partial: Partial<CardTask> = {}): CardTask {
+    return {
+      id: 1,
+      card_id: 5,
+      title: 'Écrire le script',
+      position: 0,
+      assigned_user_id: null,
+      assigned_username: null,
+      assigned_avatar_url: null,
+      done_at: null,
+      done_by_user_id: null,
+      done_by_username: null,
+      created_by_user_id: 1,
+      created_at: '2026-11-15 09:00:00',
+      ...partial,
+    };
+  }
+
   beforeEach(() => {
     kanbanData = { id: 5, name: 'Kanban Test', code: 'TK-TEST', is_moderator: false };
     navigate = vi.fn();
@@ -117,6 +143,23 @@ describe('TicketDetail', () => {
       add: vi.fn().mockResolvedValue({ ...ticket, tag_ids: [2] }),
       remove: vi.fn().mockResolvedValue({ ...ticket, tag_ids: [] }),
     };
+    cardTasksService = {
+      list: vi.fn().mockResolvedValue([]),
+      create: vi.fn().mockImplementation((kanbanId, cardId, input) =>
+        Promise.resolve(makeTask({ id: 99, title: input.title, assigned_user_id: input.assigned_user_id ?? null }))
+      ),
+      update: vi.fn().mockImplementation((kanbanId, cardId, taskId, changes) =>
+        Promise.resolve(
+          makeTask({
+            id: taskId,
+            ...('title' in changes ? { title: changes.title } : {}),
+            ...('assigned_user_id' in changes ? { assigned_user_id: changes.assigned_user_id } : {}),
+            done_at: changes.done ? '2026-11-15 10:00:00' : null,
+          })
+        )
+      ),
+      remove: vi.fn().mockResolvedValue(undefined),
+    };
     cardImagesService = {
       list: vi.fn().mockResolvedValue([]),
       upload: vi.fn().mockResolvedValue({ id: 1, card_id: 5, data_url: 'data:image/jpeg;base64,AAA' }),
@@ -137,6 +180,7 @@ describe('TicketDetail', () => {
         { provide: CardImagesService, useValue: cardImagesService },
         { provide: CardAssigneesService, useValue: cardAssigneesService },
         { provide: CardTagsService, useValue: cardTagsService },
+        { provide: CardTasksService, useValue: cardTasksService },
         { provide: AuthService, useValue: { currentUser } },
         { provide: Router, useValue: { navigate } },
         {
@@ -1102,5 +1146,153 @@ describe('TicketDetail', () => {
     thumbnailButton.click();
 
     expect(component.viewingImageUrl()).toBe('data:image/jpeg;base64,ZZZ');
+  });
+  describe('tâches', () => {
+    it('reload() charge les tâches du ticket', async () => {
+      cardTasksService.list.mockResolvedValue([makeTask(), makeTask({ id: 2, done_at: '2026-11-15' })]);
+      await component.reload();
+      expect(cardTasksService.list).toHaveBeenCalledWith(5, 5);
+      expect(component.tasks().length).toBe(2);
+      expect(component.tasksDoneCount()).toBe(1);
+      expect(component.tasksProgressPercent()).toBe(50);
+    });
+
+    it('addTask() crée la tâche, vide le titre mais garde la personne pour enchaîner', async () => {
+      await component.reload();
+      component.openTaskComposer();
+      component.newTaskTitle.set('  Monter  ');
+      component.newTaskAssigneeId.set(1);
+      await component.addTask();
+      expect(cardTasksService.create).toHaveBeenCalledWith(5, 5, { title: 'Monter', assigned_user_id: 1 });
+      expect(component.tasks().map((t) => t.title)).toEqual(['Monter']);
+      expect(component.newTaskTitle()).toBe('');
+      expect(component.newTaskAssigneeId()).toBe(1);
+      expect(component.addingTask()).toBe(true);
+    });
+
+    it("closeTaskComposer() replie la ligne d'ajout et réinitialise la saisie", async () => {
+      await component.reload();
+      component.openTaskComposer();
+      component.newTaskTitle.set('Brouillon');
+      component.newTaskAssigneeId.set(1);
+      component.closeTaskComposer();
+      expect(component.addingTask()).toBe(false);
+      expect(component.newTaskTitle()).toBe('');
+      expect(component.newTaskAssigneeId()).toBeNull();
+    });
+
+    it('newTaskAssignee() résout la personne choisie pour la nouvelle tâche', async () => {
+      await component.reload();
+      expect(component.newTaskAssignee()).toBeNull();
+      component.newTaskAssigneeId.set(1);
+      expect(component.newTaskAssignee()?.username).toBe('alice');
+    });
+
+    it('le bouton "Ajouter une tâche" ouvre la ligne de saisie', async () => {
+      await component.reload();
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.task-composer')).toBeNull();
+      (el.querySelector('.open-task-composer') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(el.querySelector('.task-composer input')).not.toBeNull();
+    });
+
+    it('cliquer sur la case custom coche la tâche et reflète aria-checked', async () => {
+      cardTasksService.list.mockResolvedValue([makeTask()]);
+      await component.reload();
+      fixture.detectChanges();
+      // Le premier detectChanges() déclenche ngOnInit() et donc un second reload() : on le
+      // laisse se terminer pour qu'il n'écrase pas la tâche cochée juste après.
+      await vi.waitFor(() => expect(component.loading()).toBe(false));
+      await new Promise((resolve) => setTimeout(resolve));
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      const checkbox = el.querySelector('.task-checkbox') as HTMLButtonElement;
+      expect(checkbox.getAttribute('aria-checked')).toBe('false');
+      checkbox.click();
+      await vi.waitFor(() => expect(component.tasks()[0].done_at).not.toBeNull());
+      fixture.detectChanges();
+      expect(cardTasksService.update).toHaveBeenCalledWith(5, 5, 1, { done: true });
+      expect((el.querySelector('.task-checkbox') as HTMLButtonElement).getAttribute('aria-checked')).toBe('true');
+    });
+
+    it("addTask() n'appelle pas le backend avec un titre vide", async () => {
+      await component.reload();
+      component.newTaskTitle.set('   ');
+      await component.addTask();
+      expect(cardTasksService.create).not.toHaveBeenCalled();
+    });
+
+    it('toggleTask() coche puis décoche une tâche', async () => {
+      cardTasksService.list.mockResolvedValue([makeTask()]);
+      await component.reload();
+      await component.toggleTask(component.tasks()[0]);
+      expect(cardTasksService.update).toHaveBeenCalledWith(5, 5, 1, { done: true });
+      expect(component.tasks()[0].done_at).not.toBeNull();
+
+      await component.toggleTask(component.tasks()[0]);
+      expect(cardTasksService.update).toHaveBeenLastCalledWith(5, 5, 1, { done: false });
+      expect(component.tasks()[0].done_at).toBeNull();
+    });
+
+    it('taskAssigneeOptions() ne propose que les responsables du ticket', async () => {
+      cardAssigneesService.list.mockResolvedValue([
+        { id: 1, card_id: 5, user_id: 2, username: 'bob', avatar_url: null, created_at: '2026-01-01' },
+      ]);
+      await component.reload();
+      expect(component.taskAssigneeOptions().map((o) => o.label)).toEqual(['alice', 'bob']);
+    });
+
+    it('assignTask() met à jour la personne assignée (ou la retire)', async () => {
+      cardTasksService.list.mockResolvedValue([makeTask()]);
+      await component.reload();
+      await component.assignTask(component.tasks()[0], 1);
+      expect(cardTasksService.update).toHaveBeenCalledWith(5, 5, 1, { assigned_user_id: 1 });
+
+      await component.assignTask(component.tasks()[0], null);
+      expect(cardTasksService.update).toHaveBeenLastCalledWith(5, 5, 1, { assigned_user_id: null });
+    });
+
+    it("saveTaskTitle() renomme la tâche en cours d'édition, sans appel si inchangé", async () => {
+      cardTasksService.list.mockResolvedValue([makeTask()]);
+      await component.reload();
+      const task = component.tasks()[0];
+
+      component.editingTaskId.set(task.id);
+      await component.saveTaskTitle(task, task.title);
+      expect(cardTasksService.update).not.toHaveBeenCalled();
+
+      component.editingTaskId.set(task.id);
+      await component.saveTaskTitle(task, ' Nouveau titre ');
+      expect(cardTasksService.update).toHaveBeenCalledWith(5, 5, 1, { title: 'Nouveau titre' });
+      expect(component.editingTaskId()).toBeNull();
+    });
+
+    it('removeTask() supprime la tâche après confirmation', async () => {
+      cardTasksService.list.mockResolvedValue([makeTask()]);
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      await component.reload();
+      await component.removeTask(component.tasks()[0]);
+      expect(cardTasksService.remove).toHaveBeenCalledWith(5, 5, 1);
+      expect(component.tasks()).toEqual([]);
+      confirmSpy.mockRestore();
+    });
+
+    it('un changement de responsable recharge les tâches (transfert côté backend)', async () => {
+      await component.reload();
+      cardTasksService.list.mockClear();
+      await component.saveAssignment({ action: 'add', user_id: 2 });
+      expect(cardTasksService.list).toHaveBeenCalledWith(5, 5);
+    });
+
+    it('affiche la section Tâches avec le compteur', async () => {
+      cardTasksService.list.mockResolvedValue([makeTask(), makeTask({ id: 2, title: 'Tourner', done_at: '2026-11-15' })]);
+      await component.reload();
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelectorAll('.task-item').length).toBe(2);
+      expect(el.querySelector('.tasks-counter')?.textContent).toContain('1/2');
+    });
   });
 });

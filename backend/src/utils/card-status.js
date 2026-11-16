@@ -37,10 +37,13 @@ function logColumnEntry(cardId, columnId, enteredAt) {
 // Les tags/responsables additionnels (card_tags / card_assignees) sont ramenés en
 // tableaux `tag_ids` / `assignee_ids` embarqués sur la carte elle-même (plutôt qu'un
 // appel séparé par carte) : le tableau (board) affiche toutes les cartes d'un coup et
-// doit pouvoir montrer ces associations sans multiplier les requêtes.
+// doit pouvoir montrer ces associations sans multiplier les requêtes. Même principe pour
+// l'avancement des tâches (`tasks_done` / `tasks_total`).
 const EXTRA_RELATIONS_SUBQUERY = `
   (SELECT GROUP_CONCAT(tag_id) FROM card_tags WHERE card_tags.card_id = cards.id) AS extra_tag_ids,
-  (SELECT GROUP_CONCAT(user_id) FROM card_assignees WHERE card_assignees.card_id = cards.id) AS extra_assignee_ids
+  (SELECT GROUP_CONCAT(user_id) FROM card_assignees WHERE card_assignees.card_id = cards.id) AS extra_assignee_ids,
+  (SELECT COUNT(*) FROM card_tasks WHERE card_tasks.card_id = cards.id) AS tasks_total,
+  (SELECT COUNT(*) FROM card_tasks WHERE card_tasks.card_id = cards.id AND card_tasks.done_at IS NOT NULL) AS tasks_done
 `;
 
 function mapCardRelations(card) {
